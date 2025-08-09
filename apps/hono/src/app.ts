@@ -1,5 +1,6 @@
 import { otel } from '@hono/otel';
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { contextStorage } from 'hono/context-storage';
 import { cors } from 'hono/cors';
 import { csrf } from 'hono/csrf';
 import { HTTPException } from 'hono/http-exception';
@@ -8,9 +9,8 @@ import { logger as loggerMiddleware } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 import { requestId } from 'hono/request-id';
 import { secureHeaders } from 'hono/secure-headers';
-import { timing } from 'hono/timing';
 import { timeout } from 'hono/timeout';
-import { contextStorage } from 'hono/context-storage';
+import { timing } from 'hono/timing';
 import { rateLimiter } from 'hono-rate-limiter';
 import { HTTPError } from 'ky';
 import { ZodError } from 'zod';
@@ -65,7 +65,7 @@ app.use(
     //   origin: ['localhost:3000'],
     // },
   ),
-  secureHeaders(),
+  secureHeaders()
 );
 
 await routes(app);
