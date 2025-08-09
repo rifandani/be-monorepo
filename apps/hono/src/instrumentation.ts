@@ -1,15 +1,15 @@
 // import * as fs from 'node:fs';
 // import * as path from 'node:path';
 import { DiagConsoleLogger, DiagLogLevel, diag } from '@opentelemetry/api';
+// import { type ExportResult, ExportResultCode } from '@opentelemetry/core';
+import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { DnsInstrumentation } from '@opentelemetry/instrumentation-dns';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { NetInstrumentation } from '@opentelemetry/instrumentation-net';
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runtime-node';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
-// import { type ExportResult, ExportResultCode } from '@opentelemetry/core';
-import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { NodeSDK } from '@opentelemetry/sdk-node';
@@ -111,15 +111,15 @@ const sdk = new NodeSDK({
     // new FsInstrumentation(), too verbose
     new HttpInstrumentation({
       ignoreIncomingRequestHook: (request) => {
-        const openApiRegex = /^\/openapi(?:\/.*)?$/
-        const wellKnownRegex = /^\/\.well-known\/.*/
-        const imageRegex = /\.(?:png|jpg|jpeg|gif|svg|ico|webp)$/i
+        const openApiRegex = /^\/openapi(?:\/.*)?$/;
+        const wellKnownRegex = /^\/\.well-known\/.*/;
+        const imageRegex = /\.(?:png|jpg|jpeg|gif|svg|ico|webp)$/i;
 
         return (
-          openApiRegex.test(request.url ?? '')
-          || wellKnownRegex.test(request.url ?? '')
-          || imageRegex.test(request.url ?? '')
-        )
+          openApiRegex.test(request.url ?? '') ||
+          wellKnownRegex.test(request.url ?? '') ||
+          imageRegex.test(request.url ?? '')
+        );
       },
     }),
     new NetInstrumentation(),

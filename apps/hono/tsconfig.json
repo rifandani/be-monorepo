@@ -6,11 +6,18 @@
     "baseUrl": ".",
     "declaration": false,
     "declarationMap": false,
+    "resolveJsonModule": true,
     "paths": {
       "@/*": ["./src/*"],
       "@workspace/core/*": ["../../packages/core/src/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", "**/*.spec.ts", "vitest.config.ts"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.spec.ts",
+    "**/*.json",
+    "vitest.config.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

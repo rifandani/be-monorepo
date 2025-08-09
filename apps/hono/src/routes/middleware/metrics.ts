@@ -2,9 +2,10 @@ import { performance } from 'node:perf_hooks';
 import { metrics, ValueType } from '@opentelemetry/api';
 import type { MiddlewareHandler } from 'hono';
 import { routePath } from 'hono/route';
+import { SERVICE_NAME, SERVICE_VERSION } from '@/core/constants/global.js';
 
 // Create a meter instance for recording metrics
-const meter = metrics.getMeter('hono_middleware_meter', '1.0.0');
+const meter = metrics.getMeter(SERVICE_NAME, SERVICE_VERSION);
 
 // Create a histogram to record response times in milliseconds
 const responseTimeHistogram = meter.createHistogram(

@@ -3,7 +3,6 @@
 ## 🎯 Todo
 
 - [ ] try otel metrics
-- [ ] change `SERVICE_NAME` to be `ENV.APP_TITLE`
 
 ## 💾 How to Database
 
