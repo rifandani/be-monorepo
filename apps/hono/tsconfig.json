@@ -1,0 +1,16 @@
+{
+  "extends": "@workspace/typescript-config/node.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
+    "baseUrl": ".",
+    "declaration": false,
+    "declarationMap": false,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@workspace/core/*": ["../../packages/core/src/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "**/*.spec.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

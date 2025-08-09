@@ -1,0 +1,28 @@
+{
+  "name": "@workspace/core",
+  "version": "1.0.0",
+  "author": "Tri Rizeki Rifandani",
+  "devDependencies": {
+    "@types/node": "24.2.1",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "5.9.2"
+  },
+  "peerDependencies": {
+    "ky": "1.8.2",
+    "radashi": "12.6.0",
+    "type-fest": "4.41.0",
+    "zod": "4.0.15"
+  },
+  "exports": {
+    "./apis/*": "./src/apis/*.ts",
+    "./assets/*": "./src/assets/*",
+    "./constants/*": "./src/constants/*.ts",
+    "./services/*": "./src/services/*.ts",
+    "./types/*": "./src/types/*.ts",
+    "./utils/*": "./src/utils/*.ts"
+  },
+  "description": "Shared core module for monorepo",
+  "license": "MIT",
+  "private": true,
+  "type": "module"
+}

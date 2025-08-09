@@ -1,0 +1,54 @@
+{
+  "name": "be-monorepo",
+  "version": "1.0.0",
+  "author": "Tri Rizeki Rifandani",
+  "devDependencies": {
+    "@biomejs/biome": "2.1.4",
+    "@commitlint/cli": "19.8.1",
+    "@commitlint/config-conventional": "19.8.1",
+    "@types/node": "24.2.1",
+    "@workspace/typescript-config": "workspace:*",
+    "husky": "9.1.7",
+    "npm-run-all2": "8.0.4",
+    "rimraf": "6.0.1",
+    "tsx": "4.20.3",
+    "typescript": "5.9.2",
+    "ultracite": "5.1.2"
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "description": "BE Monorepo Template",
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "bun@1.2.19",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "compose:up": "docker compose -f ./docker/docker-compose.yml up --build",
+    "clean": "rimraf --glob \"**/node_modules\" \"**/dev-dist\" \"**/dist\" \"**/dev-build\" \"**/build\" \"**/bun.lock\" && bun install",
+    "bump-deps": "bunx npm-check-updates --deep -u --peer -x @babel*,tamagui",
+    "cs": "changeset",
+    "cs:v": "changeset version",
+    "format": "ultracite format",
+    "format:unsafe": "ultracite format --unsafe",
+    "lint": "ultracite lint",
+    "lint-typecheck": "run-p lint hono:typecheck",
+    "hono": "bun --elide-lines=0 --filter @workspace/hono",
+    "hono:ci": "bun --filter @workspace/hono",
+    "hono:typecheck": "bun hono:ci typecheck"
+  },
+  "trustedDependencies": [
+    "@biomejs/biome",
+    "esbuild",
+    "protobufjs",
+    "vue-demi"
+  ],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}

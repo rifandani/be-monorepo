@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  # The "FORCE_COLOR" variable, when set to 1
+  FORCE_COLOR: "1"
+
+jobs:
+  sherif:
+    name: Lint monorepos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: QuiiBz/sherif@v1.6.1
+        # with:
+        # args: '--ignore-rule root-package-manager-field'
+
+  lint-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4.2.2
+
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install deps
+        run: bun i
+
+      - name: Lint
+        run: bun lint-typecheck

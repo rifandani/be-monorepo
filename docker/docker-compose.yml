@@ -1,0 +1,45 @@
+name: be-monorepo
+
+services:
+  redis_cache:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_cache_data:/data
+    restart: unless-stopped
+
+  postgres_db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: postgres_db
+      POSTGRES_USER: postgres_db
+      POSTGRES_PASSWORD: postgres_db
+    # DATABASE_URL === postgres://postgres_db:postgres_db@db:5432/postgres_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  otel_lgtm:
+    image: docker.io/grafana/otel-lgtm:latest
+    ports:
+      - "3111:3000" # Grafana UI
+      - "4317:4317" # OTLP gRPC receiver
+      - "4318:4318" # OTLP http receiver
+    volumes:
+      - ./container/grafana:/data/grafana
+      - ./container/prometheus:/data/prometheus
+      - ./container/loki:/data/loki
+    environment:
+      - GF_PATHS_DATA=/data/grafana
+    env_file:
+      - ./.env
+    # stdin_open: true
+    # tty: true
+
+# Stores data outside the container to ensure persistence
+volumes:
+  postgres_db_data:
+  redis_cache_data: 
