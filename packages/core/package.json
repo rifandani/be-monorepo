@@ -7,11 +7,11 @@
     "@workspace/typescript-config": "workspace:*",
     "typescript": "5.9.2"
   },
-  "peerDependencies": {
+  "dependencies": {
     "ky": "1.8.2",
-    "radashi": "12.6.0",
+    "radashi": "12.6.1",
     "type-fest": "4.41.0",
-    "zod": "4.0.15"
+    "zod": "4.0.17"
   },
   "exports": {
     "./apis/*": "./src/apis/*.ts",

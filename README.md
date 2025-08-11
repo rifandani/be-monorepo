@@ -8,12 +8,12 @@
 
 ## 📝 Note
 
-- If there is any `zod` inside `node_modules` folder in the `apps/hono` or `apps/mastra` or `apps/web` folder, you need to remove it to make the autocomplete and typecheck work.
+~
 
 ## 📦 Prerequisite
 
 - Node >=24.4.1
-- Bun 1.2.19+
+- Bun 1.2.20+
 
 ## 🛠️ Upgrading Dependencies
 
