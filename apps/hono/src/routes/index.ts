@@ -1,7 +1,8 @@
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { Scalar } from '@scalar/hono-api-reference';
-import { createMarkdownFromOpenApi } from '@scalar/openapi-to-markdown';
 import { auth } from '@/auth/libs/index.js';
+import { ENV } from '@/core/constants/env.js';
+import { SERVICE_VERSION } from '@/core/constants/global.js';
 import type { Variables } from '@/core/types/hono.js';
 import { llmsDocsRoutes } from '@/routes/llms-docs.js';
 
@@ -10,8 +11,6 @@ export async function routes(
     Variables: Variables;
   }>
 ) {
-  llmsDocsRoutes(app);
-
   // betterauth routes
   app.on(['POST', 'GET'], '/api/auth/**', (c) => {
     return auth.handler(c.req.raw);
@@ -21,9 +20,9 @@ export async function routes(
   app.doc('/openapi', {
     openapi: '3.1.0',
     info: {
-      title: 'Hono',
-      version: '1.0.0',
-      description: 'Hono API',
+      title: ENV.APP_TITLE,
+      version: `v${SERVICE_VERSION}`,
+      description: 'API documentation for the Hono app',
     },
     servers: [
       {
@@ -36,10 +35,10 @@ export async function routes(
     '/openapi/docs',
     Scalar({
       theme: 'elysiajs',
-      pageTitle: 'Hono',
+      pageTitle: ENV.APP_TITLE,
       sources: [
         {
-          title: 'Hono',
+          title: ENV.APP_TITLE,
           url: '/openapi',
         },
         // {
@@ -50,17 +49,6 @@ export async function routes(
     })
   );
 
-  // markdown for LLMs. this should be placed after generating openapi docs
-  const content = app.getOpenAPI31Document({
-    openapi: '3.1.0',
-    info: {
-      title: 'Hono',
-      version: 'v1.0.0',
-    },
-  });
-  const markdown = await createMarkdownFromOpenApi(JSON.stringify(content));
-
-  app.get('/llms.txt', (c) => {
-    return c.text(markdown);
-  });
+  // our routes
+  await llmsDocsRoutes(app);
 }

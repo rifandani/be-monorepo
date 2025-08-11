@@ -16,11 +16,12 @@ import { HTTPError } from 'ky';
 import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { ENV } from '@/core/constants/env.js';
+import { SERVICE_NAME } from '@/core/constants/global.js';
 import type { Variables } from '@/core/types/hono.js';
 import { Logger } from '@/core/utils/logger.js';
 import { routes } from '@/routes/index.js';
 
-const logger = new Logger('honoApp');
+const logger = new Logger(SERVICE_NAME);
 const app = new OpenAPIHono<{
   Variables: Variables;
 }>(); // .basePath('/api/v1');
@@ -38,21 +39,13 @@ app.use(
   contextStorage(),
   loggerMiddleware(),
   // reqResLogger(),
-  rateLimiter({
-    windowMs: 60 * 1000, // 1 minute
-    limit: 600, // Limit each IP to 600 requests per `window` (here, per 1 minute).
-    standardHeaders: 'draft-6', // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
-    keyGenerator: () => crypto.randomUUID(), // Method to generate custom identifiers for clients (should be based on user id, session id, etc). For now, we use random UUID.
-    // store: ... , // To support multi-instance apps that runs behind load balancer, use centralized store like Redis (default is MemoryStore)
-  }),
   cors({
-    origin: [ENV.APP_URL, 'http://localhost:3002'],
+    origin: [ENV.APP_URL],
     allowMethods: ['GET', 'POST', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
     exposeHeaders: ['Content-Length'],
     credentials: true,
   }),
-  prettyJSON(),
   requestId(),
   timing(),
   timeout(10_000), // 10 seconds
@@ -65,7 +58,15 @@ app.use(
     //   origin: ['localhost:3000'],
     // },
   ),
-  secureHeaders()
+  secureHeaders(),
+  rateLimiter({
+    windowMs: 60 * 1000, // 1 minute
+    limit: 600, // Limit each IP to 600 requests per `window` (here, per 1 minute).
+    standardHeaders: 'draft-6', // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
+    keyGenerator: () => crypto.randomUUID(), // TODO: Method to generate custom identifiers for clients (should be based on user id, session id, etc). For now, we use random UUID.
+    // store: ... , // To support multi-instance apps that runs behind load balancer, use centralized store like Redis (default is MemoryStore)
+  }),
+  prettyJSON()
 );
 
 await routes(app);

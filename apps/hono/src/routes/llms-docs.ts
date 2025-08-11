@@ -1,6 +1,9 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createRoute, type OpenAPIHono, z } from '@hono/zod-openapi';
+import { createMarkdownFromOpenApi } from '@scalar/openapi-to-markdown';
+import { ENV } from '@/core/constants/env.js';
+import { SERVICE_VERSION } from '@/core/constants/global.js';
 import type { Variables } from '@/core/types/hono.js';
 
 /**
@@ -26,7 +29,7 @@ async function getAllFiles(dir: string): Promise<string[]> {
   return files;
 }
 
-export function llmsDocsRoutes(
+export async function llmsDocsRoutes(
   app: OpenAPIHono<{
     Variables: Variables;
   }>
@@ -36,8 +39,7 @@ export function llmsDocsRoutes(
       method: 'get',
       path: '/llms-docs',
       summary: 'LLMs Docs',
-      description:
-        'Get the combined content of the docs folder. Navigate to /llms.txt to see the markdown version of the OpenAPI docs, which can be used for LLMs.',
+      description: 'Get the combined content of the docs folder.',
       responses: {
         200: {
           description: 'Successful get the combined content of the docs',
@@ -67,9 +69,9 @@ export function llmsDocsRoutes(
       // read all the files and combine them into a single string
       let fullContent = '';
       for (const file of files) {
-        const content = await readFile(file, 'utf-8');
+        const fileContent = await readFile(file, 'utf-8');
 
-        fullContent += content;
+        fullContent += fileContent;
         fullContent += '\n\n';
       }
 
@@ -78,6 +80,52 @@ export function llmsDocsRoutes(
         length: fullContent.length,
         tokens: fullContent.length / 4,
       });
+    }
+  );
+
+  /**
+   * Register a route to serve the Markdown for LLMs
+   *
+   * Q: Why /llms.txt?
+   * A: It's a proposal to standardise on using an /llms.txt file.
+   *
+   * @see https://llmstxt.org/
+   */
+  const openapiObject = app.getOpenAPI31Document({
+    openapi: '3.1.0',
+    info: {
+      title: ENV.APP_TITLE,
+      version: `v${SERVICE_VERSION}`,
+    },
+  });
+  const markdown = await createMarkdownFromOpenApi(
+    JSON.stringify(openapiObject)
+  );
+
+  // this route should be placed at the end to be able to index the other routes OpenAPI docs
+  app.openapi(
+    createRoute({
+      method: 'get',
+      path: '/llms.txt',
+      summary: 'OpenAPI docs',
+      description:
+        'Markdown version of the OpenAPI docs, which can be used for LLMs.',
+      responses: {
+        200: {
+          description:
+            'Successful get the markdown version of the OpenAPI docs',
+          content: {
+            'text/plain': {
+              schema: z.string().openapi({
+                description: 'The markdown version of the OpenAPI docs',
+              }),
+            },
+          },
+        },
+      },
+    }),
+    (c) => {
+      return c.text(markdown);
     }
   );
 }

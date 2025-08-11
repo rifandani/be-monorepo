@@ -2,7 +2,9 @@
 
 ## 🎯 Todo
 
-- [ ] try otel metrics
+- [ ] example of hono api route testing
+- [ ] better-auth rate limit with postgresql
+- [ ] hono rate limit with postgresql
 
 ## 💾 How to Database
 
