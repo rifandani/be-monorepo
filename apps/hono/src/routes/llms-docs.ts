@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createRoute, type OpenAPIHono, z } from '@hono/zod-openapi';
 import { createMarkdownFromOpenApi } from '@scalar/openapi-to-markdown';
+import { auth } from '@/auth/libs/index.js';
 import { ENV } from '@/core/constants/env.js';
 import { SERVICE_VERSION } from '@/core/constants/global.js';
 import type { Variables } from '@/core/types/hono.js';
@@ -91,6 +92,39 @@ export async function llmsDocsRoutes(
    *
    * @see https://llmstxt.org/
    */
+  const betterauthOpenapiObject = await auth.api.generateOpenAPISchema();
+  const betterauthMarkdown = await createMarkdownFromOpenApi(
+    JSON.stringify(betterauthOpenapiObject)
+  );
+
+  // this route should be placed at the end to be able to index the better-auth routes OpenAPI docs
+  app.openapi(
+    createRoute({
+      method: 'get',
+      path: '/llms-auth.txt',
+      summary: 'BetterAuth OpenAPI docs',
+      description:
+        'Markdown version of the BetterAuth OpenAPI docs, which can be used for LLMs.',
+      responses: {
+        200: {
+          description:
+            'Successful get the markdown version of the BetterAuth OpenAPI docs',
+          content: {
+            'text/plain': {
+              schema: z.string().openapi({
+                description:
+                  'The markdown version of the BetterAuth OpenAPI docs',
+              }),
+            },
+          },
+        },
+      },
+    }),
+    (c) => {
+      return c.text(betterauthMarkdown);
+    }
+  );
+
   const openapiObject = app.getOpenAPI31Document({
     openapi: '3.1.0',
     info: {

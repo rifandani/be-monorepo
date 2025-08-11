@@ -1,9 +1,9 @@
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { Scalar } from '@scalar/hono-api-reference';
-import { auth } from '@/auth/libs/index.js';
 import { ENV } from '@/core/constants/env.js';
 import { SERVICE_VERSION } from '@/core/constants/global.js';
 import type { Variables } from '@/core/types/hono.js';
+import { authRoutes } from '@/routes/auth.js';
 import { llmsDocsRoutes } from '@/routes/llms-docs.js';
 
 export async function routes(
@@ -11,11 +11,6 @@ export async function routes(
     Variables: Variables;
   }>
 ) {
-  // betterauth routes
-  app.on(['POST', 'GET'], '/api/auth/**', (c) => {
-    return auth.handler(c.req.raw);
-  });
-
   // OpenAPI docs
   app.doc('/openapi', {
     openapi: '3.1.0',
@@ -48,6 +43,9 @@ export async function routes(
       ],
     })
   );
+
+  // betterauth routes
+  authRoutes(app);
 
   // our routes
   await llmsDocsRoutes(app);

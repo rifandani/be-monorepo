@@ -6,7 +6,7 @@ import { db } from '@/db/index.js';
 import * as schema from '@/db/schema.js';
 
 export const auth = betterAuth({
-  appName: 'ai-hono',
+  appName: ENV.APP_TITLE,
   secret: ENV.BETTER_AUTH_SECRET,
   baseURL: ENV.APP_URL,
   database: drizzleAdapter(db, {
@@ -18,7 +18,7 @@ export const auth = betterAuth({
       verification: schema.verificationTable,
     },
   }),
-  trustedOrigins: [ENV.APP_URL, 'http://localhost:3002'],
+  trustedOrigins: [ENV.APP_URL],
   emailAndPassword: { enabled: true },
   plugins: [
     openAPI({
