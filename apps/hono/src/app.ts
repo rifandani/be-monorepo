@@ -11,17 +11,15 @@ import { requestId } from 'hono/request-id';
 import { secureHeaders } from 'hono/secure-headers';
 import { timeout } from 'hono/timeout';
 import { timing } from 'hono/timing';
-import { rateLimiter } from 'hono-rate-limiter';
 import { HTTPError } from 'ky';
 import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { ENV } from '@/core/constants/env.js';
-import { SERVICE_NAME } from '@/core/constants/global.js';
 import type { Variables } from '@/core/types/hono.js';
-import { Logger } from '@/core/utils/logger.js';
+import { logger } from '@/core/utils/logger.js';
 import { routes } from '@/routes/index.js';
+import { authContextMiddleware } from '@/routes/middlewares/auth.js';
 
-const logger = new Logger(SERVICE_NAME);
 const app = new OpenAPIHono<{
   Variables: Variables;
 }>(); // .basePath('/api/v1');
@@ -47,25 +45,17 @@ app.use(
     credentials: true,
   }),
   requestId(),
+  authContextMiddleware(),
   timing(),
-  timeout(10_000), // 10 seconds
+  timeout(15_000), // 15 seconds
   languageDetector({
     supportedLanguages: ['en', 'id'],
     fallbackLanguage: 'en',
   }),
-  csrf(
-    // {
-    //   origin: ['localhost:3000'],
-    // },
-  ),
-  secureHeaders(),
-  rateLimiter({
-    windowMs: 60 * 1000, // 1 minute
-    limit: 600, // Limit each IP to 600 requests per `window` (here, per 1 minute).
-    standardHeaders: 'draft-6', // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
-    keyGenerator: () => crypto.randomUUID(), // TODO: Method to generate custom identifiers for clients (should be based on user id, session id, etc). For now, we use random UUID.
-    // store: ... , // To support multi-instance apps that runs behind load balancer, use centralized store like Redis (default is MemoryStore)
+  csrf({
+    origin: [ENV.APP_URL],
   }),
+  secureHeaders(),
   prettyJSON()
 );
 

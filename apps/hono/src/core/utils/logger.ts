@@ -130,3 +130,8 @@ export class Logger {
     );
   }
 }
+
+/**
+ * The default logger for the service.
+ */
+export const logger = new Logger(SERVICE_NAME);

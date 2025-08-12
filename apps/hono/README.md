@@ -4,7 +4,6 @@
 
 - [ ] example of hono api route testing
 - [ ] better-auth rate limit with postgresql
-- [ ] hono rate limit with postgresql
 
 ## 💾 How to Database
 
@@ -60,9 +59,17 @@ bun hono db:studio
 We use `better-auth` for authentication.
 
 ```bash
-# everytime we add/remove/change auth schema, generate the new auth schema
+# everytime we add/remove/change auth schema, generate the new auth schema in `./src/db/auth-schema.ts`
 bun hono auth:gen
+```
 
+The generated `./src/db/auth-schema.ts` file should be used ONLY to compare with the existing schema in `./src/db/schema.ts`.
+Compare manually and copy paste the new/updated schema to `./src/db/schema.ts` and delete the generated `./src/db/auth-schema.ts` file.
+Make sure to also update the `auth.database.schema` in `./src/auth/libs/index.ts` with the new/updated schema.
+
+After that, run:
+
+```bash
 # generate drizzle migrations
 bun hono db:gen
 

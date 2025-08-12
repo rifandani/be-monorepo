@@ -2,9 +2,9 @@ import type { MiddlewareHandler } from 'hono';
 import { auth } from '@/auth/libs/index.js';
 
 /**
- * a middleware to save the session and user in a context and also add validations for every route.
+ * a middleware to save the session and user in a context (if authenticated, or `null` if not).
  */
-export function authMiddleware(): MiddlewareHandler {
+export function authContextMiddleware(): MiddlewareHandler {
   return async (c, next) => {
     // get the session from the request
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
