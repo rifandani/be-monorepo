@@ -7,6 +7,8 @@ import { ENV } from '@/core/constants/env.js';
 import { SERVICE_VERSION } from '@/core/constants/global.js';
 import type { Variables } from '@/core/types/hono.js';
 
+const TOKENS_PER_CHARACTER = 4;
+
 /**
  * Get all files in a directory
  * @param dir - The directory to get the files from
@@ -79,7 +81,7 @@ export async function llmsDocsRoutes(
       return c.json({
         text: fullContent,
         length: fullContent.length,
-        tokens: fullContent.length / 4,
+        tokens: fullContent.length / TOKENS_PER_CHARACTER,
       });
     }
   );

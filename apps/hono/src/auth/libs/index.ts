@@ -6,6 +6,9 @@ import { ipAddressHeaders } from '@/core/utils/net.js';
 import { db } from '@/db/index.js';
 import * as schema from '@/db/schema.js';
 
+const RATE_LIMIT_WINDOW_SECONDS = 15; // 15 seconds
+const RATE_LIMIT_MAX_REQUESTS = 10 * RATE_LIMIT_WINDOW_SECONDS; // 10 req/s
+
 export const auth = betterAuth({
   appName: ENV.APP_TITLE,
   secret: ENV.BETTER_AUTH_SECRET,
@@ -30,8 +33,8 @@ export const auth = betterAuth({
    */
   rateLimit: {
     // enabled: true, // by default disabled in development mode
-    window: 15, // time window in seconds
-    max: 10 * 15, // max requests in the window (10 req/s)
+    window: RATE_LIMIT_WINDOW_SECONDS, // time window in seconds
+    max: RATE_LIMIT_MAX_REQUESTS, // max requests in the window (10 req/s)
     storage: 'database',
     modelName: 'rate_limit', // optional, by default "rateLimit" is used
   },

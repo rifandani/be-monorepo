@@ -2,6 +2,9 @@ import type { Http } from '@workspace/core/services/http';
 import type { Options } from 'ky';
 import { z } from 'zod';
 
+const AUTH_PASSWORD_MIN_LENGTH = 8;
+const AUTH_NAME_MIN_LENGTH = 3;
+
 // #region ENTITY
 export const authSessionSchema = z.object({
   id: z.string(),
@@ -39,9 +42,9 @@ export type AuthGetSessionResponseSchema = z.infer<
 >;
 
 export const authSignUpEmailRequestSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  name: z.string().min(3),
+  email: z.email(),
+  password: z.string().min(AUTH_PASSWORD_MIN_LENGTH),
+  name: z.string().min(AUTH_NAME_MIN_LENGTH),
   callbackURL: z.string().optional(),
 });
 export type AuthSignUpEmailRequestSchema = z.infer<

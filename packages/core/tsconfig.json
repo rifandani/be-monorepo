@@ -3,6 +3,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": "./src",
+    "declaration": false,
+    "declarationMap": false,
     "paths": {
       "@workspace/core/*": ["./src/*"]
     }

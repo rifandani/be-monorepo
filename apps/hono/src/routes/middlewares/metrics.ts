@@ -4,6 +4,8 @@ import type { MiddlewareHandler } from 'hono';
 import { routePath } from 'hono/route';
 import { SERVICE_NAME, SERVICE_VERSION } from '@/core/constants/global.js';
 
+const STATUS_CODE_CLASS_DIVIDER = 100;
+
 // Create a meter instance for recording metrics
 const meter = metrics.getMeter(SERVICE_NAME, SERVICE_VERSION);
 
@@ -67,7 +69,7 @@ export function metricsMiddleware(): MiddlewareHandler {
 
       // Get response status
       const status = c.res.status.toString();
-      const statusClass = `${Math.floor(c.res.status / 100)}xx`;
+      const statusClass = `${Math.floor(c.res.status / STATUS_CODE_CLASS_DIVIDER)}xx`;
 
       // Record response time histogram
       responseTimeHistogram.record(responseTime, {

@@ -9,6 +9,9 @@ import {
 } from '@opentelemetry/api';
 import { SERVICE_NAME } from '@/core/constants/global.js';
 
+const SMALL_ARRAY_LENGTH = 5;
+const PREVIEW_LENGTH = 3;
+
 /**
  * Tracer implementation that does nothing (null object).
  */
@@ -230,7 +233,7 @@ export function flattenAttributes(
   if (Array.isArray(obj)) {
     if (obj.length === 0) {
       result[prefix] = '[]';
-    } else if (obj.length <= 5) {
+    } else if (obj.length <= SMALL_ARRAY_LENGTH) {
       // For small arrays, expand each item
       obj.forEach((item, index) => {
         const newPrefix = prefix ? `${prefix}.${index}` : String(index);
@@ -246,7 +249,8 @@ export function flattenAttributes(
     } else {
       // For large arrays, just show the count and first few items
       result[`${prefix}.length`] = String(obj.length);
-      result[`${prefix}.preview`] = `${JSON.stringify(obj.slice(0, 3))}...`;
+      result[`${prefix}.preview`] =
+        `${JSON.stringify(obj.slice(0, PREVIEW_LENGTH))}...`;
     }
     return result;
   }

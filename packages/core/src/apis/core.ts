@@ -5,17 +5,18 @@ export const errorResponseSchema = z.object({
   message: z.string(),
 });
 
+const MAX_LIMIT = 100;
 export const resourceListRequestSchema = z.object({
   limit: z
     .number()
     .min(1)
-    .max(100)
+    .max(MAX_LIMIT)
     .optional()
     .describe('limit per page. limit=0 to clear'),
   skip: z
     .number()
     .min(0)
-    .max(100)
+    .max(MAX_LIMIT)
     .optional()
     .describe('skip the first n items.'),
   select: z

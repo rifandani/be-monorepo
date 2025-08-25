@@ -1,5 +1,11 @@
 import type { RequireAtLeastOne, UnknownRecord } from 'type-fest';
 
+const PHONE_NUMBER_CODE_LENGTH = 3;
+const PHONE_NUMBER_NDC_LENGTH = 3;
+const PHONE_NUMBER_UNIQ_NUMBER_LENGTH_1 = 6;
+const PHONE_NUMBER_UNIQ_NUMBER_LENGTH_2 = 7;
+const PHONE_NUMBER_UNIQ_NUMBER_LENGTH_3 = 8;
+
 /**
  * Clamps a value to a specified range.
  *
@@ -33,19 +39,19 @@ export function clamp({
  */
 export function indonesianPhoneNumberFormat(phoneNumber: string) {
   // e.g: +62
-  const code = phoneNumber.slice(0, 3);
-  const numbers = phoneNumber.slice(3);
+  const code = phoneNumber.slice(0, PHONE_NUMBER_CODE_LENGTH);
+  const numbers = phoneNumber.slice(PHONE_NUMBER_CODE_LENGTH);
   // e.g 812, 852
-  const ndc = numbers.slice(0, 3);
+  const ndc = numbers.slice(0, PHONE_NUMBER_NDC_LENGTH);
   // e.g the rest of the numbers
-  const uniqNumber = numbers.slice(3);
+  const uniqNumber = numbers.slice(PHONE_NUMBER_CODE_LENGTH);
   let regexp: RegExp;
 
-  if (uniqNumber.length <= 6) {
+  if (uniqNumber.length <= PHONE_NUMBER_UNIQ_NUMBER_LENGTH_1) {
     regexp = /(\d{3})(\d+)/;
-  } else if (uniqNumber.length === 7) {
+  } else if (uniqNumber.length === PHONE_NUMBER_UNIQ_NUMBER_LENGTH_2) {
     regexp = /(\d{3})(\d{4})/;
-  } else if (uniqNumber.length === 8) {
+  } else if (uniqNumber.length === PHONE_NUMBER_UNIQ_NUMBER_LENGTH_3) {
     regexp = /(\d{4})(\d{4})/;
   } else {
     regexp = /(\d{4})(\d{5,})/;

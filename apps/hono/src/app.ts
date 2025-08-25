@@ -15,11 +15,13 @@ import { HTTPError } from 'ky';
 import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { ENV } from '@/core/constants/env.js';
+import { HTTP_STATUS_CODES } from '@/core/constants/http.js';
 import type { Variables } from '@/core/types/hono.js';
 import { logger } from '@/core/utils/logger.js';
 import { routes } from '@/routes/index.js';
 import { authContextMiddleware } from '@/routes/middlewares/auth.js';
 
+const TIMEOUT = 15_000; // 15 seconds
 const app = new OpenAPIHono<{
   Variables: Variables;
 }>(); // .basePath('/api/v1');
@@ -47,7 +49,7 @@ app.use(
   requestId(),
   authContextMiddleware(),
   timing(),
-  timeout(15_000), // 15 seconds
+  timeout(TIMEOUT),
   languageDetector({
     supportedLanguages: ['en', 'id'],
     fallbackLanguage: 'en',
@@ -72,13 +74,13 @@ app.onError(async (error, c) => {
     logger.error(`ZodError with requestId: ${reqId}`, {
       error: errors.message,
     });
-    return c.json(errors, 400);
+    return c.json(errors, HTTP_STATUS_CODES.BAD_REQUEST);
   }
   if (error instanceof HTTPError) {
     const errors = await error.response.json();
     const response = { message: error.message, error: errors };
     logger.error(`HTTPError with requestId: ${reqId}`, response);
-    return c.json(response, 400);
+    return c.json(response, HTTP_STATUS_CODES.BAD_REQUEST);
   }
   if (error instanceof HTTPException) {
     logger.error(`HTTPException with requestId: ${reqId}`, {
@@ -91,13 +93,16 @@ app.onError(async (error, c) => {
   logger.error(`UnknownError with requestId: ${reqId}`, {
     error: error.message,
   });
-  return c.json({ ...error, message: error.message }, 500);
+  return c.json(
+    { ...error, message: error.message },
+    HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
+  );
 });
 
 app.notFound((c) => {
   logger.warn('404 Not found');
 
-  return c.text('404 Not found', 404);
+  return c.text('404 Not found', HTTP_STATUS_CODES.NOT_FOUND);
 });
 
 export { app };

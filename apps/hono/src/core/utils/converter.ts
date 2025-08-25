@@ -1,3 +1,6 @@
+const BASE64_PADDING_CHAR = '=';
+const BASE64_PADDING_LENGTH = 4;
+
 /**
  * Converts a base64 encoded string to a Uint8Array.
  * Handles URL-safe base64 encoding by replacing '-' with '+' and '_' with '/'.
@@ -13,7 +16,10 @@
  * ```
  */
 export function base64ToUint8Array(base64String: string): Uint8Array {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const padding = BASE64_PADDING_CHAR.repeat(
+    (BASE64_PADDING_LENGTH - (base64String.length % BASE64_PADDING_LENGTH)) %
+      BASE64_PADDING_LENGTH
+  );
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
 
   const rawData = atob(base64);
