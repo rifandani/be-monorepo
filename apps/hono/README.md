@@ -3,7 +3,7 @@
 ## 🎯 Todo
 
 - [ ] example of hono api route testing
-- [ ] better-auth rate limit with postgresql
+- [ ] load testing with `k6`
 
 ## 💾 How to Database
 

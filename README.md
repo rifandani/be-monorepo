@@ -5,6 +5,7 @@
 ## 🎯 Todo
 
 - [ ] Consider using Bun `catalog` to manage monorepo dependencies (waiting for bun updates, to support updating catalog when running `bun update --latest`)
+- [ ] create [`AGENTS.md`](https://agents.md/) file in root dir and subpackage inside monorepo
 
 ## 📝 Note
 
@@ -13,7 +14,7 @@
 ## 📦 Prerequisite
 
 - Node >=24.4.1
-- Bun 1.2.20+
+- Bun >=1.2.20
 
 ## 🛠️ Upgrading Dependencies
 
