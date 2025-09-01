@@ -63,7 +63,7 @@
     "radashi": "12.6.2",
     "ts-pattern": "5.8.0",
     "type-fest": "4.41.0",
-    "zod": "4.1.1",
+    "zod": "4.1.5",
     "zod-validation-error": "4.0.1"
   },
   "devDependencies": {
