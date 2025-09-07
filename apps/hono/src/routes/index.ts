@@ -36,10 +36,11 @@ export async function routes(
           title: ENV.APP_TITLE,
           url: '/openapi',
         },
-        // {
-        //   title: 'Scalar Galaxy',
-        //   url: 'https://cdn.jsdelivr.net/npm/@scalar/galaxy/dist/latest.json',
-        // },
+        // Better Auth schema generation endpoint
+        {
+          url: '/api/auth/open-api/generate-schema',
+          title: `${ENV.APP_TITLE} (Auth)`,
+        },
       ],
     })
   );

@@ -3,17 +3,17 @@
   "version": "1.0.0",
   "author": "Tri Rizeki Rifandani",
   "devDependencies": {
-    "@biomejs/biome": "2.2.2",
+    "@biomejs/biome": "2.2.3",
     "@commitlint/cli": "19.8.1",
     "@commitlint/config-conventional": "19.8.1",
-    "@types/node": "24.3.0",
+    "@types/node": "24.3.1",
     "@workspace/typescript-config": "workspace:*",
     "husky": "9.1.7",
     "npm-run-all2": "8.0.4",
     "rimraf": "6.0.1",
     "tsx": "4.20.5",
     "typescript": "5.9.2",
-    "ultracite": "5.2.5"
+    "ultracite": "5.3.4"
   },
   "commitlint": {
     "extends": [
@@ -35,7 +35,8 @@
     "cs:v": "changeset version",
     "format": "ultracite format",
     "format:unsafe": "ultracite format --unsafe",
-    "lint": "ultracite lint",
+    "lint": "ultracite check",
+    "lint-doctor": "ultracite doctor",
     "lint-typecheck": "run-p lint hono:typecheck",
     "hono": "bun --elide-lines=0 --filter @workspace/hono",
     "hono:ci": "bun --filter @workspace/hono",

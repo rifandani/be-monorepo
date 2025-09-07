@@ -5,6 +5,12 @@
 - [ ] example of hono api route testing
 - [ ] load testing with `k6`
 
+## 📚 OpenAPI
+
+We use `@scalar/hono-api-reference` to generate the OpenAPI docs.
+The OpenAPI generated schema is available at `http://localhost:3333/openapi`, and the OpenAPI docs are available at `http://localhost:3333/openapi/docs`.
+You can toggle between our API routes and BetterAuth routes in the from the OpenAPI docs toggles switch on the top left corner.
+
 ## 💾 How to Database
 
 We use `postgres@17` as RDBMS, `drizzle` as ORM, and `node-postgres` as driver.
