@@ -1,25 +1,25 @@
 // import * as fs from 'node:fs';
 // import * as path from 'node:path';
-import { DiagConsoleLogger, DiagLogLevel, diag } from '@opentelemetry/api';
+import { DiagConsoleLogger, DiagLogLevel, diag } from "@opentelemetry/api";
 // import { type ExportResult, ExportResultCode } from '@opentelemetry/core';
-import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { DnsInstrumentation } from '@opentelemetry/instrumentation-dns';
-import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { NetInstrumentation } from '@opentelemetry/instrumentation-net';
-import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
-import { RuntimeNodeInstrumentation } from '@opentelemetry/instrumentation-runtime-node';
-import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
-import { resourceFromAttributes } from '@opentelemetry/resources';
-import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
-import { NodeSDK } from '@opentelemetry/sdk-node';
+import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import { DnsInstrumentation } from "@opentelemetry/instrumentation-dns";
+import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
+import { NetInstrumentation } from "@opentelemetry/instrumentation-net";
+import { PgInstrumentation } from "@opentelemetry/instrumentation-pg";
+import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runtime-node";
+import { UndiciInstrumentation } from "@opentelemetry/instrumentation-undici";
+import { resourceFromAttributes } from "@opentelemetry/resources";
+import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
+import { NodeSDK } from "@opentelemetry/sdk-node";
 // import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
-} from '@opentelemetry/semantic-conventions';
-import { ENV } from '@/core/constants/env.js';
-import { SERVICE_NAME, SERVICE_VERSION } from '@/core/constants/global.js';
+} from "@opentelemetry/semantic-conventions";
+import { ENV } from "@/core/constants/env.js";
+import { SERVICE_NAME, SERVICE_VERSION } from "@/core/constants/global.js";
 
 const logLevelMap: Record<string, DiagLogLevel> = {
   ALL: DiagLogLevel.ALL,
@@ -116,9 +116,9 @@ const sdk = new NodeSDK({
         const imageRegex = /\.(?:png|jpg|jpeg|gif|svg|ico|webp)$/i;
 
         return (
-          openApiRegex.test(request.url ?? '') ||
-          wellKnownRegex.test(request.url ?? '') ||
-          imageRegex.test(request.url ?? '')
+          openApiRegex.test(request.url ?? "") ||
+          wellKnownRegex.test(request.url ?? "") ||
+          imageRegex.test(request.url ?? "")
         );
       },
     }),
@@ -133,4 +133,4 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-console.log('Instrumentation started');
+console.log("Instrumentation started");

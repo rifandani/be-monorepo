@@ -6,8 +6,8 @@ import {
   SpanStatusCode,
   type Tracer,
   trace,
-} from '@opentelemetry/api';
-import { SERVICE_NAME } from '@/core/constants/global.js';
+} from "@opentelemetry/api";
+import { SERVICE_NAME } from "@/core/constants/global.js";
 
 const SMALL_ARRAY_LENGTH = 5;
 const PREVIEW_LENGTH = 3;
@@ -27,13 +27,13 @@ export const noopTracer: Tracer = {
     arg3?: F
     // biome-ignore lint/suspicious/noExplicitAny: xxx
   ): ReturnType<any> {
-    if (typeof arg1 === 'function') {
+    if (typeof arg1 === "function") {
       return arg1(noopSpan);
     }
-    if (typeof arg2 === 'function') {
+    if (typeof arg2 === "function") {
       return arg2(noopSpan);
     }
-    if (typeof arg3 === 'function') {
+    if (typeof arg3 === "function") {
       return arg3(noopSpan);
     }
   },
@@ -76,8 +76,8 @@ const noopSpan: Span = {
 };
 
 const noopSpanContext: SpanContext = {
-  traceId: '',
-  spanId: '',
+  traceId: "",
+  spanId: "",
   traceFlags: 0,
 };
 
@@ -172,7 +172,7 @@ export function recordSpan<T>({
           span.recordException({
             name: error.name,
             message: error.message,
-            stack: error.stack ?? '',
+            stack: error.stack ?? "",
           });
           span.setStatus({
             code: SpanStatusCode.ERROR,
@@ -213,7 +213,7 @@ export function flattenAttributes(
   }
 ): Record<string, string> {
   const result: Record<string, string> = {};
-  const { prefix = '', maxDepth = 3, currentDepth = 0 } = config ?? {};
+  const { prefix = "", maxDepth = 3, currentDepth = 0 } = config ?? {};
 
   if (currentDepth >= maxDepth) {
     result[prefix] = JSON.stringify(obj);
@@ -225,14 +225,14 @@ export function flattenAttributes(
     return result;
   }
 
-  if (typeof obj !== 'object') {
+  if (typeof obj !== "object") {
     result[prefix] = String(obj);
     return result;
   }
 
   if (Array.isArray(obj)) {
     if (obj.length === 0) {
-      result[prefix] = '[]';
+      result[prefix] = "[]";
     } else if (obj.length <= SMALL_ARRAY_LENGTH) {
       // For small arrays, expand each item
       obj.forEach((item, index) => {
@@ -258,7 +258,7 @@ export function flattenAttributes(
   // Handle regular objects
   const entries = Object.entries(obj);
   if (entries.length === 0) {
-    result[prefix] = '{}';
+    result[prefix] = "{}";
     return result;
   }
 
@@ -282,7 +282,7 @@ export function flattenAttributes(
  */
 export function flattenAttributesV2(
   obj: Record<string, unknown>,
-  prefix = ''
+  prefix = ""
 ): Record<string, AttributeValue> {
   return Object.entries(obj).reduce(
     (acc, [key, value]) => {
@@ -292,7 +292,7 @@ export function flattenAttributesV2(
       }
       if (Array.isArray(value)) {
         const allPrimitives = value.every(
-          (item) => typeof item !== 'object' || item === null
+          (item) => typeof item !== "object" || item === null
         );
         if (allPrimitives) {
           // OTel doesn't support mixed-type arrays, so convert all to strings.
@@ -301,7 +301,7 @@ export function flattenAttributesV2(
             .map((item) => String(item));
         } else {
           value.forEach((item, i) => {
-            if (typeof item === 'object' && item !== null) {
+            if (typeof item === "object" && item !== null) {
               // biome-ignore lint/performance/noAccumulatingSpread: xxx
               Object.assign(
                 acc,
@@ -315,16 +315,16 @@ export function flattenAttributesV2(
             }
           });
         }
-      } else if (typeof value === 'object') {
+      } else if (typeof value === "object") {
         // biome-ignore lint/performance/noAccumulatingSpread: xxx
         Object.assign(
           acc,
           flattenAttributesV2(value as Record<string, unknown>, newKey)
         );
       } else if (
-        typeof value === 'string' ||
-        typeof value === 'number' ||
-        typeof value === 'boolean'
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean"
       ) {
         acc[newKey] = value;
       }

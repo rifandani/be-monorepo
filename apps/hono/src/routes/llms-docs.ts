@@ -1,11 +1,11 @@
-import { readdir, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { createRoute, type OpenAPIHono, z } from '@hono/zod-openapi';
-import { createMarkdownFromOpenApi } from '@scalar/openapi-to-markdown';
-import { auth } from '@/auth/libs/index.js';
-import { ENV } from '@/core/constants/env.js';
-import { SERVICE_VERSION } from '@/core/constants/global.js';
-import type { Variables } from '@/core/types/hono.js';
+import { readdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { createRoute, type OpenAPIHono, z } from "@hono/zod-openapi";
+import { createMarkdownFromOpenApi } from "@scalar/openapi-to-markdown";
+import { auth } from "@/auth/libs/index.js";
+import { ENV } from "@/core/constants/env.js";
+import { SERVICE_VERSION } from "@/core/constants/global.js";
+import type { Variables } from "@/core/types/hono.js";
 
 const TOKENS_PER_CHARACTER = 4;
 
@@ -39,24 +39,24 @@ export async function llmsDocsRoutes(
 ) {
   app.openapi(
     createRoute({
-      method: 'get',
-      path: '/llms-docs',
-      summary: 'LLMs Docs',
-      description: 'Get the combined content of the docs folder.',
+      method: "get",
+      path: "/llms-docs",
+      summary: "LLMs Docs",
+      description: "Get the combined content of the docs folder.",
       responses: {
         200: {
-          description: 'Successful get the combined content of the docs',
+          description: "Successful get the combined content of the docs",
           content: {
-            'application/json': {
+            "application/json": {
               schema: z.object({
                 text: z.string().openapi({
-                  description: 'The generated text',
+                  description: "The generated text",
                 }),
                 length: z.number().openapi({
-                  description: 'The length of the generated text',
+                  description: "The length of the generated text",
                 }),
                 tokens: z.number().openapi({
-                  description: 'The number of tokens in the generated text',
+                  description: "The number of tokens in the generated text",
                 }),
               }),
             },
@@ -66,16 +66,16 @@ export async function llmsDocsRoutes(
     }),
     async (c) => {
       // get the content from the docs folder
-      const contentDir = join(process.cwd(), './docs');
+      const contentDir = join(process.cwd(), "./docs");
       const files = await getAllFiles(contentDir);
 
       // read all the files and combine them into a single string
-      let fullContent = '';
+      let fullContent = "";
       for (const file of files) {
-        const fileContent = await readFile(file, 'utf-8');
+        const fileContent = await readFile(file, "utf-8");
 
         fullContent += fileContent;
-        fullContent += '\n\n';
+        fullContent += "\n\n";
       }
 
       return c.json({
@@ -102,20 +102,20 @@ export async function llmsDocsRoutes(
   // this route should be placed at the end to be able to index the better-auth routes OpenAPI docs
   app.openapi(
     createRoute({
-      method: 'get',
-      path: '/llms-auth.txt',
-      summary: 'BetterAuth OpenAPI docs',
+      method: "get",
+      path: "/llms-auth.txt",
+      summary: "BetterAuth OpenAPI docs",
       description:
-        'Markdown version of the BetterAuth OpenAPI docs, which can be used for LLMs.',
+        "Markdown version of the BetterAuth OpenAPI docs, which can be used for LLMs.",
       responses: {
         200: {
           description:
-            'Successful get the markdown version of the BetterAuth OpenAPI docs',
+            "Successful get the markdown version of the BetterAuth OpenAPI docs",
           content: {
-            'text/plain': {
+            "text/plain": {
               schema: z.string().openapi({
                 description:
-                  'The markdown version of the BetterAuth OpenAPI docs',
+                  "The markdown version of the BetterAuth OpenAPI docs",
               }),
             },
           },
@@ -128,7 +128,7 @@ export async function llmsDocsRoutes(
   );
 
   const openapiObject = app.getOpenAPI31Document({
-    openapi: '3.1.0',
+    openapi: "3.1.0",
     info: {
       title: ENV.APP_TITLE,
       version: `v${SERVICE_VERSION}`,
@@ -141,19 +141,19 @@ export async function llmsDocsRoutes(
   // this route should be placed at the end to be able to index the other routes OpenAPI docs
   app.openapi(
     createRoute({
-      method: 'get',
-      path: '/llms.txt',
-      summary: 'OpenAPI docs',
+      method: "get",
+      path: "/llms.txt",
+      summary: "OpenAPI docs",
       description:
-        'Markdown version of the OpenAPI docs, which can be used for LLMs.',
+        "Markdown version of the OpenAPI docs, which can be used for LLMs.",
       responses: {
         200: {
           description:
-            'Successful get the markdown version of the OpenAPI docs',
+            "Successful get the markdown version of the OpenAPI docs",
           content: {
-            'text/plain': {
+            "text/plain": {
               schema: z.string().openapi({
-                description: 'The markdown version of the OpenAPI docs',
+                description: "The markdown version of the OpenAPI docs",
               }),
             },
           },

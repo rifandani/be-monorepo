@@ -1,10 +1,10 @@
-import { betterAuth } from 'better-auth';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { openAPI } from 'better-auth/plugins';
-import { ENV } from '@/core/constants/env.js';
-import { ipAddressHeaders } from '@/core/utils/net.js';
-import { db } from '@/db/index.js';
-import * as schema from '@/db/schema.js';
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { openAPI } from "better-auth/plugins";
+import { ENV } from "@/core/constants/env.js";
+import { ipAddressHeaders } from "@/core/utils/net.js";
+import { db } from "@/db/index.js";
+import * as schema from "@/db/schema.js";
 
 const RATE_LIMIT_WINDOW_SECONDS = 15; // 15 seconds
 const RATE_LIMIT_MAX_REQUESTS = 10 * RATE_LIMIT_WINDOW_SECONDS; // 10 req/s
@@ -14,7 +14,7 @@ export const auth = betterAuth({
   secret: ENV.BETTER_AUTH_SECRET,
   baseURL: ENV.APP_URL,
   database: drizzleAdapter(db, {
-    provider: 'pg',
+    provider: "pg",
     schema: {
       user: schema.userTable,
       session: schema.sessionTable,
@@ -35,12 +35,13 @@ export const auth = betterAuth({
     // enabled: true, // by default disabled in development mode
     window: RATE_LIMIT_WINDOW_SECONDS, // time window in seconds
     max: RATE_LIMIT_MAX_REQUESTS, // max requests in the window (10 req/s)
-    storage: 'database',
-    modelName: 'rate_limit', // optional, by default "rateLimit" is used
+    storage: "database",
+    modelName: "rate_limit", // optional, by default "rateLimit" is used
   },
   plugins: [
     openAPI({
-      path: '/docs', // at /api/auth/docs
+      path: "/docs", // at /api/auth/docs
+      theme: "bluePlanet",
     }),
   ],
   advanced: {

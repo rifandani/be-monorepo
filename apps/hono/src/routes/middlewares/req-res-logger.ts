@@ -1,4 +1,4 @@
-import type { MiddlewareHandler } from 'hono';
+import type { MiddlewareHandler } from "hono";
 
 /**
  * Attempts to prettify a JSON string.
@@ -27,12 +27,12 @@ export function reqResLogger(): MiddlewareHandler {
       const reqClone = c.req.raw.clone(); // Clone the request to read body
       const reqBodyText = await reqClone.text();
       if (reqBodyText) {
-        console.log('<-- [Incoming Body]', tryPrettifyJson(reqBodyText));
-        console.log('\n');
+        console.log("<-- [Incoming Body]", tryPrettifyJson(reqBodyText));
+        console.log("\n");
       }
     } catch (error) {
-      console.error('<-- [Error reading request body]', error);
-      console.log('\n');
+      console.error("<-- [Error reading request body]", error);
+      console.log("\n");
     }
 
     await next();
@@ -43,13 +43,13 @@ export function reqResLogger(): MiddlewareHandler {
         const resClone = c.res.clone(); // Clone the response
         const resBodyText = await resClone.text();
         if (resBodyText) {
-          console.log('--> [Outgoing Body]', tryPrettifyJson(resBodyText));
-          console.log('\n');
+          console.log("--> [Outgoing Body]", tryPrettifyJson(resBodyText));
+          console.log("\n");
         }
       }
     } catch (error) {
-      console.error('--> [Error reading response body]', error);
-      console.log('\n');
+      console.error("--> [Error reading response body]", error);
+      console.log("\n");
     }
   };
 }

@@ -1,10 +1,10 @@
-import type { OpenAPIHono } from '@hono/zod-openapi';
-import { Scalar } from '@scalar/hono-api-reference';
-import { ENV } from '@/core/constants/env.js';
-import { SERVICE_VERSION } from '@/core/constants/global.js';
-import type { Variables } from '@/core/types/hono.js';
-import { authRoutes } from '@/routes/auth.js';
-import { llmsDocsRoutes } from '@/routes/llms-docs.js';
+import type { OpenAPIHono } from "@hono/zod-openapi";
+import { Scalar } from "@scalar/hono-api-reference";
+import { ENV } from "@/core/constants/env.js";
+import { SERVICE_VERSION } from "@/core/constants/global.js";
+import type { Variables } from "@/core/types/hono.js";
+import { authRoutes } from "@/routes/auth.js";
+import { llmsDocsRoutes } from "@/routes/llms-docs.js";
 
 export async function routes(
   app: OpenAPIHono<{
@@ -12,33 +12,33 @@ export async function routes(
   }>
 ) {
   // OpenAPI docs
-  app.doc('/openapi', {
-    openapi: '3.1.0',
+  app.doc("/openapi", {
+    openapi: "3.1.0",
     info: {
       title: ENV.APP_TITLE,
       version: `v${SERVICE_VERSION}`,
-      description: 'API documentation for the Hono app',
+      description: "API documentation for the Hono app",
     },
     servers: [
       {
-        url: 'http://localhost:3333',
-        description: 'Local server',
+        url: "http://localhost:3333",
+        description: "Local server",
       },
     ],
   });
   app.get(
-    '/openapi/docs',
+    "/openapi/docs",
     Scalar({
-      theme: 'elysiajs',
+      theme: "elysiajs",
       pageTitle: ENV.APP_TITLE,
       sources: [
         {
           title: ENV.APP_TITLE,
-          url: '/openapi',
+          url: "/openapi",
         },
         // Better Auth schema generation endpoint
         {
-          url: '/api/auth/open-api/generate-schema',
+          url: "/api/auth/open-api/generate-schema",
           title: `${ENV.APP_TITLE} (Auth)`,
         },
       ],

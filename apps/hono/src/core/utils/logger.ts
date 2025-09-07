@@ -3,26 +3,26 @@ import {
   type AnyValueMap,
   type Logger as ApiLogsLogger,
   SeverityNumber,
-} from '@opentelemetry/api-logs';
-import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
-import { resourceFromAttributes } from '@opentelemetry/resources';
+} from "@opentelemetry/api-logs";
+import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
+import { resourceFromAttributes } from "@opentelemetry/resources";
 import {
   BatchLogRecordProcessor,
   LoggerProvider,
   // ConsoleLogRecordExporter
-} from '@opentelemetry/sdk-logs';
+} from "@opentelemetry/sdk-logs";
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
-} from '@opentelemetry/semantic-conventions';
-import { SERVICE_NAME, SERVICE_VERSION } from '@/core/constants/global.js';
+} from "@opentelemetry/semantic-conventions";
+import { SERVICE_NAME, SERVICE_VERSION } from "@/core/constants/global.js";
 
 const COLOR = {
-  RED: '\x1B[31m',
-  YELLOW: '\x1B[33m',
-  GREEN: '\x1B[32m',
-  BLUE: '\x1B[34m',
-  WHITE: '\x1B[37m',
+  RED: "\x1B[31m",
+  YELLOW: "\x1B[33m",
+  GREEN: "\x1B[32m",
+  BLUE: "\x1B[34m",
+  WHITE: "\x1B[37m",
 };
 
 const LEVEL_COLORS = {
@@ -35,11 +35,11 @@ const LEVEL_COLORS = {
 };
 
 function formatTime(date: Date) {
-  return date.toLocaleTimeString('en-US', {
+  return date.toLocaleTimeString("en-US", {
     hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
     fractionalSecondDigits: 3,
   });
 }
@@ -64,11 +64,11 @@ export class Logger {
       processors: [new BatchLogRecordProcessor(new OTLPLogExporter())],
     });
 
-    this.logger = loggerProvider.getLogger('default', '1.0.0');
+    this.logger = loggerProvider.getLogger("default", "1.0.0");
   }
 
   log(message: string, attributes?: AnyValueMap) {
-    const severity = 'INFO';
+    const severity = "INFO";
     const severityColor = LEVEL_COLORS[severity as keyof typeof LEVEL_COLORS];
     const timeFormatted = formatTime(new Date());
 
@@ -89,7 +89,7 @@ export class Logger {
   }
 
   warn(message: string, attributes?: AnyValueMap) {
-    const severity = 'WARN';
+    const severity = "WARN";
     const severityColor = LEVEL_COLORS[severity as keyof typeof LEVEL_COLORS];
     const timeFormatted = formatTime(new Date());
 
@@ -110,7 +110,7 @@ export class Logger {
   }
 
   error(message: string, attributes?: AnyValueMap) {
-    const severity = 'ERROR';
+    const severity = "ERROR";
     const severityColor = LEVEL_COLORS[severity as keyof typeof LEVEL_COLORS];
     const timeFormatted = formatTime(new Date());
 

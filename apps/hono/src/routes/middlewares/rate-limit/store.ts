@@ -1,14 +1,14 @@
-import { logger } from '@workspace/core/utils/logger.js';
-import { eq, sql } from 'drizzle-orm';
-import type { Env, Input } from 'hono/types';
+import { logger } from "@workspace/core/utils/logger.js";
+import { eq, sql } from "drizzle-orm";
+import type { Env, Input } from "hono/types";
 import type {
   ClientRateLimitInfo,
   ConfigType,
   Store,
   WSConfigType,
-} from 'hono-rate-limiter';
-import { db } from '@/db/index.js';
-import { rateLimitTable } from '@/db/schema.js';
+} from "hono-rate-limiter";
+import { db } from "@/db/index.js";
+import { rateLimitTable } from "@/db/schema.js";
 
 /**
  * A `Store` that stores the hit count for each client in a PostgreSQL database.
@@ -77,7 +77,7 @@ export class DbStore<
         resetTime,
       };
     } catch (error) {
-      logger.error('Error getting rate limit record:', error);
+      logger.error("Error getting rate limit record:", error);
       return;
     }
   }
@@ -140,7 +140,7 @@ export class DbStore<
         resetTime: new Date(now + this.#windowMs),
       };
     } catch (error) {
-      logger.error('Error incrementing rate limit:', error);
+      logger.error("Error incrementing rate limit:", error);
       // Fallback: return a conservative estimate
       return {
         totalHits: 1,
@@ -167,7 +167,7 @@ export class DbStore<
         })
         .where(eq(rateLimitTable.key, key));
     } catch (error) {
-      logger.error('Error decrementing rate limit:', error);
+      logger.error("Error decrementing rate limit:", error);
     }
   }
 
@@ -182,7 +182,7 @@ export class DbStore<
     try {
       await db.delete(rateLimitTable).where(eq(rateLimitTable.key, key));
     } catch (error) {
-      logger.error('Error resetting rate limit key:', error);
+      logger.error("Error resetting rate limit key:", error);
     }
   }
 
@@ -195,7 +195,7 @@ export class DbStore<
     try {
       await db.delete(rateLimitTable);
     } catch (error) {
-      logger.error('Error resetting all rate limits:', error);
+      logger.error("Error resetting all rate limits:", error);
     }
   }
 

@@ -1,10 +1,10 @@
-import { rateLimiter } from 'hono-rate-limiter';
-import type { Variables } from '@/core/types/hono.js';
+import { rateLimiter } from "hono-rate-limiter";
+import type { Variables } from "@/core/types/hono.js";
 import {
   getClientIpAddress,
   getClientIpAddressFromContext,
-} from '@/core/utils/net.js';
-import { DbStore } from './store.js';
+} from "@/core/utils/net.js";
+import { DbStore } from "./store.js";
 
 const RATE_LIMIT_WINDOW_MS = 15_000; // 15 seconds
 const RATE_LIMIT_LIMIT = 15; // Limit each IP to 150 requests per 15 seconds (10 req/s average)
@@ -17,10 +17,10 @@ export const rateLimit = rateLimiter<{
 }>({
   windowMs: RATE_LIMIT_WINDOW_MS,
   limit: RATE_LIMIT_LIMIT,
-  standardHeaders: 'draft-6', // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
+  standardHeaders: "draft-6", // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
   keyGenerator: async (c) => {
     // for authenticated users, use session id
-    const session = c.get('session');
+    const session = c.get("session");
     if (session) {
       return `session:${session.id}`;
     }
@@ -31,14 +31,14 @@ export const rateLimit = rateLimiter<{
     // fallback to IP address from context (less common)
     const ipAddressFromContext = await getClientIpAddressFromContext(c);
 
-    return `ip:${ipAddressFromHeaders || ipAddressFromContext || 'anonymous'}`;
+    return `ip:${ipAddressFromHeaders || ipAddressFromContext || "anonymous"}`;
   },
   message: (c) => {
-    const session = c.get('session');
+    const session = c.get("session");
 
     return session
-      ? 'Rate limit exceeded for your account. Please try again later.'
-      : 'Rate limit exceeded. Please try again later.';
+      ? "Rate limit exceeded for your account. Please try again later."
+      : "Rate limit exceeded. Please try again later.";
   },
   // drizzle postgres store
   store: new DbStore(),

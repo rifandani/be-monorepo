@@ -1,8 +1,8 @@
-import { performance } from 'node:perf_hooks';
-import { metrics, ValueType } from '@opentelemetry/api';
-import type { MiddlewareHandler } from 'hono';
-import { routePath } from 'hono/route';
-import { SERVICE_NAME, SERVICE_VERSION } from '@/core/constants/global.js';
+import { performance } from "node:perf_hooks";
+import { metrics, ValueType } from "@opentelemetry/api";
+import type { MiddlewareHandler } from "hono";
+import { routePath } from "hono/route";
+import { SERVICE_NAME, SERVICE_VERSION } from "@/core/constants/global.js";
 
 const STATUS_CODE_CLASS_DIVIDER = 100;
 
@@ -11,17 +11,17 @@ const meter = metrics.getMeter(SERVICE_NAME, SERVICE_VERSION);
 
 // Create a histogram to record response times in milliseconds
 const responseTimeHistogram = meter.createHistogram(
-  'http_request_duration_metric',
+  "http_request_duration_metric",
   {
-    description: 'Duration of HTTP requests in milliseconds',
-    unit: 'ms',
+    description: "Duration of HTTP requests in milliseconds",
+    unit: "ms",
     valueType: ValueType.INT,
   }
 );
 
 // Create a counter for total requests
-const requestCounter = meter.createCounter('http_requests_total_metric', {
-  description: 'Total number of HTTP requests',
+const requestCounter = meter.createCounter("http_requests_total_metric", {
+  description: "Total number of HTTP requests",
 });
 
 /**

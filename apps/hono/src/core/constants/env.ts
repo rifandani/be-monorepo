@@ -1,5 +1,5 @@
-import { createEnv } from '@t3-oss/env-core';
-import { z } from 'zod';
+import { createEnv } from "@t3-oss/env-core";
+import { z } from "zod";
 
 export const ENV = createEnv({
   server: {
@@ -8,13 +8,13 @@ export const ENV = createEnv({
     DATABASE_URL: z.string().min(1),
     BETTER_AUTH_SECRET: z.string().min(1),
     OTEL_LOG_LEVEL: z.enum([
-      'ALL',
-      'VERBOSE',
-      'DEBUG',
-      'INFO',
-      'WARN',
-      'ERROR',
-      'NONE',
+      "ALL",
+      "VERBOSE",
+      "DEBUG",
+      "INFO",
+      "WARN",
+      "ERROR",
+      "NONE",
     ]),
   },
   runtimeEnv: process.env,

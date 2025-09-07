@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // #region COMMON SCHEMAS
 export const errorResponseSchema = z.object({
@@ -12,18 +12,18 @@ export const resourceListRequestSchema = z.object({
     .min(1)
     .max(MAX_LIMIT)
     .optional()
-    .describe('limit per page. limit=0 to clear'),
+    .describe("limit per page. limit=0 to clear"),
   skip: z
     .number()
     .min(0)
     .max(MAX_LIMIT)
     .optional()
-    .describe('skip the first n items.'),
+    .describe("skip the first n items."),
   select: z
     .string()
     .optional()
-    .describe('select fields. could be comma separated'),
-  delay: z.number().optional().describe('artificial delay in ms.'),
+    .describe("select fields. could be comma separated"),
+  delay: z.number().optional().describe("artificial delay in ms."),
 });
 export const resourceListResponseSchema = z.object({
   total: z.number(),

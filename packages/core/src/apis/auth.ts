@@ -1,6 +1,6 @@
-import type { Http } from '@workspace/core/services/http';
-import type { Options } from 'ky';
-import { z } from 'zod';
+import type { Http } from "@workspace/core/services/http";
+import type { Options } from "ky";
+import { z } from "zod";
 
 const AUTH_PASSWORD_MIN_LENGTH = 8;
 const AUTH_NAME_MIN_LENGTH = 3;
@@ -87,12 +87,12 @@ export type AuthSignOutResponseSchema = z.infer<
 // #endregion API SCHEMAS
 
 export const authKeys = {
-  all: () => ['auth'] as const,
+  all: () => ["auth"] as const,
   signUpEmail: (params: AuthSignUpEmailRequestSchema | undefined) =>
-    [...authKeys.all(), 'signUpEmail', ...(params ? [params] : [])] as const,
+    [...authKeys.all(), "signUpEmail", ...(params ? [params] : [])] as const,
   signInEmail: (params: AuthSignInEmailRequestSchema | undefined) =>
-    [...authKeys.all(), 'signInEmail', ...(params ? [params] : [])] as const,
-  signOut: () => [...authKeys.all(), 'signOut'] as const,
+    [...authKeys.all(), "signInEmail", ...(params ? [params] : [])] as const,
+  signOut: () => [...authKeys.all(), "signOut"] as const,
 };
 
 export function authRepositories(http: InstanceType<typeof Http>) {
@@ -103,7 +103,7 @@ export function authRepositories(http: InstanceType<typeof Http>) {
      * @throws HTTPError | TimeoutError | ZodError
      */
     getSession: async (options?: Options) => {
-      const resp = await http.instance.get('api/auth/get-session', {
+      const resp = await http.instance.get("api/auth/get-session", {
         ...options,
       });
       const json = await resp.json();
@@ -120,7 +120,7 @@ export function authRepositories(http: InstanceType<typeof Http>) {
     signInEmail: async (
       options?: Options & { json: AuthSignInEmailRequestSchema }
     ) => {
-      const resp = await http.instance.post('api/auth/sign-in/email', {
+      const resp = await http.instance.post("api/auth/sign-in/email", {
         ...options,
       });
       const json = await resp.json();
@@ -137,7 +137,7 @@ export function authRepositories(http: InstanceType<typeof Http>) {
     signUpEmail: async (
       options?: Options & { json: AuthSignUpEmailRequestSchema }
     ) => {
-      const resp = await http.instance.post('api/auth/sign-up/email', {
+      const resp = await http.instance.post("api/auth/sign-up/email", {
         ...options,
       });
       const json = await resp.json();
@@ -152,7 +152,7 @@ export function authRepositories(http: InstanceType<typeof Http>) {
      * @throws HTTPError | TimeoutError | ZodError
      */
     signOut: async (options?: Options) => {
-      const resp = await http.instance.post('api/auth/sign-out', {
+      const resp = await http.instance.post("api/auth/sign-out", {
         ...options,
       });
       const json = await resp.json();

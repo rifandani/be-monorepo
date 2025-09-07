@@ -1,14 +1,14 @@
-import type { Context } from 'hono';
-import { getRuntimeKey } from 'hono/adapter';
-import type { ConnInfo } from 'hono/conninfo';
-import type { Env, Input } from 'hono/types';
+import type { Context } from "hono";
+import { getRuntimeKey } from "hono/adapter";
+import type { ConnInfo } from "hono/conninfo";
+import type { Env, Input } from "hono/types";
 
 export const ipAddressHeaders = {
-  cfConnectingIp: 'cf-connecting-ip',
-  xForwardedFor: 'x-forwarded-for',
-  xRealIp: 'x-real-ip',
-  xClientIp: 'x-client-ip',
-  forwarded: 'forwarded',
+  cfConnectingIp: "cf-connecting-ip",
+  xForwardedFor: "x-forwarded-for",
+  xRealIp: "x-real-ip",
+  xClientIp: "x-client-ip",
+  forwarded: "forwarded",
 } as const;
 
 /**
@@ -30,7 +30,7 @@ export function getClientIpAddress(headers: Headers): string | null {
   // 2. X-Forwarded-For (most common)
   const xForwardedFor = headers.get(ipAddressHeaders.xForwardedFor);
   if (xForwardedFor) {
-    return xForwardedFor.split(',')[0]!.trim();
+    return xForwardedFor.split(",")[0]!.trim();
   }
 
   // 3. X-Real-IP (Nginx)
@@ -73,11 +73,11 @@ export async function getClientIpAddressFromContext<
   const runtime = getRuntimeKey();
   let connInfo: ConnInfo | null = null;
 
-  if (runtime === 'node') {
-    const { getConnInfo } = await import('@hono/node-server/conninfo');
+  if (runtime === "node") {
+    const { getConnInfo } = await import("@hono/node-server/conninfo");
     connInfo = getConnInfo(c);
   } else {
-    const { getConnInfo } = await import('hono/bun');
+    const { getConnInfo } = await import("hono/bun");
     connInfo = getConnInfo(c);
   }
 

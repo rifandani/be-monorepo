@@ -1,9 +1,9 @@
 const COLOR = {
-  RED: '\x1B[31m',
-  YELLOW: '\x1B[33m',
-  BLUE: '\x1B[34m',
-  GREEN: '\x1B[32m',
-  WHITE: '\x1B[37m',
+  RED: "\x1B[31m",
+  YELLOW: "\x1B[33m",
+  BLUE: "\x1B[34m",
+  GREEN: "\x1B[32m",
+  WHITE: "\x1B[37m",
 };
 
 const LEVEL_COLORS = {
@@ -15,11 +15,11 @@ const LEVEL_COLORS = {
 };
 
 function formatTime(date: Date) {
-  return date.toLocaleTimeString('en-US', {
+  return date.toLocaleTimeString("en-US", {
     hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
     fractionalSecondDigits: 3,
   });
 }
@@ -27,7 +27,7 @@ function formatTime(date: Date) {
 export const logger = {
   // biome-ignore lint/suspicious/noExplicitAny: xxx
   debug(message: string, ...attributes: any[]) {
-    const severity = 'DEBUG';
+    const severity = "DEBUG";
     const severityColor = LEVEL_COLORS[severity as keyof typeof LEVEL_COLORS];
     const timeFormatted = formatTime(new Date());
 
@@ -39,7 +39,7 @@ export const logger = {
 
   // biome-ignore lint/suspicious/noExplicitAny: xxx
   log(message: string, ...attributes: any[]) {
-    const severity = 'INFO';
+    const severity = "INFO";
     const severityColor = LEVEL_COLORS[severity as keyof typeof LEVEL_COLORS];
     const timeFormatted = formatTime(new Date());
 
@@ -51,7 +51,7 @@ export const logger = {
 
   // biome-ignore lint/suspicious/noExplicitAny: xxx
   warn(message: string, ...attributes: any[]) {
-    const severity = 'WARN';
+    const severity = "WARN";
     const severityColor = LEVEL_COLORS[severity as keyof typeof LEVEL_COLORS];
     const timeFormatted = formatTime(new Date());
 
@@ -63,7 +63,7 @@ export const logger = {
 
   // biome-ignore lint/suspicious/noExplicitAny: xxx
   error(message: string, ...attributes: any[]) {
-    const severity = 'ERROR';
+    const severity = "ERROR";
     const severityColor = LEVEL_COLORS[severity as keyof typeof LEVEL_COLORS];
     const timeFormatted = formatTime(new Date());
 

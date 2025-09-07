@@ -36,6 +36,7 @@
     "format": "ultracite format",
     "format:unsafe": "ultracite format --unsafe",
     "lint": "ultracite check",
+    "lint-fix": "ultracite fix",
     "lint-doctor": "ultracite doctor",
     "lint-typecheck": "run-p lint hono:typecheck",
     "hono": "bun --elide-lines=0 --filter @workspace/hono",

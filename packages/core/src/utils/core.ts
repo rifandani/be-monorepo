@@ -1,4 +1,4 @@
-import type { RequireAtLeastOne, UnknownRecord } from 'type-fest';
+import type { RequireAtLeastOne, UnknownRecord } from "type-fest";
 
 const PHONE_NUMBER_CODE_LENGTH = 3;
 const PHONE_NUMBER_NDC_LENGTH = 3;
@@ -57,9 +57,9 @@ export function indonesianPhoneNumberFormat(phoneNumber: string) {
     regexp = /(\d{4})(\d{5,})/;
   }
 
-  const matches = uniqNumber.replace(regexp, '$1-$2');
+  const matches = uniqNumber.replace(regexp, "$1-$2");
 
-  return [code, ndc, matches].join('-');
+  return [code, ndc, matches].join("-");
 }
 
 /**
@@ -67,7 +67,7 @@ export function indonesianPhoneNumberFormat(phoneNumber: string) {
  */
 export function toCamelCase<T>(object: unknown): T {
   let transformedObject = object as Record<string, unknown>;
-  if (typeof object === 'object' && object !== null) {
+  if (typeof object === "object" && object !== null) {
     if (Array.isArray(object)) {
       transformedObject = object.map(toCamelCase) as unknown as Record<
         string,
@@ -77,7 +77,7 @@ export function toCamelCase<T>(object: unknown): T {
       transformedObject = {};
       for (const key of Object.keys(object)) {
         if ((object as Record<string, unknown>)[key] !== undefined) {
-          const firstUnderscore = key.replace(/^_/, '');
+          const firstUnderscore = key.replace(/^_/, "");
           const newKey = firstUnderscore.replace(/(_\w)|(-\w)/g, (k) =>
             (k[1] as string).toUpperCase()
           );
@@ -96,7 +96,7 @@ export function toCamelCase<T>(object: unknown): T {
  */
 export function toSnakeCase<T>(object: unknown): T {
   let transformedObject = object as Record<string, unknown>;
-  if (typeof object === 'object' && object !== null) {
+  if (typeof object === "object" && object !== null) {
     if (Array.isArray(object)) {
       transformedObject = object.map(toSnakeCase) as unknown as Record<
         string,
@@ -109,9 +109,9 @@ export function toSnakeCase<T>(object: unknown): T {
           const newKey = key
             .replace(
               /\.?([A-Z]+)/g,
-              (_, y) => `_${y ? (y as string).toLowerCase() : ''}`
+              (_, y) => `_${y ? (y as string).toLowerCase() : ""}`
             )
-            .replace(/^_/, '');
+            .replace(/^_/, "");
           transformedObject[newKey] = toSnakeCase(
             (object as Record<string, unknown>)[key]
           );
@@ -127,10 +127,10 @@ export function toSnakeCase<T>(object: unknown): T {
  */
 export function removeLeadingZeros(value: string) {
   if (/^0+[1-9]+/.test(value)) {
-    return value.replace(/^(0)/, '');
+    return value.replace(/^(0)/, "");
   }
 
-  return value.replace(/^0{2,}/, '0');
+  return value.replace(/^0{2,}/, "0");
 }
 
 /**
@@ -138,10 +138,10 @@ export function removeLeadingZeros(value: string) {
  */
 export function removeLeadingWhitespace(value?: string) {
   if (!value) {
-    return '';
+    return "";
   }
   if (/^\s*$/.test(value)) {
-    return value.replace(/^\s*/, '');
+    return value.replace(/^\s*/, "");
   }
 
   return value;
@@ -210,7 +210,7 @@ export function objectToFormData<T extends UnknownRecord>(
     let _rootName = _rootName_;
 
     if (!ignore(_rootName)) {
-      _rootName = _rootName || '';
+      _rootName = _rootName || "";
 
       if (_obj instanceof File) {
         formData.append(_rootName, _obj);
@@ -218,10 +218,10 @@ export function objectToFormData<T extends UnknownRecord>(
         for (let i = 0; i < _obj.length; i++) {
           appendFormData(_obj[i], `${_rootName}[${i}]`);
         }
-      } else if (typeof _obj === 'object' && _obj) {
+      } else if (typeof _obj === "object" && _obj) {
         for (const key in _obj) {
           if (Object.hasOwn(_obj, key)) {
-            if (_rootName === '') {
+            if (_rootName === "") {
               // @ts-expect-error i'm not typescript wizard
               appendFormData(_obj[key], key);
             } else {
@@ -230,7 +230,7 @@ export function objectToFormData<T extends UnknownRecord>(
             }
           }
         }
-      } else if (_obj !== null && typeof _obj !== 'undefined') {
+      } else if (_obj !== null && typeof _obj !== "undefined") {
         formData.append(_rootName, _obj);
       }
     }
@@ -301,16 +301,16 @@ export function objectToFormDataArrayWithComma<T extends UnknownRecord>(
     let _rootName = _rootName_;
 
     if (!ignore(_rootName)) {
-      _rootName = _rootName || '';
+      _rootName = _rootName || "";
 
       if (_obj instanceof File) {
         formData.append(_rootName, _obj);
       } else if (Array.isArray(_obj)) {
-        formData.append(_rootName, _obj.join(','));
-      } else if (typeof _obj === 'object' && _obj) {
+        formData.append(_rootName, _obj.join(","));
+      } else if (typeof _obj === "object" && _obj) {
         for (const key in _obj) {
           if (Object.hasOwn(_obj, key)) {
-            if (_rootName === '') {
+            if (_rootName === "") {
               // @ts-expect-error i'm not typescript wizard
               appendFormData(_obj[key], key);
             } else {
@@ -319,7 +319,7 @@ export function objectToFormDataArrayWithComma<T extends UnknownRecord>(
             }
           }
         }
-      } else if (_obj !== null && typeof _obj !== 'undefined') {
+      } else if (_obj !== null && typeof _obj !== "undefined") {
         formData.append(_rootName, _obj);
       }
     }
@@ -361,7 +361,7 @@ export function deepReadObject<T = any>(
 ): T {
   const value = path
     .trim()
-    .split('.')
+    .split(".")
     // biome-ignore lint/suspicious/noExplicitAny: xxx
     .reduce<any>((a, b) => (a ? a[b] : undefined), obj);
 
