@@ -3,6 +3,7 @@
 ## 🎯 Todo
 
 - [ ] example of hono api route testing
+- [ ] database seeding script with `drizzle-seed`
 - [ ] load testing with `k6`
 
 ## 📚 OpenAPI

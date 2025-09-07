@@ -13,7 +13,7 @@ import type { z } from "zod";
 // #region COMMON
 const timestamps = {
   createdAt: timestamp().defaultNow().notNull(),
-  updatedAt: timestamp(),
+  updatedAt: timestamp().$onUpdate(() => new Date()),
   deletedAt: timestamp(),
 };
 // #endregion COMMON
