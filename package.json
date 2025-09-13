@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "author": "Tri Rizeki Rifandani",
   "devDependencies": {
-    "@biomejs/biome": "2.2.3",
+    "@biomejs/biome": "2.2.4",
     "@commitlint/cli": "19.8.1",
     "@commitlint/config-conventional": "19.8.1",
-    "@types/node": "24.3.1",
+    "@types/node": "24.3.3",
     "@workspace/typescript-config": "workspace:*",
     "husky": "9.1.7",
     "npm-run-all2": "8.0.4",
