@@ -68,7 +68,7 @@
   },
   "devDependencies": {
     "@types/bun": "1.2.21",
-    "@types/node": "24.3.3",
+    "@types/node": "24.6.1",
     "@types/pg": "8.15.5",
     "@workspace/typescript-config": "workspace:*",
     "drizzle-kit": "0.31.4",

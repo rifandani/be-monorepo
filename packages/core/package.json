@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "author": "Tri Rizeki Rifandani",
   "devDependencies": {
-    "@types/node": "24.3.3",
+    "@types/node": "24.6.1",
     "@workspace/typescript-config": "workspace:*",
     "typescript": "5.9.2"
   },

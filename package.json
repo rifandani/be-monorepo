@@ -6,7 +6,7 @@
     "@biomejs/biome": "2.2.4",
     "@commitlint/cli": "19.8.1",
     "@commitlint/config-conventional": "19.8.1",
-    "@types/node": "24.3.3",
+    "@types/node": "24.6.1",
     "@workspace/typescript-config": "workspace:*",
     "husky": "9.1.7",
     "npm-run-all2": "8.0.4",
