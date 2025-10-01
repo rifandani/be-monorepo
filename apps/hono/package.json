@@ -72,7 +72,7 @@
     "@types/pg": "8.15.5",
     "@workspace/typescript-config": "workspace:*",
     "drizzle-kit": "0.31.4",
-    "tsx": "4.20.5",
+    "tsx": "4.20.6",
     "typescript": "5.9.2",
     "vitest": "3.2.4"
   }
