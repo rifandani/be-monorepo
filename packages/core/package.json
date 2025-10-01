@@ -10,7 +10,7 @@
   "dependencies": {
     "ky": "1.10.0",
     "radashi": "12.6.2",
-    "type-fest": "4.41.0",
+    "type-fest": "5.0.1",
     "zod": "4.1.8"
   },
   "exports": {
