@@ -11,7 +11,7 @@
     "ky": "1.10.0",
     "radashi": "12.6.2",
     "type-fest": "4.41.0",
-    "zod": "4.1.8"
+    "zod": "4.1.11"
   },
   "exports": {
     "./apis/*": "./src/apis/*.ts",
