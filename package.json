@@ -13,7 +13,7 @@
     "rimraf": "6.0.1",
     "tsx": "4.20.5",
     "typescript": "5.9.2",
-    "ultracite": "5.3.4"
+    "ultracite": "5.4.6"
   },
   "commitlint": {
     "extends": [
