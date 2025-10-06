@@ -8,7 +8,5 @@ export function authRoutes(
   }>
 ) {
   // betterauth handler
-  app.on(["POST", "GET"], "/api/auth/**", (c) => {
-    return auth.handler(c.req.raw);
-  });
+  app.on(["POST", "GET"], "/api/auth/**", (c) => auth.handler(c.req.raw));
 }

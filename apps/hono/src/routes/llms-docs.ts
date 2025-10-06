@@ -122,9 +122,7 @@ export async function llmsDocsRoutes(
         },
       },
     }),
-    (c) => {
-      return c.text(betterauthMarkdown);
-    }
+    (c) => c.text(betterauthMarkdown)
   );
 
   const openapiObject = app.getOpenAPI31Document({
@@ -160,8 +158,6 @@ export async function llmsDocsRoutes(
         },
       },
     }),
-    (c) => {
-      return c.text(markdown);
-    }
+    (c) => c.text(markdown)
   );
 }
