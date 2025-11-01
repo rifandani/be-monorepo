@@ -69,7 +69,7 @@
   "devDependencies": {
     "@types/bun": "1.2.23",
     "@types/node": "24.7.0",
-    "@types/pg": "8.15.5",
+    "@types/pg": "8.15.6",
     "@workspace/typescript-config": "workspace:*",
     "drizzle-kit": "0.31.5",
     "tsx": "4.20.6",
