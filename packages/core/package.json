@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "ky": "1.11.0",
-    "radashi": "12.6.2",
+    "radashi": "12.7.0",
     "type-fest": "5.0.1",
     "zod": "4.1.11"
   },
