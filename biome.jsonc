@@ -1,8 +1,8 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.5/schema.json",
-  "extends": ["ultracite"],
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": ["ultracite/biome/core"],
   "files": {
-    "includes": ["**", "!**/.cache.json", "!**/migrations", "!**/dist"]
+    "includes": ["!**/.cache.json", "!**/migrations", "!**/dist"]
   },
   "linter": {
     "rules": {

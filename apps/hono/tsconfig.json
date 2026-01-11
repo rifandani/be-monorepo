@@ -3,11 +3,11 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    "baseUrl": ".",
     "declaration": false,
     "declarationMap": false,
     "resolveJsonModule": true,
     "paths": {
+      "*": ["./*"],
       "@/*": ["./src/*"],
       "@workspace/core/*": ["../../packages/core/src/*"]
     }

@@ -3,7 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import type { Env, Input } from "hono/types";
 import type {
   ClientRateLimitInfo,
-  ConfigType,
+  HonoConfigType,
   Store,
   WSConfigType,
 } from "hono-rate-limiter";
@@ -29,9 +29,9 @@ export class DbStore<
   /**
    * Method that initializes the store.
    *
-   * @param options {ConfigType | WSConfigType} - The options used to setup the middleware.
+   * @param options {HonoConfigType | WSConfigType} - The options used to setup the middleware.
    */
-  init(options: ConfigType<E, P, I> | WSConfigType<E, P, I>): void {
+  init(options: HonoConfigType<E, P, I> | WSConfigType<E, P, I>): void {
     // Get the duration of a window from the options.
     this.#windowMs = options.windowMs;
   }

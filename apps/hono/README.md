@@ -3,8 +3,8 @@
 ## 🎯 Todo
 
 - [ ] database seeding script with `drizzle-seed`
-- [ ] NICE_TO_HAVE: api route testing (maybe with `supertest` or `msw`) (ref: <https://hono.dev/docs/guides/testing>)
-- [ ] NICE_TO_HAVE: load testing with `k6`
+- [ ] consider api route testing (maybe with `supertest` or `msw`) (ref: <https://hono.dev/docs/guides/testing>)
+- [ ] consider load testing with `k6`
 
 ## 📚 OpenAPI
 

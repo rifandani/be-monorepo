@@ -302,7 +302,6 @@ export function flattenAttributesV2(
         } else {
           value.forEach((item, i) => {
             if (typeof item === "object" && item !== null) {
-              // biome-ignore lint/performance/noAccumulatingSpread: xxx
               Object.assign(
                 acc,
                 flattenAttributesV2(
@@ -316,7 +315,6 @@ export function flattenAttributesV2(
           });
         }
       } else if (typeof value === "object") {
-        // biome-ignore lint/performance/noAccumulatingSpread: xxx
         Object.assign(
           acc,
           flattenAttributesV2(value as Record<string, unknown>, newKey)

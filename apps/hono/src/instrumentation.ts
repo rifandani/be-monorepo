@@ -1,6 +1,3 @@
-// import * as fs from 'node:fs';
-// import * as path from 'node:path';
-import { DiagConsoleLogger, DiagLogLevel, diag } from "@opentelemetry/api";
 // import { type ExportResult, ExportResultCode } from '@opentelemetry/core';
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
@@ -12,7 +9,7 @@ import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runti
 import { UndiciInstrumentation } from "@opentelemetry/instrumentation-undici";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
-import { NodeSDK } from "@opentelemetry/sdk-node";
+import { NodeSDK } from "@opentelemetry/sdk-node"; // use @microlabs/otel-cf-workers instead in cloudflare workers
 // import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import {
   ATTR_SERVICE_NAME,
@@ -21,18 +18,10 @@ import {
 import { ENV } from "@/core/constants/env.js";
 import { SERVICE_NAME, SERVICE_VERSION } from "@/core/constants/global.js";
 
-const logLevelMap: Record<string, DiagLogLevel> = {
-  ALL: DiagLogLevel.ALL,
-  VERBOSE: DiagLogLevel.VERBOSE,
-  DEBUG: DiagLogLevel.DEBUG,
-  INFO: DiagLogLevel.INFO, // default
-  WARN: DiagLogLevel.WARN,
-  ERROR: DiagLogLevel.ERROR,
-  NONE: DiagLogLevel.NONE,
-};
-
-// for troubleshooting, set the log level to DEBUG
-diag.setLogger(new DiagConsoleLogger(), logLevelMap[ENV.OTEL_LOG_LEVEL]);
+// NodeSDK will automatically configure the logger based on this env var
+if (!process.env.OTEL_LOG_LEVEL) {
+  process.env.OTEL_LOG_LEVEL = ENV.OTEL_LOG_LEVEL;
+}
 
 // Custom File Span Exporter
 // class FileSpanExporter implements SpanExporter {
@@ -103,9 +92,11 @@ const sdk = new NodeSDK({
   }),
   // new ConsoleSpanExporter(), // or new FileSpanExporter()
   traceExporter: new OTLPTraceExporter(),
-  metricReader: new PeriodicExportingMetricReader({
-    exporter: new OTLPMetricExporter(),
-  }),
+  metricReaders: [
+    new PeriodicExportingMetricReader({
+      exporter: new OTLPMetricExporter(),
+    }),
+  ],
   instrumentations: [
     new DnsInstrumentation(),
     // new FsInstrumentation(), too verbose

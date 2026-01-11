@@ -1,4 +1,4 @@
-import { otel } from "@hono/otel";
+import { httpInstrumentationMiddleware } from "@hono/otel";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { contextStorage } from "hono/context-storage";
 import { cors } from "hono/cors";
@@ -12,9 +12,9 @@ import { secureHeaders } from "hono/secure-headers";
 import { timeout } from "hono/timeout";
 import { timing } from "hono/timing";
 import { HTTPError } from "ky";
-import { ZodError } from "zod";
-import { fromZodError } from "zod-validation-error";
+import { prettifyError, ZodError } from "zod";
 import { ENV } from "@/core/constants/env.js";
+import { SERVICE_NAME, SERVICE_VERSION } from "@/core/constants/global.js";
 import { HTTP_STATUS_CODES } from "@/core/constants/http.js";
 import type { Variables } from "@/core/types/hono.js";
 import { logger } from "@/core/utils/logger.js";
@@ -32,7 +32,10 @@ app.use(
    * instruments the entire request-response lifecycle and metrics.
    * it doesn't provide fine-grained instrumentation for individual middleware.
    */
-  otel(),
+  httpInstrumentationMiddleware({
+    serviceName: SERVICE_NAME,
+    serviceVersion: SERVICE_VERSION,
+  }),
   /**
    * using `AsyncLocalStorage` under the hood
    */
@@ -70,11 +73,11 @@ app.onError(async (error, c) => {
   const reqId = c.get("requestId");
 
   if (error instanceof ZodError) {
-    const errors = fromZodError(error);
+    const errorMessage = prettifyError(error);
     logger.error(`ZodError with requestId: ${reqId}`, {
-      error: errors.message,
+      error: errorMessage,
     });
-    return c.json(errors, HTTP_STATUS_CODES.BAD_REQUEST);
+    return c.json({ message: errorMessage }, HTTP_STATUS_CODES.BAD_REQUEST);
   }
   if (error instanceof HTTPError) {
     const errors = await error.response.json();

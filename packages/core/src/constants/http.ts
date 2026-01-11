@@ -89,7 +89,6 @@ export type ServerErrorStatusCode =
  * })
  * ```
  */
-// biome-ignore lint/style/noMagicNumbers: intended
 export type UnofficialStatusCode = -1;
 
 /**

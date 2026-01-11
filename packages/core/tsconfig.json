@@ -1,11 +1,11 @@
 {
   "extends": "@workspace/typescript-config/node.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "rootDir": "./src",
     "declaration": false,
     "declarationMap": false,
     "paths": {
+      "*": ["./*"],
       "@workspace/core/*": ["./src/*"]
     }
   },
