@@ -1,20 +1,11 @@
-# AI Monorepo
+# be-monorepo
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rifandani/be-monorepo)
 
 ## 🎯 Todo
 
-- [ ] consider using Bun `catalog` to manage monorepo dependencies (waiting for bun updates, to support updating catalog when running `bun update --latest`)
-- [ ] create [`AGENTS.md`](https://agents.md/) file in root dir and subpackage inside monorepo
-
-## 📝 Note
-
-~
-
-## 📦 Prerequisite
-
-- Node >=24.12.0
-- Bun >=1.3.5
+- [ ] always update [`AGENTS.md`](https://agents.md/) file in root dir and subpackage inside monorepo and consider it as a living document
+- [ ] lookout for [oxlint in @antfu/eslint-config](https://github.com/antfu/eslint-config/issues/767)
 
 ## 🛠️ Upgrading Dependencies
 
@@ -67,3 +58,18 @@ Everytime there is a change in the local env variables, you need to also push th
 ### @workspace/typescript-config
 
 [See here](./packages/typescript-config/README.md)
+
+## 📚 References
+
+### Observability
+
+- [`grafana/otel-lgtm` docker](https://github.dev/grafana/docker-otel-lgtm/)
+- [Grafana Prometheus](https://grafana.com/docs/grafana/latest/datasources/prometheus/)
+- [Grafana Tempo](https://grafana.com/docs/grafana/latest/datasources/tempo/)
+- [Grafana Loki](https://grafana.com/docs/grafana/latest/datasources/loki/)
+- [Grafana Pyroscope](https://grafana.com/docs/grafana/latest/datasources/pyroscope/)
+
+To check the traces and metrics in the local Grafana dashboard, run the `grafana/otel-lgtm` container. This will spin up a OpenTelemetry backend including Prometheus (metrics database), Tempo (traces database), Loki (logs database), and Pyroscope (profiling database). Login to dashboard at `http://localhost:3111` with credentials:
+
+- Username: `admin`
+- Password: `admin`
