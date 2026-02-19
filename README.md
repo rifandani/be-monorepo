@@ -10,7 +10,7 @@
 ## 🛠️ Upgrading Dependencies
 
 - Remember to always use EXACT version for each dependency
-- Run `bun bump-deps` to check for outdated dependencies, then run `bun install` to install it
+- Run `bun bump:deps` to check for outdated dependencies, then run `bun install` to install it
 - Run `bun hono test` to run tests
 - Run `bun hono build` to build with development env
 - Run `bun lint-typecheck` for linting and type checking
