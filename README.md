@@ -6,6 +6,7 @@
 
 - [ ] always update [`AGENTS.md`](https://agents.md/) file in root dir and subpackage inside monorepo and consider it as a living document
 - [ ] lookout for [oxlint in @antfu/eslint-config](https://github.com/antfu/eslint-config/issues/767)
+- [ ] add new apps for Effect v4 when it's stable. full use of effect ecosystem.
 
 ## 🛠️ Upgrading Dependencies
 
@@ -26,7 +27,7 @@ In both environments, name it `SPA_ENV_FILE` and `WEB_ENV_FILE` (that's why in `
 The value for `SPA_ENV_FILE` in `dev` environment is `.env.dev`, and the value for `SPA_ENV_FILE` in `prod` environment is `.env.prod` for `@workspace/spa`.
 The value for `WEB_ENV_FILE` in `dev` environment is `.env.dev`, and the value for `WEB_ENV_FILE` in `prod` environment is `.env.prod` for `@workspace/web`.
 
-Everytime there is a change in the local env variables, you need to also update the env variables in the github repo.
+Source of truth is local env files. When changing them, update deployment/CI project env too.
 
 <!-- For first timer, you need to create 2 environments in your github repo.
 Go to your Github repo -> `Settings` tabs -> `Environments` -> `New environment` -> `dev` and `prod` (that's why in `.github/workflows/ci.yml` we stated `environment: dev` and `environment: prod`).
@@ -41,7 +42,7 @@ gh secret set WEB_ENV_FILE -e dev -f ./apps/web/.env.dev
 gh secret set WEB_ENV_FILE -e prod -f ./apps/web/.env.prod
 ```
 
-Everytime there is a change in the local env variables, you need to also push those changes to the github repo by running the command above. -->
+Source of truth is local env files. When changing them, update deployment/CI project env too. -->
 
 ## 📱 Apps
 

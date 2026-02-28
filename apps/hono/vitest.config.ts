@@ -4,8 +4,11 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "@workspace/core": path.resolve(__dirname, "../../packages/core/src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
+      "@workspace/core": path.resolve(
+        import.meta.dirname,
+        "../../packages/core/src"
+      ),
     },
   },
   test: {},

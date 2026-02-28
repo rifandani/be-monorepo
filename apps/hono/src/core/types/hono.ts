@@ -4,8 +4,8 @@ import type { TimingVariables } from "hono/timing";
 import type { auth } from "@/auth/libs/index.js";
 
 interface AuthVariables {
-  user: typeof auth.$Infer.Session.user | null;
   session: typeof auth.$Infer.Session.session | null;
+  user: typeof auth.$Infer.Session.user | null;
 }
 
 export type Variables = RequestIdVariables & TimingVariables & AuthVariables;
