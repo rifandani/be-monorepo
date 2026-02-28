@@ -34,7 +34,8 @@
     "lint-typecheck": "bun run --parallel lint hono:typecheck",
     "hono": "bun --elide-lines=0 --filter @workspace/hono",
     "hono:ci": "bun --filter @workspace/hono",
-    "hono:typecheck": "bun hono:ci typecheck"
+    "hono:typecheck": "bun hono:ci typecheck",
+    "hono:test": "bun hono:ci test"
   },
   "trustedDependencies": [
     "@biomejs/biome",

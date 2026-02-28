@@ -4,7 +4,6 @@
 
 - [ ] drizzle beta
 - [ ] database seeding script with `drizzle-seed`
-- [ ] create api route testing with vitest (maybe with `supertest` or `msw`) and make sure to also test server response timing (ref: <https://hono.dev/docs/guides/testing> <https://hono.dev/docs/guides/testing>)
 - [ ] consider load testing with `k6`
 
 ## OpenAPI

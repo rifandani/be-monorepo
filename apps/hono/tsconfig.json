@@ -6,18 +6,13 @@
     "declaration": false,
     "declarationMap": false,
     "resolveJsonModule": true,
+    "types": ["bun"],
     "paths": {
       "*": ["./*"],
       "@/*": ["./src/*"],
       "@workspace/core/*": ["../../packages/core/src/*"]
     }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.spec.ts",
-    "**/*.json",
-    "vitest.config.ts"
-  ],
+  "include": ["**/*.ts", "**/*.tsx", "**/*.spec.ts", "**/*.json"],
   "exclude": ["node_modules", "dist"]
 }
