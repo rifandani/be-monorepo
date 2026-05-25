@@ -1,13 +1,20 @@
 // import { type ExportResult, ExportResultCode } from '@opentelemetry/core';
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
-import { DnsInstrumentation } from "@opentelemetry/instrumentation-dns";
-import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
-import { NetInstrumentation } from "@opentelemetry/instrumentation-net";
+// import { DnsInstrumentation } from "@opentelemetry/instrumentation-dns";
+// import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
+// import { NetInstrumentation } from "@opentelemetry/instrumentation-net";
 import { PgInstrumentation } from "@opentelemetry/instrumentation-pg";
-import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runtime-node";
-import { UndiciInstrumentation } from "@opentelemetry/instrumentation-undici";
-import { resourceFromAttributes } from "@opentelemetry/resources";
+// import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runtime-node";
+// import { UndiciInstrumentation } from "@opentelemetry/instrumentation-undici";
+import {
+  resourceFromAttributes,
+  envDetector,
+  hostDetector,
+  osDetector,
+  serviceInstanceIdDetector,
+  processDetector,
+} from "@opentelemetry/resources";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { NodeSDK } from "@opentelemetry/sdk-node"; // use @microlabs/otel-cf-workers instead in cloudflare workers
 // import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
@@ -15,13 +22,8 @@ import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
 } from "@opentelemetry/semantic-conventions";
-import { ENV } from "@/core/constants/env.js";
-import { SERVICE_NAME, SERVICE_VERSION } from "@/core/constants/global.js";
 
-// NodeSDK will automatically configure the logger based on this env var
-if (!process.env.OTEL_LOG_LEVEL) {
-  process.env.OTEL_LOG_LEVEL = ENV.OTEL_LOG_LEVEL;
-}
+import { SERVICE_NAME, SERVICE_VERSION } from "@/core/constants/global.js";
 
 // Custom File Span Exporter
 // class FileSpanExporter implements SpanExporter {
@@ -85,42 +87,48 @@ if (!process.env.OTEL_LOG_LEVEL) {
 //   }
 // }
 
+// const openApiRegex = /^\/openapi(?:\/.*)?$/u;
+// const wellKnownRegex = /^\/\.well-known\/.*/u;
+// const imageRegex = /\.(?:png|jpg|jpeg|gif|svg|ico|webp)$/iu;
+
 const sdk = new NodeSDK({
-  resource: resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: SERVICE_NAME,
-    [ATTR_SERVICE_VERSION]: SERVICE_VERSION,
-  }),
-  // new ConsoleSpanExporter(), // or new FileSpanExporter()
-  traceExporter: new OTLPTraceExporter(),
+  serviceName: SERVICE_NAME,
+  instrumentations: [
+    // new DnsInstrumentation(), too verbose
+    // new FsInstrumentation(), too verbose
+    // new HttpInstrumentation({
+    //   ignoreIncomingRequestHook: (request) =>
+    //     openApiRegex.test(request.url ?? "") ||
+    //     wellKnownRegex.test(request.url ?? "") ||
+    //     imageRegex.test(request.url ?? ""),
+    // }),
+    // new NetInstrumentation(), too verbose
+    new PgInstrumentation({
+      addSqlCommenterCommentToQueries: true,
+      enhancedDatabaseReporting: true,
+    }),
+    // new RuntimeNodeInstrumentation(), too verbose
+    // new UndiciInstrumentation(), too verbose
+  ],
+  resourceDetectors: [
+    envDetector,
+    hostDetector,
+    osDetector,
+    serviceInstanceIdDetector,
+    processDetector,
+  ],
   metricReaders: [
     new PeriodicExportingMetricReader({
       exporter: new OTLPMetricExporter(),
     }),
   ],
-  instrumentations: [
-    new DnsInstrumentation(),
-    // new FsInstrumentation(), too verbose
-    new HttpInstrumentation({
-      ignoreIncomingRequestHook: (request) => {
-        const openApiRegex = /^\/openapi(?:\/.*)?$/;
-        const wellKnownRegex = /^\/\.well-known\/.*/;
-        const imageRegex = /\.(?:png|jpg|jpeg|gif|svg|ico|webp)$/i;
-
-        return (
-          openApiRegex.test(request.url ?? "") ||
-          wellKnownRegex.test(request.url ?? "") ||
-          imageRegex.test(request.url ?? "")
-        );
-      },
-    }),
-    new NetInstrumentation(),
-    new PgInstrumentation({
-      enhancedDatabaseReporting: true,
-      addSqlCommenterCommentToQueries: true,
-    }),
-    new RuntimeNodeInstrumentation(),
-    new UndiciInstrumentation(),
-  ],
+  // already handled by evlog
+  // logRecordProcessors: [new BatchLogRecordProcessor(new OTLPLogExporter())],
+  resource: resourceFromAttributes({
+    [ATTR_SERVICE_NAME]: SERVICE_NAME,
+    [ATTR_SERVICE_VERSION]: SERVICE_VERSION,
+  }),
+  traceExporter: new OTLPTraceExporter(),
 });
 
 sdk.start();

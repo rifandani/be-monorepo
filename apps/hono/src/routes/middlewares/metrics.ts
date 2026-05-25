@@ -1,7 +1,9 @@
 import { performance } from "node:perf_hooks";
+
 import { metrics, ValueType } from "@opentelemetry/api";
 import type { MiddlewareHandler } from "hono";
 import { routePath } from "hono/route";
+
 import { SERVICE_NAME, SERVICE_VERSION } from "@/core/constants/global.js";
 
 const STATUS_CODE_CLASS_DIVIDER = 100;
@@ -46,38 +48,36 @@ const requestCounter = meter.createCounter("http_requests_total_metric", {
  *
  * @deprecated `@hono/otel` already provides metrics built-in
  */
-export function metricsMiddleware(): MiddlewareHandler {
-  return async (c, next) => {
-    const startTime = performance.now();
+export const metricsMiddleware = (): MiddlewareHandler => async (c, next) => {
+  const startTime = performance.now();
 
-    // Get request information
-    const method = c.req.method;
-    const route = routePath(c) || c.req.path;
+  // Get request information
+  const { method } = c.req;
+  const route = routePath(c) || c.req.path;
 
-    // Increment request counter
-    requestCounter.add(1, {
+  // Increment request counter
+  requestCounter.add(1, {
+    method,
+    route,
+  });
+
+  try {
+    await next();
+  } finally {
+    // Calculate response time
+    const endTime = performance.now();
+    const responseTime = endTime - startTime;
+
+    // Get response status
+    const status = c.res.status.toString();
+    const statusClass = `${Math.floor(c.res.status / STATUS_CODE_CLASS_DIVIDER)}xx`;
+
+    // Record response time histogram
+    responseTimeHistogram.record(responseTime, {
       method,
       route,
+      status_class: statusClass,
+      status_code: status,
     });
-
-    try {
-      await next();
-    } finally {
-      // Calculate response time
-      const endTime = performance.now();
-      const responseTime = endTime - startTime;
-
-      // Get response status
-      const status = c.res.status.toString();
-      const statusClass = `${Math.floor(c.res.status / STATUS_CODE_CLASS_DIVIDER)}xx`;
-
-      // Record response time histogram
-      responseTimeHistogram.record(responseTime, {
-        method,
-        route,
-        status_code: status,
-        status_class: statusClass,
-      });
-    }
-  };
-}
+  }
+};

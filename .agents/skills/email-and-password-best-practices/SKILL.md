@@ -148,6 +148,7 @@ The `redirectTo` parameter is validated against your `trustedOrigins` configurat
 #### Password requirements
 
 During password reset, the new password must meet length requirements:
+
 - **Minimum**: 8 characters (default), configurable via `minPasswordLength`
 - **Maximum**: 128 characters (default), configurable via `maxPasswordLength`
 

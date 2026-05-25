@@ -7,24 +7,24 @@ const AUTH_NAME_MIN_LENGTH = 3;
 
 // #region ENTITY
 export const authSessionSchema = z.object({
-  id: z.string(),
-  expiresAt: z.string().date(),
-  token: z.string(),
   createdAt: z.string().date(),
-  updatedAt: z.string().date(),
+  expiresAt: z.string().date(),
+  id: z.string(),
   ipAddress: z.string(),
+  token: z.string(),
+  updatedAt: z.string().date(),
   userAgent: z.string(),
   userId: z.string(),
 });
 export type AuthSessionSchema = z.infer<typeof authSessionSchema>;
 
 export const authUserSchema = z.object({
-  id: z.string(),
-  name: z.string(),
+  createdAt: z.string().date(),
   email: z.string().email(),
   emailVerified: z.boolean(),
+  id: z.string(),
   image: z.string().nullable(),
-  createdAt: z.string().date(),
+  name: z.string(),
   updatedAt: z.string().date(),
 });
 export type AuthUserSchema = z.infer<typeof authUserSchema>;
@@ -42,10 +42,10 @@ export type AuthGetSessionResponseSchema = z.infer<
 >;
 
 export const authSignUpEmailRequestSchema = z.object({
-  email: z.email(),
-  password: z.string().min(AUTH_PASSWORD_MIN_LENGTH),
-  name: z.string().min(AUTH_NAME_MIN_LENGTH),
   callbackURL: z.string().optional(),
+  email: z.email(),
+  name: z.string().min(AUTH_NAME_MIN_LENGTH),
+  password: z.string().min(AUTH_PASSWORD_MIN_LENGTH),
 });
 export type AuthSignUpEmailRequestSchema = z.infer<
   typeof authSignUpEmailRequestSchema
@@ -88,18 +88,19 @@ export type AuthSignOutResponseSchema = z.infer<
 
 export const authKeys = {
   all: () => ["auth"] as const,
-  signUpEmail: (params: AuthSignUpEmailRequestSchema | undefined) =>
-    [...authKeys.all(), "signUpEmail", ...(params ? [params] : [])] as const,
   signInEmail: (params: AuthSignInEmailRequestSchema | undefined) =>
     [...authKeys.all(), "signInEmail", ...(params ? [params] : [])] as const,
   signOut: () => [...authKeys.all(), "signOut"] as const,
+  signUpEmail: (params: AuthSignUpEmailRequestSchema | undefined) =>
+    [...authKeys.all(), "signUpEmail", ...(params ? [params] : [])] as const,
 };
 
-export function authRepositories(http: InstanceType<typeof Http>) {
-  return {
+export const authRepositories = (http: InstanceType<typeof Http>) =>
+  ({
     /**
+     * GET ${ENV.API_BASE_URL}/api/auth/get-session
+     *
      * @access public
-     * @url GET ${env.apiBaseUrl}/api/auth/get-session
      * @throws HTTPError | TimeoutError | ZodError
      */
     getSession: async (options?: Options) => {
@@ -113,8 +114,9 @@ export function authRepositories(http: InstanceType<typeof Http>) {
     },
 
     /**
+     * POST ${ENV.API_BASE_URL}/api/auth/sign-in/email
+     *
      * @access public
-     * @url POST ${env.apiBaseUrl}/api/auth/sign-in/email
      * @throws HTTPError | TimeoutError | ZodError
      */
     signInEmail: async (
@@ -130,8 +132,25 @@ export function authRepositories(http: InstanceType<typeof Http>) {
     },
 
     /**
+     * POST ${ENV.API_BASE_URL}/api/auth/sign-out
+     *
      * @access public
-     * @url POST ${env.apiBaseUrl}/api/auth/sign-up/email
+     * @throws HTTPError | TimeoutError | ZodError
+     */
+    signOut: async (options?: Options) => {
+      const resp = await http.instance.post("api/auth/sign-out", {
+        ...options,
+      });
+      const json = await resp.json();
+      const parsed = authSignOutResponseSchema.parse(json);
+
+      return { headers: resp.headers, json: parsed };
+    },
+
+    /**
+     * POST ${ENV.API_BASE_URL}/api/auth/sign-up/email
+     *
+     * @access public
      * @throws HTTPError | TimeoutError | ZodError
      */
     signUpEmail: async (
@@ -145,20 +164,4 @@ export function authRepositories(http: InstanceType<typeof Http>) {
 
       return { headers: resp.headers, json: parsed };
     },
-
-    /**
-     * @access public
-     * @url POST ${env.apiBaseUrl}/api/auth/sign-out
-     * @throws HTTPError | TimeoutError | ZodError
-     */
-    signOut: async (options?: Options) => {
-      const resp = await http.instance.post("api/auth/sign-out", {
-        ...options,
-      });
-      const json = await resp.json();
-      const parsed = authSignOutResponseSchema.parse(json);
-
-      return { headers: resp.headers, json: parsed };
-    },
-  } as const;
-}
+  }) as const;

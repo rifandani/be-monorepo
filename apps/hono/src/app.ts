@@ -13,6 +13,7 @@ import { timeout } from "hono/timeout";
 import { timing } from "hono/timing";
 import { HTTPError } from "ky";
 import { prettifyError, ZodError } from "zod";
+
 import { ENV } from "@/core/constants/env.js";
 import { SERVICE_NAME, SERVICE_VERSION } from "@/core/constants/global.js";
 import { HTTP_STATUS_CODES } from "@/core/constants/http.js";
@@ -43,19 +44,19 @@ app.use(
   loggerMiddleware(),
   // reqResLogger(),
   cors({
-    origin: [ENV.APP_URL],
-    allowMethods: ["GET", "POST", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
-    exposeHeaders: ["Content-Length"],
+    allowMethods: ["GET", "POST", "OPTIONS"],
     credentials: true,
+    exposeHeaders: ["Content-Length"],
+    origin: [ENV.APP_URL],
   }),
   requestId(),
   authContextMiddleware(),
   timing(),
   timeout(TIMEOUT),
   languageDetector({
-    supportedLanguages: ["en", "id"],
     fallbackLanguage: "en",
+    supportedLanguages: ["en", "id"],
   }),
   csrf({
     origin: [ENV.APP_URL],
@@ -81,7 +82,7 @@ app.onError(async (error, c) => {
   }
   if (error instanceof HTTPError) {
     const errors = await error.response.json();
-    const response = { message: error.message, error: errors };
+    const response = { error: errors, message: error.message };
     logger.error(`HTTPError with requestId: ${reqId}`, response);
     return c.json(response, HTTP_STATUS_CODES.BAD_REQUEST);
   }

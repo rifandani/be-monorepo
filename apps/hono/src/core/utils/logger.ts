@@ -1,8 +1,8 @@
-import {
-  type AnyValue,
-  type AnyValueMap,
-  type Logger as ApiLogsLogger,
-  SeverityNumber,
+import { SeverityNumber } from "@opentelemetry/api-logs";
+import type {
+  AnyValue,
+  AnyValueMap,
+  Logger as ApiLogsLogger,
 } from "@opentelemetry/api-logs";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
 import { resourceFromAttributes } from "@opentelemetry/resources";
@@ -15,34 +15,34 @@ import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
 } from "@opentelemetry/semantic-conventions";
+
 import { SERVICE_NAME, SERVICE_VERSION } from "@/core/constants/global.js";
 
 const COLOR = {
-  RED: "\x1B[31m",
-  YELLOW: "\x1B[33m",
-  GREEN: "\x1B[32m",
-  BLUE: "\x1B[34m",
-  WHITE: "\x1B[37m",
+  BLUE: "\u001B[34m",
+  GREEN: "\u001B[32m",
+  RED: "\u001B[31m",
+  WHITE: "\u001B[37m",
+  YELLOW: "\u001B[33m",
 };
 
 const LEVEL_COLORS = {
-  FATAL: COLOR.RED,
-  ERROR: COLOR.RED,
-  WARN: COLOR.YELLOW,
-  INFO: COLOR.BLUE,
   DEBUG: COLOR.GREEN,
+  ERROR: COLOR.RED,
+  FATAL: COLOR.RED,
+  INFO: COLOR.BLUE,
   TRACE: COLOR.WHITE,
+  WARN: COLOR.YELLOW,
 };
 
-function formatTime(date: Date) {
-  return date.toLocaleTimeString("en-US", {
-    hour12: false,
+const formatTime = (date: Date) =>
+  date.toLocaleTimeString("en-US", {
+    fractionalSecondDigits: 3,
     hour: "2-digit",
+    hour12: false,
     minute: "2-digit",
     second: "2-digit",
-    fractionalSecondDigits: 3,
   });
-}
 
 export class Logger {
   context: AnyValue;
@@ -56,12 +56,12 @@ export class Logger {
 
     // To start a logger, you first need to initialize the Logger provider.
     const loggerProvider = new LoggerProvider({
+      // you can use ConsoleLogRecordExporter to log to the console
+      processors: [new BatchLogRecordProcessor(new OTLPLogExporter())],
       resource: resourceFromAttributes({
         [ATTR_SERVICE_NAME]: SERVICE_NAME,
         [ATTR_SERVICE_VERSION]: SERVICE_VERSION,
       }),
-      // you can use ConsoleLogRecordExporter to log to the console
-      processors: [new BatchLogRecordProcessor(new OTLPLogExporter())],
     });
 
     this.logger = loggerProvider.getLogger("default", "1.0.0");
@@ -73,13 +73,13 @@ export class Logger {
     const timeFormatted = formatTime(new Date());
 
     this.logger.emit({
-      severityNumber: SeverityNumber.INFO,
-      severityText: severity,
-      body: message,
       attributes: {
         context: this.context,
         ...attributes,
       },
+      body: message,
+      severityNumber: SeverityNumber.INFO,
+      severityText: severity,
     });
 
     console.log(
@@ -94,13 +94,13 @@ export class Logger {
     const timeFormatted = formatTime(new Date());
 
     this.logger.emit({
-      severityNumber: SeverityNumber.WARN,
-      severityText: severity,
-      body: message,
       attributes: {
         context: this.context,
         ...attributes,
       },
+      body: message,
+      severityNumber: SeverityNumber.WARN,
+      severityText: severity,
     });
 
     console.warn(
@@ -115,13 +115,13 @@ export class Logger {
     const timeFormatted = formatTime(new Date());
 
     this.logger.emit({
-      severityNumber: SeverityNumber.ERROR,
-      severityText: severity,
-      body: message,
       attributes: {
         context: this.context,
         ...attributes,
       },
+      body: message,
+      severityNumber: SeverityNumber.ERROR,
+      severityText: severity,
     });
 
     console.error(

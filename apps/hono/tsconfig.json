@@ -7,11 +7,13 @@
     "declarationMap": false,
     "resolveJsonModule": true,
     "types": ["bun"],
+    "rootDir": "../../",
     "paths": {
       "*": ["./*"],
       "@/*": ["./src/*"],
       "@workspace/core/*": ["../../packages/core/src/*"]
-    }
+    },
+    "strictNullChecks": true
   },
   "include": ["**/*.ts", "**/*.tsx", "**/*.spec.ts", "**/*.json"],
   "exclude": ["node_modules", "dist"]

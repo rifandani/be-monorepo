@@ -1,35 +1,35 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
+
 import { ENV } from "@/core/constants/env.js";
 import { SERVICE_VERSION } from "@/core/constants/global.js";
 import type { Variables } from "@/core/types/hono.js";
 import { authRoutes } from "@/routes/auth.js";
 import { llmsDocsRoutes } from "@/routes/llms-docs.js";
 
-export async function routes(
+export const routes = async (
   app: OpenAPIHono<{
     Variables: Variables;
   }>
-) {
+) => {
   // OpenAPI docs
   app.doc("/openapi", {
-    openapi: "3.1.0",
     info: {
+      description: "API documentation for the Hono app",
       title: ENV.APP_TITLE,
       version: `v${SERVICE_VERSION}`,
-      description: "API documentation for the Hono app",
     },
+    openapi: "3.1.0",
     servers: [
       {
-        url: "http://localhost:3333",
         description: "Local server",
+        url: "http://localhost:3333",
       },
     ],
   });
   app.get(
     "/openapi/docs",
     Scalar({
-      theme: "elysiajs",
       pageTitle: ENV.APP_TITLE,
       sources: [
         {
@@ -38,10 +38,11 @@ export async function routes(
         },
         // Better Auth schema generation endpoint
         {
-          url: "/api/auth/open-api/generate-schema",
           title: `${ENV.APP_TITLE} (Auth)`,
+          url: "/api/auth/open-api/generate-schema",
         },
       ],
+      theme: "elysiajs",
     })
   );
 
@@ -50,4 +51,4 @@ export async function routes(
 
   // our routes
   await llmsDocsRoutes(app);
-}
+};

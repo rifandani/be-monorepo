@@ -13,28 +13,28 @@ import type { z } from "zod";
 // #region COMMON
 const timestamps = {
   createdAt: timestamp().defaultNow().notNull(),
-  updatedAt: timestamp().$onUpdate(() => new Date()),
   deletedAt: timestamp(),
+  updatedAt: timestamp().$onUpdate(() => new Date()),
 };
 // #endregion COMMON
 
 // #region AUTH
 export const userTable = pgTable("user", {
-  id: text().primaryKey(),
-  name: text().notNull(),
   email: text().notNull().unique(),
   emailVerified: boolean().default(false).notNull(),
+  id: text().primaryKey(),
   image: text(),
+  name: text().notNull(),
   ...timestamps,
 });
 export const selectUserTableSchema = createSelectSchema(userTable);
 export type UserTable = z.infer<typeof selectUserTableSchema>;
 
 export const sessionTable = pgTable("session", {
-  id: text().primaryKey(),
   expiresAt: timestamp().notNull(),
-  token: text().notNull().unique(),
+  id: text().primaryKey(),
   ipAddress: text(),
+  token: text().notNull().unique(),
   userAgent: text(),
   userId: text()
     .notNull()
@@ -45,29 +45,29 @@ export const selectSessionTableSchema = createSelectSchema(sessionTable);
 export type SessionTable = z.infer<typeof selectSessionTableSchema>;
 
 export const accountTable = pgTable("account", {
-  id: text().primaryKey(),
+  accessToken: text(),
+  accessTokenExpiresAt: timestamp(),
   accountId: text().notNull(),
+  id: text().primaryKey(),
+  idToken: text(),
+  password: text(),
   providerId: text().notNull(),
+  refreshToken: text(),
+  refreshTokenExpiresAt: timestamp(),
+  scope: text(),
   userId: text()
     .notNull()
     .references(() => userTable.id, { onDelete: "cascade" }),
-  accessToken: text(),
-  refreshToken: text(),
-  idToken: text(),
-  accessTokenExpiresAt: timestamp(),
-  refreshTokenExpiresAt: timestamp(),
-  scope: text(),
-  password: text(),
   ...timestamps,
 });
 export const selectAccountTableSchema = createSelectSchema(accountTable);
 export type AccountTable = z.infer<typeof selectAccountTableSchema>;
 
 export const verificationTable = pgTable("verification", {
+  expiresAt: timestamp().notNull(),
   id: text().primaryKey(),
   identifier: text().notNull(),
   value: text().notNull(),
-  expiresAt: timestamp().notNull(),
   ...timestamps,
 });
 export const selectVerificationTableSchema =
@@ -77,9 +77,9 @@ export type VerificationTable = z.infer<typeof selectVerificationTableSchema>;
 
 // #region RATE LIMIT
 export const rateLimitTable = pgTable("rate_limit", {
+  count: integer("count").default(0).notNull(), // number of requests in current window
   id: uuid("id").defaultRandom().primaryKey(),
   key: text("key").notNull().unique(), // unique identifier for each rate limit key
-  count: integer("count").default(0).notNull(), // number of requests in current window
   lastRequest: bigint("last_request", { mode: "number" }).notNull(), // timestamp of last request
 });
 // #endregion RATE LIMIT

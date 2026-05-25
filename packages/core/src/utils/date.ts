@@ -3,7 +3,7 @@ const validIANATimezoneCache: Record<string, boolean> = {};
 /**
  * check if the provided timezone is supported or not
  */
-export function isValidTimezoneIANAString(timeZoneString: string) {
+export const isValidTimezoneIANAString = (timeZoneString: string) => {
   if (validIANATimezoneCache[timeZoneString]) {
     return true;
   }
@@ -12,17 +12,16 @@ export function isValidTimezoneIANAString(timeZoneString: string) {
     Intl.DateTimeFormat(undefined, { timeZone: timeZoneString });
     validIANATimezoneCache[timeZoneString] = true;
     return true;
-  } catch (_err) {
+  } catch {
     // eslint-disable-next-line unused-imports/no-unused-vars
     return false;
   }
-}
+};
 
 /**
  * The `getLocalTimeZone` from `@internationalized/date` will throw error in Chrome 118
  */
-export function getLocalTimeZone() {
-  return Intl.DateTimeFormat("id-ID", {
+export const getLocalTimeZone = () =>
+  Intl.DateTimeFormat("id-ID", {
     timeZone: "GMT", // Asia/Jakarta
   }).resolvedOptions().timeZone;
-}

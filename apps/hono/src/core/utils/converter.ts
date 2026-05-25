@@ -15,21 +15,23 @@ const BASE64_PADDING_LENGTH = 4;
  * const blob = new Blob([uint8Array], { type: file.mimeType });
  * ```
  */
-export function base64ToUint8Array(base64String: string): Uint8Array {
+export const base64ToUint8Array = (base64String: string): Uint8Array => {
   const padding = BASE64_PADDING_CHAR.repeat(
     (BASE64_PADDING_LENGTH - (base64String.length % BASE64_PADDING_LENGTH)) %
       BASE64_PADDING_LENGTH
   );
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const base64 = (base64String + padding)
+    .replaceAll("-", "+")
+    .replaceAll("_", "/");
 
   const rawData = atob(base64);
   const outputArray = new Uint8Array(rawData.length);
 
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
+  for (let i = 0; i < rawData.length; i += 1) {
+    outputArray[i] = rawData.codePointAt(i) ?? 0;
   }
   return outputArray;
-}
+};
 
 /**
  * Converts a File object to a data URI.
@@ -43,7 +45,7 @@ export function base64ToUint8Array(base64String: string): Uint8Array {
  * console.log(dataUri);
  * ```
  */
-export async function fileToDataUri(file: File): Promise<string> {
+export const fileToDataUri = async (file: File): Promise<string> => {
   const arrayBuffer = await file.arrayBuffer();
   // Convert ArrayBuffer to Uint8Array
   const uint8Array = new Uint8Array(arrayBuffer);
@@ -51,10 +53,10 @@ export async function fileToDataUri(file: File): Promise<string> {
   let binaryString = "";
   // Avoid potential stack overflow issues with String.fromCharCode.apply for large arrays
   for (const byte of uint8Array) {
-    binaryString += String.fromCharCode(byte);
+    binaryString += String.fromCodePoint(byte);
   }
   // Encode binary string to base64
   const base64String = btoa(binaryString);
   const mimeType = file.type || "application/octet-stream"; // Default MIME type
   return `data:${mimeType};base64,${base64String}`;
-}
+};

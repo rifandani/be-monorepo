@@ -7,7 +7,9 @@
  * const dur = parseServerTimingHeader(serverTiming);
  * console.log(dur); // 0.7
  */
-export function parseServerTimingHeader(header: string | null): number | null {
-  const m = header?.match(/total;dur=([\d.]+)/);
+export const parseServerTimingHeader = (
+  header: string | null
+): number | null => {
+  const m = header?.match(/total;dur=([\d.]+)/u);
   return m ? Number(m[1]) : null;
-}
+};

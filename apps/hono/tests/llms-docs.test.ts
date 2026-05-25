@@ -1,5 +1,7 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
+
 import { app } from "@/app.js";
+
 import { parseServerTimingHeader } from "./util.js";
 
 describe("/llms-docs endpoint", () => {
@@ -7,16 +9,17 @@ describe("/llms-docs endpoint", () => {
     const res = await app.request("/llms-docs");
     const serverTiming = res.headers.get("Server-Timing");
     const dur = parseServerTimingHeader(serverTiming);
+    const json = await res.json();
 
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual(
+    expect(json).toStrictEqual(
       expect.objectContaining({
-        text: expect.any(String),
         length: expect.any(Number),
+        text: expect.any(String),
         tokens: expect.any(Number),
       })
     );
     expect(dur).not.toBeNull();
-    expect(dur!).toBeLessThan(1000);
+    expect(dur).toBeLessThan(1000);
   });
 });

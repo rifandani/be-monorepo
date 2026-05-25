@@ -1,5 +1,7 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
+
 import { app } from "@/app.js";
+
 import { parseServerTimingHeader } from "./util.js";
 
 describe("/llms.txt endpoint", () => {
@@ -10,8 +12,8 @@ describe("/llms.txt endpoint", () => {
     const dur = parseServerTimingHeader(serverTiming);
 
     expect(res.status).toBe(200);
-    expect(text).toMatch(/# Hono API - Development/);
+    expect(text).toMatch(/# Hono API - Development/u);
     expect(dur).not.toBeNull();
-    expect(dur!).toBeLessThan(1000);
+    expect(dur).toBeLessThan(1000);
   });
 });

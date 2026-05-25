@@ -1,7 +1,8 @@
 // import type { HttpBindings } from '@hono/node-server';
 import type { RequestIdVariables } from "hono/request-id";
 import type { TimingVariables } from "hono/timing";
-import type { auth } from "@/auth/libs/index.js";
+
+import type { auth } from "@/auth/utils/index.js";
 
 interface AuthVariables {
   session: typeof auth.$Infer.Session.session | null;

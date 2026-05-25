@@ -1,5 +1,5 @@
 const isProduction: boolean = process.env.NODE_ENV === "production";
-const prefix: string = "Invariant failed";
+const prefix = "Invariant failed";
 
 /**
  * `invariant` is used to [assert](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-7.html#assertion-functions) that the `condition` is [truthy](https://github.com/getify/You-Dont-Know-JS/blob/bdbe570600d4e1107d0b131787903ca1c9ec8140/up%20%26%20going/ch2.md#truthy--falsy).
@@ -16,8 +16,8 @@ const prefix: string = "Invariant failed";
  * // type of `value`` has been narrowed to `Person`
  * ```
  */
-export function invariant(
-  // biome-ignore lint/suspicious/noExplicitAny: xxx
+export const invariant = (
+  // oxlint-disable-next-line typescript/no-explicit-any
   condition: any,
   // Not providing an inline default argument for message as the result is smaller
   /**
@@ -25,7 +25,7 @@ export function invariant(
    * the message takes a fair amount of effort to compute
    */
   message?: string | (() => string)
-): asserts condition {
+): asserts condition => {
   if (condition) {
     return;
   }
@@ -47,4 +47,4 @@ export function invariant(
   // 2. message not provided: prefix
   const value: string = provided ? `${prefix}: ${provided}` : prefix;
   throw new Error(value);
-}
+};

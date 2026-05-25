@@ -1,23 +1,14 @@
 {
   "name": "be-monorepo",
   "version": "1.0.0",
-  "author": "Tri Rizeki Rifandani",
-  "devDependencies": {
-    "@biomejs/biome": "2.4.2",
-    "@changesets/cli": "2.29.8",
-    "@types/node": "25.2.3",
-    "@workspace/typescript-config": "workspace:*",
-    "husky": "9.1.7",
-    "rimraf": "6.1.3",
-    "typescript": "5.9.3",
-    "ultracite": "7.2.3"
-  },
-  "description": "Hono Monorepo Template",
-  "engines": {
-    "node": ">=24.14.0"
-  },
-  "packageManager": "bun@1.3.10",
   "private": true,
+  "description": "Hono Monorepo Template",
+  "author": "Tri Rizeki Rifandani",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
   "scripts": {
     "prepare": "husky",
     "compose:up": "docker compose -f ./docker/docker-compose.yml up --build",
@@ -25,8 +16,6 @@
     "bump:deps": "bunx npm-check-updates --deep -u --peer --dep prod,dev,optional,packageManager,peer -x @babel*,tamagui",
     "cs": "changeset",
     "cs:v": "changeset version",
-    "format": "ultracite format",
-    "format:unsafe": "ultracite format --unsafe",
     "lint": "ultracite check",
     "lint:fix": "ultracite fix",
     "lint:doctor": "ultracite doctor",
@@ -35,16 +24,28 @@
     "hono": "bun --elide-lines=0 --filter @workspace/hono",
     "hono:ci": "bun --filter @workspace/hono",
     "hono:typecheck": "bun hono:ci typecheck",
-    "hono:test": "bun hono:ci test"
+    "hono:test": "bun hono:ci test",
+    "check": "ultracite check",
+    "fix": "ultracite fix"
   },
+  "devDependencies": {
+    "@changesets/cli": "2.31.0",
+    "@types/node": "25.9.0",
+    "@workspace/typescript-config": "workspace:*",
+    "husky": "9.1.7",
+    "oxfmt": "0.50.0",
+    "oxlint": "1.65.0",
+    "rimraf": "6.1.3",
+    "typescript": "6.0.3",
+    "ultracite": "7.7.0"
+  },
+  "engines": {
+    "node": ">=24.14.0"
+  },
+  "packageManager": "bun@1.3.14",
   "trustedDependencies": [
-    "@biomejs/biome",
     "esbuild",
     "protobufjs",
     "vue-demi"
-  ],
-  "workspaces": [
-    "apps/*",
-    "packages/*"
   ]
 }

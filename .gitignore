@@ -11,6 +11,7 @@ build
 .next
 out
 stats.html
+docker/otel-lgtm
 
 # misc
 .DS_Store

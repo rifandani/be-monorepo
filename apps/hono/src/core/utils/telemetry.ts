@@ -1,54 +1,23 @@
-import {
-  type Attributes,
-  type AttributeValue,
-  type Span,
-  type SpanContext,
-  SpanStatusCode,
-  type Tracer,
-  trace,
+import { SpanStatusCode, trace } from "@opentelemetry/api";
+import type {
+  Attributes,
+  AttributeValue,
+  Span,
+  SpanContext,
+  Tracer,
 } from "@opentelemetry/api";
+
 import { SERVICE_NAME } from "@/core/constants/global.js";
 
 const SMALL_ARRAY_LENGTH = 5;
 const PREVIEW_LENGTH = 3;
-
-/**
- * Tracer implementation that does nothing (null object).
- */
-export const noopTracer: Tracer = {
-  startSpan(): Span {
-    return noopSpan;
-  },
-
-  startActiveSpan<F extends (span: Span) => unknown>(
-    _: unknown,
-    arg1: unknown,
-    arg2?: unknown,
-    arg3?: F
-    // biome-ignore lint/suspicious/noExplicitAny: xxx
-  ): ReturnType<any> {
-    if (typeof arg1 === "function") {
-      return arg1(noopSpan);
-    }
-    if (typeof arg2 === "function") {
-      return arg2(noopSpan);
-    }
-    if (typeof arg3 === "function") {
-      return arg3(noopSpan);
-    }
-  },
+const noopSpanContext: SpanContext = {
+  spanId: "",
+  traceFlags: 0,
+  traceId: "",
 };
 
 const noopSpan: Span = {
-  spanContext() {
-    return noopSpanContext;
-  },
-  setAttribute() {
-    return this;
-  },
-  setAttributes() {
-    return this;
-  },
   addEvent() {
     return this;
   },
@@ -56,12 +25,6 @@ const noopSpan: Span = {
     return this;
   },
   addLinks() {
-    return this;
-  },
-  setStatus() {
-    return this;
-  },
-  updateName() {
     return this;
   },
   end() {
@@ -73,12 +36,48 @@ const noopSpan: Span = {
   recordException() {
     return this;
   },
+  setAttribute() {
+    return this;
+  },
+  setAttributes() {
+    return this;
+  },
+  setStatus() {
+    return this;
+  },
+  spanContext() {
+    return noopSpanContext;
+  },
+  updateName() {
+    return this;
+  },
 };
 
-const noopSpanContext: SpanContext = {
-  traceId: "",
-  spanId: "",
-  traceFlags: 0,
+/**
+ * Tracer implementation that does nothing (null object).
+ */
+export const noopTracer: Tracer = {
+  startActiveSpan<F extends (span: Span) => unknown>(
+    _: unknown,
+    arg1: unknown,
+    arg2?: unknown,
+    arg3?: F
+    // oxlint-disable-next-line typescript/no-explicit-any
+  ): ReturnType<any> {
+    if (typeof arg1 === "function") {
+      return arg1(noopSpan);
+    }
+    if (typeof arg2 === "function") {
+      return arg2(noopSpan);
+    }
+    if (typeof arg3 === "function") {
+      return arg3(noopSpan);
+    }
+  },
+
+  startSpan(): Span {
+    return noopSpan;
+  },
 };
 
 /**
@@ -92,13 +91,13 @@ const noopSpanContext: SpanContext = {
  * });
  * ```
  */
-export function getTracer({
+export const getTracer = ({
   isEnabled = false,
   tracer,
 }: {
   isEnabled?: boolean;
   tracer?: Tracer;
-} = {}): Tracer {
+} = {}): Tracer => {
   if (!isEnabled) {
     return noopTracer;
   }
@@ -108,7 +107,7 @@ export function getTracer({
   }
 
   return trace.getTracer(SERVICE_NAME);
-}
+};
 
 /**
  * Wraps a function with a tracer span.
@@ -126,7 +125,7 @@ export function getTracer({
  * });
  * ```
  */
-export function recordSpan<T>({
+export const recordSpan = <T>({
   name,
   tracer,
   attributes,
@@ -155,8 +154,8 @@ export function recordSpan<T>({
    * @default true
    */
   endWhenDone?: boolean;
-}) {
-  return tracer.startActiveSpan(name, { attributes }, async (span) => {
+}) =>
+  tracer.startActiveSpan(name, { attributes }, async (span) => {
     try {
       const result = await fn(span);
 
@@ -170,8 +169,8 @@ export function recordSpan<T>({
       try {
         if (error instanceof Error) {
           span.recordException({
-            name: error.name,
             message: error.message,
+            name: error.name,
             stack: error.stack ?? "",
           });
           span.setStatus({
@@ -189,7 +188,6 @@ export function recordSpan<T>({
       throw error;
     }
   });
-}
 
 /**
  * Recursively flattens nested objects for trace attributes
@@ -204,14 +202,14 @@ export function recordSpan<T>({
  * // flattened = { 'a': '1', 'b.c': '2', 'b.d': '3' }
  * ```
  */
-export function flattenAttributes(
+export const flattenAttributes = (
   obj: unknown,
   config?: {
     prefix?: string;
     maxDepth?: number;
     currentDepth?: number;
   }
-): Record<string, string> {
+): Record<string, string> => {
   const result: Record<string, string> = {};
   const { prefix = "", maxDepth = 3, currentDepth = 0 } = config ?? {};
 
@@ -235,17 +233,17 @@ export function flattenAttributes(
       result[prefix] = "[]";
     } else if (obj.length <= SMALL_ARRAY_LENGTH) {
       // For small arrays, expand each item
-      obj.forEach((item, index) => {
+      for (const [index, item] of obj.entries()) {
         const newPrefix = prefix ? `${prefix}.${index}` : String(index);
         Object.assign(
           result,
           flattenAttributes(item, {
-            prefix: newPrefix,
-            maxDepth,
             currentDepth: currentDepth + 1,
+            maxDepth,
+            prefix: newPrefix,
           })
         );
-      });
+      }
     } else {
       // For large arrays, just show the count and first few items
       result[`${prefix}.length`] = String(obj.length);
@@ -267,24 +265,24 @@ export function flattenAttributes(
     Object.assign(
       result,
       flattenAttributes(value, {
-        prefix: newPrefix,
-        maxDepth,
         currentDepth: currentDepth + 1,
+        maxDepth,
+        prefix: newPrefix,
       })
     );
   }
 
   return result;
-}
+};
 
 /**
  * Recursively flattens nested objects for trace attributes
  */
-export function flattenAttributesV2(
+export const flattenAttributesV2 = (
   obj: Record<string, unknown>,
   prefix = ""
-): Record<string, AttributeValue> {
-  return Object.entries(obj).reduce(
+): Record<string, AttributeValue> =>
+  Object.entries(obj).reduce(
     (acc, [key, value]) => {
       const newKey = prefix ? `${prefix}.${key}` : key;
       if (value === null || value === undefined) {
@@ -296,11 +294,9 @@ export function flattenAttributesV2(
         );
         if (allPrimitives) {
           // OTel doesn't support mixed-type arrays, so convert all to strings.
-          acc[newKey] = value
-            .filter((item) => item !== null)
-            .map((item) => String(item));
+          acc[newKey] = value.filter((item) => item !== null).map(String);
         } else {
-          value.forEach((item, i) => {
+          for (const [i, item] of value.entries()) {
             if (typeof item === "object" && item !== null) {
               Object.assign(
                 acc,
@@ -312,7 +308,7 @@ export function flattenAttributesV2(
             } else if (item !== null && item !== undefined) {
               acc[`${newKey}.${i}`] = String(item);
             }
-          });
+          }
         }
       } else if (typeof value === "object") {
         Object.assign(
@@ -330,4 +326,3 @@ export function flattenAttributesV2(
     },
     {} as Record<string, AttributeValue>
   );
-}

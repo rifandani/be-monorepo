@@ -19,7 +19,7 @@ const PHONE_NUMBER_UNIQ_NUMBER_LENGTH_3 = 8;
  * @param {number} options.max - maximum value
  * @returns {number} clamped value
  */
-export function clamp({
+export const clamp = ({
   value,
   min,
   max,
@@ -27,9 +27,7 @@ export function clamp({
   value: number;
   min: number;
   max: number;
-}): number {
-  return Math.min(Math.max(value, min), max);
-}
+}): number => Math.min(Math.max(value, min), max);
 
 /**
  * Format phone number based on mockup, currently only covered minimum 11 characters and max 15 characters include +62
@@ -37,7 +35,7 @@ export function clamp({
  *
  * @param phoneNumber - input should include "+62"
  */
-export function indonesianPhoneNumberFormat(phoneNumber: string) {
+export const indonesianPhoneNumberFormat = (phoneNumber: string) => {
   // e.g: +62
   const code = phoneNumber.slice(0, PHONE_NUMBER_CODE_LENGTH);
   const numbers = phoneNumber.slice(PHONE_NUMBER_CODE_LENGTH);
@@ -48,24 +46,24 @@ export function indonesianPhoneNumberFormat(phoneNumber: string) {
   let regexp: RegExp;
 
   if (uniqNumber.length <= PHONE_NUMBER_UNIQ_NUMBER_LENGTH_1) {
-    regexp = /(\d{3})(\d+)/;
+    regexp = /(\d{3})(\d+)/u;
   } else if (uniqNumber.length === PHONE_NUMBER_UNIQ_NUMBER_LENGTH_2) {
-    regexp = /(\d{3})(\d{4})/;
+    regexp = /(\d{3})(\d{4})/u;
   } else if (uniqNumber.length === PHONE_NUMBER_UNIQ_NUMBER_LENGTH_3) {
-    regexp = /(\d{4})(\d{4})/;
+    regexp = /(\d{4})(\d{4})/u;
   } else {
-    regexp = /(\d{4})(\d{5,})/;
+    regexp = /(\d{4})(\d{5,})/u;
   }
 
   const matches = uniqNumber.replace(regexp, "$1-$2");
 
   return [code, ndc, matches].join("-");
-}
+};
 
 /**
  * convert deep nested object keys to camelCase.
  */
-export function toCamelCase<T>(object: unknown): T {
+export const toCamelCase = <T>(object: unknown): T => {
   let transformedObject = object as Record<string, unknown>;
   if (typeof object === "object" && object !== null) {
     if (Array.isArray(object)) {
@@ -77,8 +75,8 @@ export function toCamelCase<T>(object: unknown): T {
       transformedObject = {};
       for (const key of Object.keys(object)) {
         if ((object as Record<string, unknown>)[key] !== undefined) {
-          const firstUnderscore = key.replace(/^_/, "");
-          const newKey = firstUnderscore.replace(/(_\w)|(-\w)/g, (k) =>
+          const firstUnderscore = key.replace(/^_/u, "");
+          const newKey = firstUnderscore.replaceAll(/(_\w)|(-\w)/gu, (k) =>
             (k[1] as string).toUpperCase()
           );
           transformedObject[newKey] = toCamelCase(
@@ -89,12 +87,12 @@ export function toCamelCase<T>(object: unknown): T {
     }
   }
   return transformedObject as T;
-}
+};
 
 /**
  * convert deep nested object keys to snake_case.
  */
-export function toSnakeCase<T>(object: unknown): T {
+export const toSnakeCase = <T>(object: unknown): T => {
   let transformedObject = object as Record<string, unknown>;
   if (typeof object === "object" && object !== null) {
     if (Array.isArray(object)) {
@@ -107,11 +105,11 @@ export function toSnakeCase<T>(object: unknown): T {
       for (const key of Object.keys(object)) {
         if ((object as Record<string, unknown>)[key] !== undefined) {
           const newKey = key
-            .replace(
-              /\.?([A-Z]+)/g,
+            .replaceAll(
+              /\.?([A-Z]+)/gu,
               (_, y) => `_${y ? (y as string).toLowerCase() : ""}`
             )
-            .replace(/^_/, "");
+            .replace(/^_/u, "");
           transformedObject[newKey] = toSnakeCase(
             (object as Record<string, unknown>)[key]
           );
@@ -120,32 +118,32 @@ export function toSnakeCase<T>(object: unknown): T {
     }
   }
   return transformedObject as T;
-}
+};
 
 /**
  * Remove leading zero
  */
-export function removeLeadingZeros(value: string) {
-  if (/^0+[1-9]+/.test(value)) {
-    return value.replace(/^(0)/, "");
+export const removeLeadingZeros = (value: string) => {
+  if (/^0+[1-9]+/u.test(value)) {
+    return value.replace(/^(0)/u, "");
   }
 
-  return value.replace(/^0{2,}/, "0");
-}
+  return value.replace(/^0{2,}/u, "0");
+};
 
 /**
  * Remove leading whitespaces
  */
-export function removeLeadingWhitespace(value?: string) {
+export const removeLeadingWhitespace = (value?: string) => {
   if (!value) {
     return "";
   }
-  if (/^\s*$/.test(value)) {
-    return value.replace(/^\s*/, "");
+  if (/^\s*$/u.test(value)) {
+    return value.replace(/^\s*/u, "");
   }
 
   return value;
-}
+};
 
 /**
  * Convert deep object to FormData.
@@ -189,33 +187,29 @@ export function removeLeadingWhitespace(value?: string) {
  * (2) ['another_object.value', 'whatever']
  * (2) ['array[0].nested_key1.name', 'key1']
  */
-export function objectToFormData<T extends UnknownRecord>(
+export const objectToFormData = <T extends UnknownRecord>(
   obj: T,
   options?: RequireAtLeastOne<{
     rootName?: string;
-    ignoreList: Array<keyof T>;
+    ignoreList: (keyof T)[];
   }>
-) {
+) => {
   const formData = new FormData();
 
-  function ignore(_key?: string) {
-    return (
-      Array.isArray(options?.ignoreList) &&
-      options?.ignoreList.includes(_key as keyof T)
-    );
-  }
+  const ignore = (_key?: string) =>
+    Array.isArray(options?.ignoreList) &&
+    options?.ignoreList.includes(_key as keyof T);
 
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: xxx
-  function appendFormData(_obj: T, _rootName_?: string) {
+  const appendFormData = (_obj: T, _rootName_?: string) => {
     let _rootName = _rootName_;
 
     if (!ignore(_rootName)) {
-      _rootName = _rootName || "";
+      _rootName ||= "";
 
       if (_obj instanceof File) {
         formData.append(_rootName, _obj);
       } else if (Array.isArray(_obj)) {
-        for (let i = 0; i < _obj.length; i++) {
+        for (let i = 0; i < _obj.length; i += 1) {
           appendFormData(_obj[i], `${_rootName}[${i}]`);
         }
       } else if (typeof _obj === "object" && _obj) {
@@ -230,16 +224,16 @@ export function objectToFormData<T extends UnknownRecord>(
             }
           }
         }
-      } else if (_obj !== null && typeof _obj !== "undefined") {
+      } else if (_obj !== null && _obj !== undefined) {
         formData.append(_rootName, _obj);
       }
     }
-  }
+  };
 
   appendFormData(obj, options?.rootName);
 
   return formData;
-}
+};
 
 /**
  * Convert deep object to FormData.
@@ -280,28 +274,24 @@ export function objectToFormData<T extends UnknownRecord>(
  * (2) ['another_object.value', 'whatever']
  * (2) ['array', 'value1,value2']
  */
-export function objectToFormDataArrayWithComma<T extends UnknownRecord>(
+export const objectToFormDataArrayWithComma = <T extends UnknownRecord>(
   obj: T,
   options?: RequireAtLeastOne<{
     rootName?: string;
-    ignoreList: Array<keyof T>;
+    ignoreList: (keyof T)[];
   }>
-) {
+) => {
   const formData = new FormData();
 
-  function ignore(_key?: string) {
-    return (
-      Array.isArray(options?.ignoreList) &&
-      options?.ignoreList.includes(_key as keyof T)
-    );
-  }
+  const ignore = (_key?: string) =>
+    Array.isArray(options?.ignoreList) &&
+    options?.ignoreList.includes(_key as keyof T);
 
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: xxx
-  function appendFormData(_obj: T, _rootName_?: string) {
+  const appendFormData = (_obj: T, _rootName_?: string) => {
     let _rootName = _rootName_;
 
     if (!ignore(_rootName)) {
-      _rootName = _rootName || "";
+      _rootName ||= "";
 
       if (_obj instanceof File) {
         formData.append(_rootName, _obj);
@@ -319,16 +309,16 @@ export function objectToFormDataArrayWithComma<T extends UnknownRecord>(
             }
           }
         }
-      } else if (_obj !== null && typeof _obj !== "undefined") {
+      } else if (_obj !== null && _obj !== undefined) {
         formData.append(_rootName, _obj);
       }
     }
-  }
+  };
 
   appendFormData(obj, options?.rootName);
 
   return formData;
-}
+};
 
 /**
  * Safely access deep values in an object via a string path seperated by `.`
@@ -353,17 +343,17 @@ export function objectToFormDataArrayWithComma<T extends UnknownRecord>(
  * // => 'not found'
  * ```
  */
-// biome-ignore lint/suspicious/noExplicitAny: xxx
-export function deepReadObject<T = any>(
+// oxlint-disable-next-line typescript/no-explicit-any
+export const deepReadObject = <T = any>(
   obj: Record<string, unknown>,
   path: string,
   defaultValue?: unknown
-): T {
+): T => {
   const value = path
     .trim()
     .split(".")
-    // biome-ignore lint/suspicious/noExplicitAny: xxx
+    // oxlint-disable-next-line typescript/no-explicit-any
     .reduce<any>((a, b) => (a ? a[b] : undefined), obj);
 
-  return value !== undefined ? value : (defaultValue as T);
-}
+  return value ?? (defaultValue as T);
+};

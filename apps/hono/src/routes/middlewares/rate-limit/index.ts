@@ -1,9 +1,11 @@
 import { rateLimiter } from "hono-rate-limiter";
+
 import type { Variables } from "@/core/types/hono.js";
 import {
   getClientIpAddress,
   getClientIpAddressFromContext,
 } from "@/core/utils/net.js";
+
 import { DbStore } from "./store.js";
 
 const RATE_LIMIT_WINDOW_MS = 15_000; // 15 seconds
@@ -15,9 +17,6 @@ const RATE_LIMIT_LIMIT = 15; // Limit each IP to 150 requests per 15 seconds (10
 export const rateLimit = rateLimiter<{
   Variables: Variables;
 }>({
-  windowMs: RATE_LIMIT_WINDOW_MS,
-  limit: RATE_LIMIT_LIMIT,
-  standardHeaders: "draft-6", // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
   keyGenerator: async (c) => {
     // for authenticated users, use session id
     const session = c.get("session");
@@ -33,6 +32,7 @@ export const rateLimit = rateLimiter<{
 
     return `ip:${ipAddressFromHeaders || ipAddressFromContext || "anonymous"}`;
   },
+  limit: RATE_LIMIT_LIMIT,
   message: (c) => {
     const session = c.get("session");
 
@@ -40,6 +40,7 @@ export const rateLimit = rateLimiter<{
       ? "Rate limit exceeded for your account. Please try again later."
       : "Rate limit exceeded. Please try again later.";
   },
-  // drizzle postgres store
+  standardHeaders: "draft-6", // draft-6: `RateLimit-*` headers; draft-7: combined `RateLimit` header
   store: new DbStore(),
+  windowMs: RATE_LIMIT_WINDOW_MS,
 });

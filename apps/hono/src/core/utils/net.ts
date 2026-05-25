@@ -5,10 +5,10 @@ import type { Env, Input } from "hono/types";
 
 export const ipAddressHeaders = {
   cfConnectingIp: "cf-connecting-ip",
+  forwarded: "forwarded",
+  xClientIp: "x-client-ip",
   xForwardedFor: "x-forwarded-for",
   xRealIp: "x-real-ip",
-  xClientIp: "x-client-ip",
-  forwarded: "forwarded",
 } as const;
 
 /**
@@ -20,7 +20,7 @@ export const ipAddressHeaders = {
  * @param headers - The headers object.
  * @returns The client IP address or `null` if not found.
  */
-export function getClientIpAddress(headers: Headers): string | null {
+export const getClientIpAddress = (headers: Headers): string | null => {
   // 1. Cloudflare
   const cfConnectingIp = headers.get(ipAddressHeaders.cfConnectingIp);
   if (cfConnectingIp) {
@@ -30,7 +30,7 @@ export function getClientIpAddress(headers: Headers): string | null {
   // 2. X-Forwarded-For (most common)
   const xForwardedFor = headers.get(ipAddressHeaders.xForwardedFor);
   if (xForwardedFor) {
-    return xForwardedFor.split(",")[0]!.trim();
+    return xForwardedFor.split(",")[0]?.trim() ?? null;
   }
 
   // 3. X-Real-IP (Nginx)
@@ -48,7 +48,7 @@ export function getClientIpAddress(headers: Headers): string | null {
   // 5. Forwarded (RFC 7239 standard)
   const forwarded = headers.get(ipAddressHeaders.forwarded);
   if (forwarded) {
-    const match = forwarded.match(/for=([^;,\s]+)/);
+    const match = forwarded.match(/for=([^;,\s]+)/u);
     if (match?.[1]) {
       return match[1];
     }
@@ -56,7 +56,7 @@ export function getClientIpAddress(headers: Headers): string | null {
 
   // 6. Fallback to null
   return null;
-}
+};
 
 /**
  * Get the client IP address from hono context.
@@ -64,11 +64,13 @@ export function getClientIpAddress(headers: Headers): string | null {
  * @param c - The context object.
  * @returns The client IP address or `null` if not found.
  */
-export async function getClientIpAddressFromContext<
+export const getClientIpAddressFromContext = async <
   E extends Env,
   P extends string,
   I extends Input,
->(c: Context<E, P, I>): Promise<string | null> {
+>(
+  c: Context<E, P, I>
+): Promise<string | null> => {
   // get current runtime
   const runtime = getRuntimeKey();
   let connInfo: ConnInfo | null = null;
@@ -82,4 +84,4 @@ export async function getClientIpAddressFromContext<
   }
 
   return connInfo?.remote.address || null;
-}
+};

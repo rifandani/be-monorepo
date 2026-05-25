@@ -1,12 +1,13 @@
 import { logger } from "@workspace/core/utils/logger.js";
 import { eq, sql } from "drizzle-orm";
-import type { Env, Input } from "hono/types";
 import type {
   ClientRateLimitInfo,
   HonoConfigType,
   Store,
   WSConfigType,
 } from "hono-rate-limiter";
+import type { Env, Input } from "hono/types";
+
 import { db } from "@/db/index.js";
 import { rateLimitTable } from "@/db/schema.js";
 
@@ -19,8 +20,7 @@ export class DbStore<
   E extends Env = Env,
   P extends string = string,
   I extends Input = Input,
-> implements Store<E, P, I>
-{
+> implements Store<E, P, I> {
   /**
    * The duration of time before which all hit counts are reset (in milliseconds).
    */
@@ -57,7 +57,7 @@ export class DbStore<
         return;
       }
 
-      const record = result[0]!;
+      const [record] = result;
       const now = Date.now();
       const windowStart = now - this.#windowMs;
 
@@ -73,12 +73,11 @@ export class DbStore<
       );
 
       return {
-        totalHits: record.count || 0,
         resetTime,
+        totalHits: record.count || 0,
       };
     } catch (error) {
       logger.error("Error getting rate limit record:", error);
-      return;
     }
   }
 
@@ -104,7 +103,7 @@ export class DbStore<
         .limit(1);
 
       if (existing.length > 0) {
-        const record = existing[0]!;
+        const [record] = existing;
         // Check if window expired
         const isExpired = record.lastRequest < windowStart;
         const newCount = isExpired ? 1 : (record.count || 0) + 1;
@@ -120,8 +119,8 @@ export class DbStore<
           .returning();
 
         return {
-          totalHits: updated[0]!.count || 1,
           resetTime: new Date(now + this.#windowMs),
+          totalHits: updated[0]?.count || 1,
         };
       }
 
@@ -129,22 +128,22 @@ export class DbStore<
       const inserted = await db
         .insert(rateLimitTable)
         .values({
-          key,
           count: 1,
+          key,
           lastRequest: now,
         })
         .returning();
 
       return {
-        totalHits: inserted[0]!.count || 1,
         resetTime: new Date(now + this.#windowMs),
+        totalHits: inserted[0]?.count || 1,
       };
     } catch (error) {
       logger.error("Error incrementing rate limit:", error);
       // Fallback: return a conservative estimate
       return {
-        totalHits: 1,
         resetTime: new Date(now + this.#windowMs),
+        totalHits: 1,
       };
     }
   }
@@ -156,6 +155,7 @@ export class DbStore<
    *
    * @public
    */
+  // oxlint-disable-next-line class-methods-use-this
   async decrement(key: string): Promise<void> {
     try {
       const now = Date.now();
@@ -178,6 +178,7 @@ export class DbStore<
    *
    * @public
    */
+  // oxlint-disable-next-line class-methods-use-this
   async resetKey(key: string): Promise<void> {
     try {
       await db.delete(rateLimitTable).where(eq(rateLimitTable.key, key));
@@ -191,6 +192,7 @@ export class DbStore<
    *
    * @public
    */
+  // oxlint-disable-next-line class-methods-use-this
   async resetAll(): Promise<void> {
     try {
       await db.delete(rateLimitTable);
@@ -205,6 +207,7 @@ export class DbStore<
    *
    * @public
    */
+  // oxlint-disable-next-line class-methods-use-this
   shutdown(): void {
     // No cleanup needed for database store
   }

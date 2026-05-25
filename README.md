@@ -2,11 +2,13 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rifandani/be-monorepo)
 
+[![Mintlify Docs]](https://rifandani-be-monorepo.mintlify.app)
+
 ## 🎯 Todo
 
-- [ ] always update [`AGENTS.md`](https://agents.md/) file in root dir and subpackage inside monorepo and consider it as a living document
-- [ ] lookout for [oxlint in @antfu/eslint-config](https://github.com/antfu/eslint-config/issues/767)
+- [ ] always update `CLAUDE.md` file in root dir and subpackage inside monorepo and consider it as a living document
 - [ ] add new apps for Effect v4 when it's stable. full use of effect ecosystem.
+- [ ] portless
 
 ## 🛠️ Upgrading Dependencies
 

@@ -1,11 +1,12 @@
 import type { MiddlewareHandler } from "hono";
-import { auth } from "@/auth/libs/index.js";
+
+import { auth } from "@/auth/utils/index.js";
 
 /**
  * a middleware to save the session and user in a context (if authenticated, or `null` if not).
  */
-export function authContextMiddleware(): MiddlewareHandler {
-  return async (c, next) => {
+export const authContextMiddleware =
+  (): MiddlewareHandler => async (c, next) => {
     // get the session from the request
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
 
@@ -15,4 +16,3 @@ export function authContextMiddleware(): MiddlewareHandler {
 
     return next();
   };
-}
