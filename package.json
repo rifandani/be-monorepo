@@ -21,12 +21,9 @@
     "lint:doctor": "ultracite doctor",
     "typecheck": "bun run --parallel hono:typecheck",
     "lint-typecheck": "bun run --parallel lint hono:typecheck",
-    "hono": "bun --elide-lines=0 --filter @workspace/hono",
-    "hono:ci": "bun --elide-lines=0 --filter @workspace/hono",
-    "hono:typecheck": "bun --elide-lines=0 hono:ci typecheck",
-    "hono:test": "bun --elide-lines=0 hono:ci test",
-    "check": "ultracite check",
-    "fix": "ultracite fix"
+    "hono": "bun --filter @workspace/hono",
+    "hono:typecheck": "bun hono typecheck",
+    "hono:test": "bun hono test"
   },
   "devDependencies": {
     "@changesets/cli": "2.31.0",
