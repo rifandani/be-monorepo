@@ -144,4 +144,4 @@ jobs:
       #     merge-multiple: true
 
       - name: Merge reports
-        run: bun run hono:ci test:merge
+        run: bun run hono test:merge
