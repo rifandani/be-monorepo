@@ -16,7 +16,7 @@
     "auth:gen": "dotenvx run --env-file=.env.dev -- bunx @better-auth/cli@latest generate --config ./src/auth/utils/index.ts --output ./src/db/auth-schema.ts --yes",
     "test": "dotenvx run --env-file=.env.dev -- vitest",
     "test:ci": "dotenvx run --env-file=.env.dev -- vitest run --reporter=blob --shard=$SHARD_INDEX/$SHARD_TOTAL",
-    "test:merge": "dotenvx run --env-file=.env.dev -- vitest --merge-reports",
+    "test:merge": "dotenvx run --env-file=.env.dev -- vitest run --merge-reports",
     "dev": "bun run --env-file=.env.dev --hot --preload src/instrumentation.ts src/bun.ts",
     "dev:prod": "bun run --env-file=.env.prod --hot --preload src/instrumentation.ts src/bun.ts",
     "node:dev": "dotenvx run --env-file=.env.dev -- tsx watch --import src/instrumentation.ts src/node.ts",
