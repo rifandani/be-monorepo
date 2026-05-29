@@ -63,8 +63,15 @@ jobs:
       - name: Install deps
         run: bun ci
 
-      - name: Save github secrets as env file
-        run: echo "${{ secrets.HONO_ENV_FILE }}" > apps/hono/.env.dev
+      - name: Prepare hono env file for tests
+        env:
+          HONO_ENV_FILE: ${{ secrets.HONO_ENV_FILE }}
+        run: |
+          if [ -n "$HONO_ENV_FILE" ]; then
+            echo "$HONO_ENV_FILE" > apps/hono/.env.dev
+          else
+            cp apps/hono/.env.dev.example apps/hono/.env.dev
+          fi
 
       # - name: Run vitest tests in shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
       # run: bun run hono test:ci -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
