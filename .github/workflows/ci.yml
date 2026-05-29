@@ -87,16 +87,17 @@ jobs:
         with:
           name: blob-report-${{ matrix.shardIndex }}
           path: apps/hono/.vitest-reports
-          retention-days: 1
-
-      - name: Save vitest attachments as artifact
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: blob-attachments-${{ matrix.shardIndex }}
-          path: apps/hono/.vitest-attachments/**
           include-hidden-files: true
           retention-days: 1
+
+      # - name: Save vitest attachments as artifact
+      #   if: ${{ !cancelled() }}
+      #   uses: actions/upload-artifact@v7
+      #   with:
+      #     name: blob-attachments-${{ matrix.shardIndex }}
+      #     path: apps/hono/.vitest-attachments/**
+      #     include-hidden-files: true
+      #     retention-days: 1
 
   test-merge:
     needs: test
