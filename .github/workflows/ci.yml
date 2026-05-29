@@ -9,7 +9,6 @@ on:
       - main
 
 env:
-  # The "FORCE_COLOR" variable, when set to 1
   FORCE_COLOR: "1"
 
 jobs:
@@ -63,7 +62,7 @@ jobs:
       - name: Install deps
         run: bun ci
 
-      - name: Prepare hono env file for tests
+      - name: Prepare env file
         env:
           HONO_ENV_FILE: ${{ secrets.HONO_ENV_FILE }}
         run: |
@@ -73,65 +72,76 @@ jobs:
             cp apps/hono/.env.dev.example apps/hono/.env.dev
           fi
 
-      # - name: Run vitest tests in shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
-      # run: bun run hono test:ci -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
-      - name: Run vitest tests
-        run: bun hono:test
+      # - name: Run vitest tests
+      #   run: bun hono:test
 
-      # - name: Save vitest report as artifact
-      #   uses: actions/upload-artifact@v7
-      #   if: ${{ !cancelled() }}
+      - name: Run vitest tests in shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        run: bun run hono test:ci
+        env:
+          SHARD_INDEX: ${{ matrix.shardIndex }}
+          SHARD_TOTAL: ${{ matrix.shardTotal }}
+
+      - name: Save vitest report as artifact
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: blob-report-${{ matrix.shardIndex }}
+          path: apps/hono/.vitest-reports
+          retention-days: 1
+
+      - name: Save vitest attachments as artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: blob-attachments-${{ matrix.shardIndex }}
+          path: apps/hono/.vitest-attachments/**
+          include-hidden-files: true
+          retention-days: 1
+
+  test-merge:
+    needs: test
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install deps
+        run: bun ci
+
+      - name: Prepare env file
+        env:
+          HONO_ENV_FILE: ${{ secrets.HONO_ENV_FILE }}
+        run: |
+          if [ -n "$HONO_ENV_FILE" ]; then
+            echo "$HONO_ENV_FILE" > apps/hono/.env.dev
+          else
+            cp apps/hono/.env.dev.example apps/hono/.env.dev
+          fi
+
+      - name: Download vitest blob artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: apps/hono/.vitest-reports
+          pattern: blob-report-*
+          merge-multiple: true
+
+      # - name: Download vitest attachments
+      #   uses: actions/download-artifact@v8
       #   with:
-      #     name: blob-report-${{ matrix.shardIndex }}
-      #     path: apps/hono/.vitest-reports
-      #     retention-days: 1
+      #     path: apps/hono/.vitest-attachments
+      #     pattern: blob-attachments-*
+      #     merge-multiple: true
 
-      # - name: Save vitest attachments as artifact
-      #   if: ${{ !cancelled() }}
-      #   uses: actions/upload-artifact@v7
-      #   with:
-      #     name: blob-attachments-${{ matrix.shardIndex }}
-      #     path: apps/hono/.vitest-attachments/**
-      #     include-hidden-files: true
-      #     retention-days: 1
-
-  # test-merge:
-  #   needs: test
-  #   if: ${{ !cancelled() }}
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout branch
-  #       uses: actions/checkout@v6
-
-  # - name: Setup Node.js
-  #   uses: actions/setup-node@v6
-  #   with:
-  #     node-version: 24
-
-  #     - name: Install bun
-  #       uses: oven-sh/setup-bun@v2
-  #       with:
-  #         bun-version: latest
-
-  #     - name: Install deps
-  #       run: bun ci
-
-  #     - name: Save github secrets as env file
-  #       run: echo "${{ secrets.HONO_ENV_FILE }}" > apps/hono/.env.dev
-
-  #     - name: Download vitest blob artifacts
-  #       uses: actions/download-artifact@v8
-  #       with:
-  #         path: apps/hono/.vitest-reports
-  #         pattern: blob-report-*
-  #         merge-multiple: true
-
-  #     # - name: Download vitest attachments
-  #     #   uses: actions/download-artifact@v8
-  #     #   with:
-  #     #     path: apps/hono/.vitest-attachments
-  #     #     pattern: blob-attachments-*
-  #     #     merge-multiple: true
-
-  #     - name: Merge reports
-  #       run: bun run hono:ci test:merge
+      - name: Merge reports
+        run: bun run hono:ci test:merge
