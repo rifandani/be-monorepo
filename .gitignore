@@ -12,6 +12,8 @@ build
 out
 stats.html
 docker/otel-lgtm
+.vitest-attachments
+.vitest-reports
 
 # misc
 .DS_Store
