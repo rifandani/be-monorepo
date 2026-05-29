@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { app } from "@/app.js";
+import { ENV } from "@/core/constants/env.js";
 
 import { parseServerTimingHeader } from "./util.js";
 
@@ -10,9 +11,10 @@ describe("/llms.txt endpoint", () => {
     const text = await res.text();
     const serverTiming = res.headers.get("Server-Timing");
     const dur = parseServerTimingHeader(serverTiming);
+    const regex = new RegExp(ENV.APP_TITLE, "u");
 
     expect(res.status).toBe(200);
-    expect(text).toMatch(/# Hono API - Development/u);
+    expect(text).toMatch(regex);
     expect(dur).not.toBeNull();
     expect(dur).toBeLessThan(1000);
   });

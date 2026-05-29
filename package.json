@@ -21,7 +21,7 @@
     "lint:doctor": "ultracite doctor",
     "typecheck": "bun run --parallel hono:typecheck",
     "lint-typecheck": "bun run --parallel lint hono:typecheck",
-    "hono": "bun --filter @workspace/hono",
+    "hono": "bun --elide-lines=0 --filter @workspace/hono",
     "hono:typecheck": "bun hono typecheck",
     "hono:test": "bun hono test"
   },
