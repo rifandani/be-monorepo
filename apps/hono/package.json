@@ -26,7 +26,7 @@
     "node:start:prod": "dotenvx run --env-file=.env.prod -- node ./dist/node.js"
   },
   "dependencies": {
-    "@dotenvx/dotenvx": "1.66.0",
+    "@dotenvx/dotenvx": "1.70.0",
     "@hono/node-server": "2.0.3",
     "@hono/otel": "1.1.2",
     "@hono/zod-openapi": "1.4.0",
