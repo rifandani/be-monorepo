@@ -10,7 +10,7 @@
 ## OpenAPI
 
 Using `@scalar/hono-api-reference` to generate OpenAPI docs.
-The OpenAPI generated schema is available at `http://localhost:3333/openapi`, and the OpenAPI docs are available at `http://localhost:3333/openapi/docs`.
+The OpenAPI generated schema is available at `https://hono.localhost/openapi`, and the OpenAPI docs are available at `https://hono.localhost/openapi/docs`.
 
 ## Auth
 

@@ -23,7 +23,7 @@ export const routes = async (
     servers: [
       {
         description: "Local server",
-        url: "http://localhost:3333",
+        url: ENV.APP_URL,
       },
     ],
   });
