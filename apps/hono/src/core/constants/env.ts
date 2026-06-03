@@ -8,6 +8,7 @@ export const ENV = createEnv({
     APP_URL: z.string().min(1),
     BETTER_AUTH_SECRET: z.string().min(1),
     DATABASE_URL: z.string().min(1),
+    OTEL_EXPORTER_OTLP_ENDPOINT: z.string().min(1),
     OTEL_LOG_LEVEL: z.enum([
       "ALL",
       "VERBOSE",

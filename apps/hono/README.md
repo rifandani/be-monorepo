@@ -5,7 +5,6 @@
 - [ ] drizzle beta
 - [ ] database seeding script with `drizzle-seed`
 - [ ] consider load testing with `k6`
-- [ ] add `evlog`
 
 ## OpenAPI
 

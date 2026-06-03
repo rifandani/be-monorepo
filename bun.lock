@@ -50,6 +50,7 @@
         "drizzle-orm": "0.45.2",
         "drizzle-seed": "0.3.1",
         "drizzle-zod": "0.8.3",
+        "evlog": "2.18.1",
         "hono": "4.12.19",
         "hono-rate-limiter": "0.5.3",
         "ky": "2.0.2",
@@ -756,6 +757,8 @@
     "esprima": ["esprima@4.0.1", "", { "bin": { "esparse": "./bin/esparse.js", "esvalidate": "./bin/esvalidate.js" } }, "sha512-eGuFFw7Upda+g4p+QHvnW0RyTX/SVeJBDM/gCtMARO0cLuT2HcEKnTPvhjV6aGeqrCB/sbNop0Kszm0jsaWU4A=="],
 
     "estree-walker": ["estree-walker@3.0.3", "", { "dependencies": { "@types/estree": "^1.0.0" } }, "sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g=="],
+
+    "evlog": ["evlog@2.18.1", "", { "peerDependencies": { "@nestjs/common": ">=11.1.19", "@nuxt/kit": "^4.4.2", "@orpc/server": ">=1.14.0", "@tanstack/start-client-core": "^1.167.20", "ai": ">=6.0.168", "elysia": ">=1.4.28", "express": ">=5.2.1", "fastify": ">=5.8.5", "h3": "^1.15.11", "hono": ">=4.11.0", "next": ">=16.2.4", "nitro": "^3.0.260311-beta", "nitropack": "^2.13.3", "ofetch": "^1.5.1", "react": ">=19.2.5", "react-router": ">=7.14.2", "vite": "^7.0.0 || ^8.0.0" }, "optionalPeers": ["@nestjs/common", "@nuxt/kit", "@orpc/server", "@tanstack/start-client-core", "ai", "elysia", "express", "fastify", "h3", "hono", "next", "nitro", "nitropack", "ofetch", "react", "react-router", "vite"] }, "sha512-uP7NNcmgQST0VdJ5c+gm4uBOOQDc/lGDWwH6aRS2H4C6mu4Hm7N8bCi6cSKIz8+If6pD2uA5EgPuhvI7OH+SHA=="],
 
     "execa": ["execa@5.1.1", "", { "dependencies": { "cross-spawn": "^7.0.3", "get-stream": "^6.0.0", "human-signals": "^2.1.0", "is-stream": "^2.0.0", "merge-stream": "^2.0.0", "npm-run-path": "^4.0.1", "onetime": "^5.1.2", "signal-exit": "^3.0.3", "strip-final-newline": "^2.0.0" } }, "sha512-8uSpZZocAZRBAPIEINJj3Lo9HyGitllczc27Eh5YYojjMFMn8yHMDMaUHE2Jqfq05D/wucwI4JGURyXt1vchyg=="],
 

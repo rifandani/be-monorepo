@@ -1,5 +1,6 @@
 # Observability
 
-Instrument in server ONLY by using `@/core/utils/logger`.
-Console log using logger from `packages/core`.
-Use `span.setAttributes` and `span.addEvent` most of the time, use `logger` only in places where you don't care about measuring the timing (e.g. global app error handler), or when you want to emphasize and save some important information / state changes.
+- Request handlers: `c.get('log').set()` / `.error()` (evlog middleware)
+- Outside request scope: `log` from `evlog` (startup, shutdown, stores)
+- Errors: `throw createError({ message, status, why, fix })`; handle with `parseError()` in `app.onError`
+- Traces: `@hono/otel` + OTEL SDK in `instrumentation.ts`

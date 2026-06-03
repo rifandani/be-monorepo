@@ -22,8 +22,24 @@ import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
 } from "@opentelemetry/semantic-conventions";
+import { initLogger, log } from "evlog";
 
 import { SERVICE_NAME, SERVICE_VERSION } from "@/core/constants/global.js";
+import { flushEvlogDrain } from "@/core/utils/evlog.js";
+
+initLogger({
+  env: { service: SERVICE_NAME, version: SERVICE_VERSION },
+  // 4. Head sampling - keep 10% of info logs
+  sampling: {
+    rates: { info: 10 },
+    keep: [
+      { status: 400 }, // Always keep errors
+      { status: 500 }, // Always keep errors
+      { duration: 1000 }, // Always keep slow requests
+      // { path: '/api/critical/**' }, // Always keep critical paths
+    ],
+  },
+});
 
 // Custom File Span Exporter
 // class FileSpanExporter implements SpanExporter {
@@ -131,5 +147,10 @@ const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter(),
 });
 
+export const shutdownObservability = async () => {
+  await flushEvlogDrain();
+  await sdk.shutdown();
+};
+
 sdk.start();
-console.log("Instrumentation started");
+log.info("instrumentation", "Instrumentation started");

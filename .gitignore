@@ -14,6 +14,7 @@ stats.html
 docker/otel-lgtm
 .vitest-attachments
 .vitest-reports
+.evlog
 
 # misc
 .DS_Store
