@@ -23,6 +23,7 @@ docker/otel-lgtm
 **/.cache.json
 !**/.env.example
 !**/.env.*.example
+.repos
 node_modules
 build
 dev-dist

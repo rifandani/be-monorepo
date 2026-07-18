@@ -4,7 +4,15 @@ import vitest from "ultracite/oxlint/vitest";
 
 export default defineConfig({
   extends: [core, vitest],
-  ignorePatterns: ["apps/hono/src/db/migrations/**"],
+  ignorePatterns: [
+    ...(core.ignorePatterns ?? []),
+    "**/.agents",
+    "**/.claude",
+    "**/.cursor",
+    "**/.repos",
+    "**/docs",
+    "apps/hono/src/db/migrations/**",
+  ],
   rules: {
     "no-inline-comments": "off",
     "promise/prefer-await-to-callbacks": "off",
