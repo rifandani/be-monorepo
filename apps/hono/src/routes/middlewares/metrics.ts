@@ -62,7 +62,7 @@ export const metricsMiddleware = (): MiddlewareHandler => async (c, next) => {
   });
 
   try {
-    await next();
+    return await next();
   } finally {
     // Calculate response time
     const endTime = performance.now();

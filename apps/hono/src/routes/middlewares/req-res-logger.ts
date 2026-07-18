@@ -34,20 +34,22 @@ export const reqResLogger = (): MiddlewareHandler => async (c, next) => {
     console.log("\n");
   }
 
-  await next();
-
-  // Log response body after handler execution
   try {
-    if (c.res?.body) {
-      const resClone = c.res.clone(); // Clone the response
-      const resBodyText = await resClone.text();
-      if (resBodyText) {
-        console.log("--> [Outgoing Body]", tryPrettifyJson(resBodyText));
-        console.log("\n");
+    return await next();
+  } finally {
+    // Log response body after handler execution
+    try {
+      if (c.res?.body) {
+        const resClone = c.res.clone(); // Clone the response
+        const resBodyText = await resClone.text();
+        if (resBodyText) {
+          console.log("--> [Outgoing Body]", tryPrettifyJson(resBodyText));
+          console.log("\n");
+        }
       }
+    } catch (error) {
+      console.error("--> [Error reading response body]", error);
+      console.log("\n");
     }
-  } catch (error) {
-    console.error("--> [Error reading response body]", error);
-    console.log("\n");
   }
 };

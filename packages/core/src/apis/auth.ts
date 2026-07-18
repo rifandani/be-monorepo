@@ -101,7 +101,7 @@ export const authRepositories = (http: InstanceType<typeof Http>) =>
      * GET ${ENV.API_BASE_URL}/api/auth/get-session
      *
      * @access public
-     * @throws HTTPError | TimeoutError | ZodError
+     * @throws {HTTPError | TimeoutError | ZodError} On request, timeout, or validation failure.
      */
     getSession: async (options?: Options) => {
       const resp = await http.instance.get("api/auth/get-session", {
@@ -117,7 +117,7 @@ export const authRepositories = (http: InstanceType<typeof Http>) =>
      * POST ${ENV.API_BASE_URL}/api/auth/sign-in/email
      *
      * @access public
-     * @throws HTTPError | TimeoutError | ZodError
+     * @throws {HTTPError | TimeoutError | ZodError} On request, timeout, or validation failure.
      */
     signInEmail: async (
       options?: Options & { json: AuthSignInEmailRequestSchema }
@@ -135,7 +135,7 @@ export const authRepositories = (http: InstanceType<typeof Http>) =>
      * POST ${ENV.API_BASE_URL}/api/auth/sign-out
      *
      * @access public
-     * @throws HTTPError | TimeoutError | ZodError
+     * @throws {HTTPError | TimeoutError | ZodError} On request, timeout, or validation failure.
      */
     signOut: async (options?: Options) => {
       const resp = await http.instance.post("api/auth/sign-out", {
@@ -151,7 +151,7 @@ export const authRepositories = (http: InstanceType<typeof Http>) =>
      * POST ${ENV.API_BASE_URL}/api/auth/sign-up/email
      *
      * @access public
-     * @throws HTTPError | TimeoutError | ZodError
+     * @throws {HTTPError | TimeoutError | ZodError} On request, timeout, or validation failure.
      */
     signUpEmail: async (
       options?: Options & { json: AuthSignUpEmailRequestSchema }

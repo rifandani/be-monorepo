@@ -48,9 +48,9 @@ export const getClientIpAddress = (headers: Headers): string | null => {
   // 5. Forwarded (RFC 7239 standard)
   const forwarded = headers.get(ipAddressHeaders.forwarded);
   if (forwarded) {
-    const match = forwarded.match(/for=([^;,\s]+)/u);
-    if (match?.[1]) {
-      return match[1];
+    const match = forwarded.match(/for=(?<ip>[^;,\s]+)/u);
+    if (match?.groups?.ip) {
+      return match.groups.ip;
     }
   }
 
@@ -73,15 +73,11 @@ export const getClientIpAddressFromContext = async <
 ): Promise<string | null> => {
   // get current runtime
   const runtime = getRuntimeKey();
-  let connInfo: ConnInfo | null = null;
+  const { getConnInfo } =
+    runtime === "node"
+      ? await import("@hono/node-server/conninfo")
+      : await import("hono/bun");
+  const connInfo: ConnInfo = getConnInfo(c);
 
-  if (runtime === "node") {
-    const { getConnInfo } = await import("@hono/node-server/conninfo");
-    connInfo = getConnInfo(c);
-  } else {
-    const { getConnInfo } = await import("hono/bun");
-    connInfo = getConnInfo(c);
-  }
-
-  return connInfo?.remote.address || null;
+  return connInfo.remote.address || null;
 };

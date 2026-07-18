@@ -46,16 +46,16 @@ export const indonesianPhoneNumberFormat = (phoneNumber: string) => {
   let regexp: RegExp;
 
   if (uniqNumber.length <= PHONE_NUMBER_UNIQ_NUMBER_LENGTH_1) {
-    regexp = /(\d{3})(\d+)/u;
+    regexp = /(?<left>\d{3})(?<right>\d+)/u;
   } else if (uniqNumber.length === PHONE_NUMBER_UNIQ_NUMBER_LENGTH_2) {
-    regexp = /(\d{3})(\d{4})/u;
+    regexp = /(?<left>\d{3})(?<right>\d{4})/u;
   } else if (uniqNumber.length === PHONE_NUMBER_UNIQ_NUMBER_LENGTH_3) {
-    regexp = /(\d{4})(\d{4})/u;
+    regexp = /(?<left>\d{4})(?<right>\d{4})/u;
   } else {
-    regexp = /(\d{4})(\d{5,})/u;
+    regexp = /(?<left>\d{4})(?<right>\d{5,})/u;
   }
 
-  const matches = uniqNumber.replace(regexp, "$1-$2");
+  const matches = uniqNumber.replace(regexp, "$<left>-$<right>");
 
   return [code, ndc, matches].join("-");
 };
@@ -76,8 +76,9 @@ export const toCamelCase = <T>(object: unknown): T => {
       for (const key of Object.keys(object)) {
         if ((object as Record<string, unknown>)[key] !== undefined) {
           const firstUnderscore = key.replace(/^_/u, "");
-          const newKey = firstUnderscore.replaceAll(/(_\w)|(-\w)/gu, (k) =>
-            (k[1] as string).toUpperCase()
+          const newKey = firstUnderscore.replaceAll(
+            /(?<sep>[_-])(?<char>\w)/gu,
+            (_match, _sep: string, char: string) => char.toUpperCase()
           );
           transformedObject[newKey] = toCamelCase(
             (object as Record<string, unknown>)[key]
@@ -106,8 +107,9 @@ export const toSnakeCase = <T>(object: unknown): T => {
         if ((object as Record<string, unknown>)[key] !== undefined) {
           const newKey = key
             .replaceAll(
-              /\.?([A-Z]+)/gu,
-              (_, y) => `_${y ? (y as string).toLowerCase() : ""}`
+              /\.?(?<letters>[A-Z]+)/gu,
+              (_match, letters: string) =>
+                `_${letters ? letters.toLowerCase() : ""}`
             )
             .replace(/^_/u, "");
           transformedObject[newKey] = toSnakeCase(
@@ -125,7 +127,7 @@ export const toSnakeCase = <T>(object: unknown): T => {
  */
 export const removeLeadingZeros = (value: string) => {
   if (/^0+[1-9]+/u.test(value)) {
-    return value.replace(/^(0)/u, "");
+    return value.replace(/^0/u, "");
   }
 
   return value.replace(/^0{2,}/u, "0");

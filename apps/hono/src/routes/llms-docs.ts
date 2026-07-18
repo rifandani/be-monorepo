@@ -1,5 +1,5 @@
 import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import path from "node:path";
 
 import { createRoute, z } from "@hono/zod-openapi";
 import type { OpenAPIHono } from "@hono/zod-openapi";
@@ -18,21 +18,19 @@ const TOKENS_PER_CHARACTER = 4;
  * @returns An array of file paths
  */
 const getAllFiles = async (dir: string): Promise<string[]> => {
-  const files: string[] = [];
-  // read the directory
   const entries = await readdir(dir, { withFileTypes: true });
 
-  // recursively get all files in the directory
-  for (const entry of entries) {
-    const fullPath = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...(await getAllFiles(fullPath)));
-    } else {
-      files.push(fullPath);
-    }
-  }
+  const nested = await Promise.all(
+    entries.map((entry) => {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        return getAllFiles(fullPath);
+      }
+      return [fullPath];
+    })
+  );
 
-  return files;
+  return nested.flat();
 };
 
 export const llmsDocsRoutes = async (
@@ -69,17 +67,14 @@ export const llmsDocsRoutes = async (
     }),
     async (c) => {
       // get the content from the docs folder
-      const contentDir = join(process.cwd(), "./docs");
+      const contentDir = path.join(process.cwd(), "./docs");
       const files = await getAllFiles(contentDir);
 
       // read all the files and combine them into a single string
-      let fullContent = "";
-      for (const file of files) {
-        const fileContent = await readFile(file, "utf-8");
-
-        fullContent += fileContent;
-        fullContent += "\n\n";
-      }
+      const contents = await Promise.all(
+        files.map((file) => readFile(file, "utf-8"))
+      );
+      const fullContent = contents.length ? `${contents.join("\n\n")}\n\n` : "";
 
       return c.json({
         length: fullContent.length,

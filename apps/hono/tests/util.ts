@@ -10,6 +10,6 @@
 export const parseServerTimingHeader = (
   header: string | null
 ): number | null => {
-  const m = header?.match(/total;dur=([\d.]+)/u);
-  return m ? Number(m[1]) : null;
+  const m = header?.match(/total;dur=(?<dur>[\d.]+)/u);
+  return m?.groups?.dur ? Number(m.groups.dur) : null;
 };
