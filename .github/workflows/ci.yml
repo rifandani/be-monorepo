@@ -33,8 +33,6 @@ jobs:
       - name: Fallow audit
         uses: fallow-rs/fallow@v3
         with:
-          command: audit
-          gate: new-only
           dupes-mode: semantic
 
   lint-typecheck:
@@ -51,16 +49,11 @@ jobs:
       - name: Install deps
         run: bun ci
 
-      - name: Lint
+      - name: Lint and typecheck
         run: bun lint-typecheck
 
-  test:
+  unit:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shardIndex: [1, 2]
-        shardTotal: [2]
     steps:
       - name: Checkout branch
         uses: actions/checkout@v6
@@ -68,7 +61,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: 26
 
       - name: Install bun
         uses: oven-sh/setup-bun@v2
@@ -88,29 +81,22 @@ jobs:
             cp apps/hono/.env.dev.example apps/hono/.env.dev
           fi
 
-      # - name: Run vitest tests
-      #   run: bun hono:test
+      - name: Run vitest tests with coverage
+        run: bun run test:cov
 
-      - name: Run vitest tests in shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
-        run: bun run hono test:ci
-        env:
-          SHARD_INDEX: ${{ matrix.shardIndex }}
-          SHARD_TOTAL: ${{ matrix.shardTotal }}
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          {
+            echo '```'
+            cat coverage/summary.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
-      # - name: Save vitest report as artifact
-      #   uses: actions/upload-artifact@v7
-      #   if: ${{ !cancelled() }}
-      #   with:
-      #     name: blob-report-${{ matrix.shardIndex }}
-      #     path: apps/hono/.vitest-reports
-      #     include-hidden-files: true
-      #     retention-days: 1
-
-      # - name: Save vitest attachments as artifact
-      #   if: ${{ !cancelled() }}
-      #   uses: actions/upload-artifact@v7
-      #   with:
-      #     name: blob-attachments-${{ matrix.shardIndex }}
-      #     path: apps/hono/.vitest-attachments/**
-      #     include-hidden-files: true
-      #     retention-days: 1
+      - name: Save coverage report as artifact
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: unit-coverage-report
+          path: coverage
+          retention-days: 3

@@ -49,7 +49,6 @@ app.use(
   evlog(evlogMiddlewareOptions),
   identifyMiddleware(),
   // loggerMiddleware(),
-  // reqResLogger(),
   cors({
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: ["GET", "POST", "OPTIONS"],

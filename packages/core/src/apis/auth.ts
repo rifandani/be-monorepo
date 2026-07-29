@@ -6,26 +6,29 @@ const AUTH_PASSWORD_MIN_LENGTH = 8;
 const AUTH_NAME_MIN_LENGTH = 3;
 
 // #region ENTITY
+// These mirror Better Auth's own schemas in `@better-auth/core/db/schema`.
+// Its `Date` fields serialise to ISO datetimes over the wire, hence
+// `z.iso.datetime()` rather than `z.iso.date()` (which is date-only).
 export const authSessionSchema = z.object({
-  createdAt: z.string().date(),
-  expiresAt: z.string().date(),
+  createdAt: z.iso.datetime(),
+  expiresAt: z.iso.datetime(),
   id: z.string(),
-  ipAddress: z.string(),
+  ipAddress: z.string().nullish(),
   token: z.string(),
-  updatedAt: z.string().date(),
-  userAgent: z.string(),
+  updatedAt: z.iso.datetime(),
+  userAgent: z.string().nullish(),
   userId: z.string(),
 });
 export type AuthSessionSchema = z.infer<typeof authSessionSchema>;
 
 export const authUserSchema = z.object({
-  createdAt: z.string().date(),
-  email: z.string().email(),
+  createdAt: z.iso.datetime(),
+  email: z.email(),
   emailVerified: z.boolean(),
   id: z.string(),
-  image: z.string().nullable(),
+  image: z.string().nullish(),
   name: z.string(),
-  updatedAt: z.string().date(),
+  updatedAt: z.iso.datetime(),
 });
 export type AuthUserSchema = z.infer<typeof authUserSchema>;
 // #endregion ENTITY

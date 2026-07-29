@@ -14,6 +14,10 @@
     "./types/*": "./src/types/*.ts",
     "./utils/*": "./src/utils/*.ts"
   },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest"
+  },
   "dependencies": {
     "ky": "2.0.2",
     "radashi": "12.9.1",
@@ -23,6 +27,7 @@
   "devDependencies": {
     "@types/node": "26.1.1",
     "@workspace/typescript-config": "workspace:*",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
   }
 }

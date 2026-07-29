@@ -61,69 +61,97 @@ export const indonesianPhoneNumberFormat = (phoneNumber: string) => {
 };
 
 /**
+ * Whether a value is a plain object, i.e. an object literal or `Object.create(null)`.
+ *
+ * Class instances (`Date`, `File`, `Map`, `Set`, `RegExp`, …) are not plain.
+ * The key converters use this to recurse only into structures whose keys are
+ * meaningful; recursing into a `Date` would yield `{}`, silently losing it.
+ */
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const prototype: unknown = Object.getPrototypeOf(value);
+
+  return prototype === null || prototype === Object.prototype;
+};
+
+/**
  * convert deep nested object keys to camelCase.
+ *
+ * Keys whose value is `undefined` are dropped. Values that are not plain
+ * objects or arrays — including `Date` and `File` — are passed through as-is.
  */
 export const toCamelCase = <T>(object: unknown): T => {
-  let transformedObject = object as Record<string, unknown>;
-  if (typeof object === "object" && object !== null) {
-    if (Array.isArray(object)) {
-      transformedObject = object.map(toCamelCase) as unknown as Record<
-        string,
-        unknown
-      >;
-    } else {
-      transformedObject = {};
-      for (const key of Object.keys(object)) {
-        if ((object as Record<string, unknown>)[key] !== undefined) {
-          const firstUnderscore = key.replace(/^_/u, "");
-          const newKey = firstUnderscore.replaceAll(
-            /(?<sep>[_-])(?<char>\w)/gu,
-            (_match, _sep: string, char: string) => char.toUpperCase()
-          );
-          transformedObject[newKey] = toCamelCase(
-            (object as Record<string, unknown>)[key]
-          );
-        }
-      }
+  if (Array.isArray(object)) {
+    return object.map((item) => toCamelCase(item)) as T;
+  }
+
+  if (!isPlainObject(object)) {
+    return object as T;
+  }
+
+  const transformedObject: Record<string, unknown> = {};
+
+  for (const key of Object.keys(object)) {
+    if (object[key] !== undefined) {
+      const firstUnderscore = key.replace(/^_/u, "");
+      const newKey = firstUnderscore.replaceAll(
+        /(?<sep>[_-])(?<char>\w)/gu,
+        (_match, _sep: string, char: string) => char.toUpperCase()
+      );
+      transformedObject[newKey] = toCamelCase(object[key]);
     }
   }
+
   return transformedObject as T;
 };
 
 /**
  * convert deep nested object keys to snake_case.
+ *
+ * Keys whose value is `undefined` are dropped. Values that are not plain
+ * objects or arrays — including `Date` and `File` — are passed through as-is.
+ *
+ * Note this is not the exact inverse of {@link toCamelCase}: a run of capitals
+ * collapses into a single segment, so `userID` becomes `user_id`, which
+ * converts back to `userId`.
  */
 export const toSnakeCase = <T>(object: unknown): T => {
-  let transformedObject = object as Record<string, unknown>;
-  if (typeof object === "object" && object !== null) {
-    if (Array.isArray(object)) {
-      transformedObject = object.map(toSnakeCase) as unknown as Record<
-        string,
-        unknown
-      >;
-    } else {
-      transformedObject = {};
-      for (const key of Object.keys(object)) {
-        if ((object as Record<string, unknown>)[key] !== undefined) {
-          const newKey = key
-            .replaceAll(
-              /\.?(?<letters>[A-Z]+)/gu,
-              (_match, letters: string) =>
-                `_${letters ? letters.toLowerCase() : ""}`
-            )
-            .replace(/^_/u, "");
-          transformedObject[newKey] = toSnakeCase(
-            (object as Record<string, unknown>)[key]
-          );
-        }
-      }
+  if (Array.isArray(object)) {
+    return object.map((item) => toSnakeCase(item)) as T;
+  }
+
+  if (!isPlainObject(object)) {
+    return object as T;
+  }
+
+  const transformedObject: Record<string, unknown> = {};
+
+  for (const key of Object.keys(object)) {
+    if (object[key] !== undefined) {
+      const newKey = key
+        .replaceAll(
+          /\.?(?<letters>[A-Z]+)/gu,
+          (_match, letters: string) =>
+            `_${letters ? letters.toLowerCase() : ""}`
+        )
+        .replace(/^_/u, "");
+      transformedObject[newKey] = toSnakeCase(object[key]);
     }
   }
+
   return transformedObject as T;
 };
 
 /**
- * Remove leading zero
+ * Remove a single leading zero, or collapse a run of leading zeros to one.
+ *
+ * @example
+ * removeLeadingZeros('0012') // '012' — one zero is removed, not all of them
+ * removeLeadingZeros('007')  // '07'
+ * removeLeadingZeros('000')  // '0'  — no non-zero digit follows, so the run collapses
  */
 export const removeLeadingZeros = (value: string) => {
   if (/^0+[1-9]+/u.test(value)) {
@@ -135,16 +163,18 @@ export const removeLeadingZeros = (value: string) => {
 
 /**
  * Remove leading whitespaces
+ *
+ * @example
+ * removeLeadingWhitespace('   hello') // 'hello'
+ * removeLeadingWhitespace('   ')      // ''
+ * removeLeadingWhitespace(undefined)  // ''
  */
 export const removeLeadingWhitespace = (value?: string) => {
   if (!value) {
     return "";
   }
-  if (/^\s*$/u.test(value)) {
-    return value.replace(/^\s*/u, "");
-  }
 
-  return value;
+  return value.replace(/^\s+/u, "");
 };
 
 /**
@@ -324,7 +354,10 @@ export const objectToFormDataArrayWithComma = <T extends UnknownRecord>(
 
 /**
  * Safely access deep values in an object via a string path seperated by `.`
- * This util is largely inspired by [dlv](https://github.com/developit/dlv/blob/master/index.js) and passes all its tests
+ * This util is largely inspired by [dlv](https://github.com/developit/dlv/blob/master/index.js)
+ *
+ * Unlike dlv, a resolved `null` is treated as absent and yields the default.
+ * Other falsy values (`0`, `''`, `false`) are returned as found.
  *
  * @param obj {Record<string, unknown>} - The object to parse
  * @param path {string} - The path to search in the object

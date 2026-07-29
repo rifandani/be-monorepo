@@ -28,18 +28,20 @@
     "check:audit": "fallow audit --quiet",
     "check:fix": "fallow fix --yes --no-create-config",
     "test": "vitest",
-    "test:ci": "vitest run --shard=$SHARD_INDEX/$SHARD_TOTAL",
+    "test:cov": "vitest run --coverage",
     "typecheck": "bun run --parallel hono:typecheck core:typecheck",
     "lint-typecheck": "bun run --parallel lint hono:typecheck core:typecheck",
     "hono": "bun --elide-lines=0 --filter @workspace/hono",
     "hono:typecheck": "bun hono typecheck",
     "hono:test": "bun hono test",
     "core": "bun --elide-lines=0 --filter @workspace/core",
-    "core:typecheck": "bun core typecheck"
+    "core:typecheck": "bun core typecheck",
+    "core:test": "bun core test"
   },
   "devDependencies": {
     "@changesets/cli": "2.31.1",
     "@types/node": "26.1.1",
+    "@vitest/coverage-v8": "4.1.10",
     "@workspace/typescript-config": "workspace:*",
     "fallow": "3.10.0",
     "husky": "9.1.7",
