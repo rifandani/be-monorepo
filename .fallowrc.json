@@ -10,6 +10,12 @@
       "rules": {
         "unused-files": "off"
       }
+    },
+    {
+      "files": ["apps/hono/src/routes/middlewares/rate-limit/*.ts"],
+      "rules": {
+        "unused-files": "off"
+      }
     }
   ],
   "duplicates": {

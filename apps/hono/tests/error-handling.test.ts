@@ -1,3 +1,4 @@
+import { createError } from "evlog";
 import { HTTPException } from "hono/http-exception";
 import { HTTPError } from "ky";
 import { describe, expect, it } from "vitest";
@@ -28,6 +29,28 @@ app.get("/__test/http-exception", () => {
 
 app.get("/__test/unknown", () => {
   throw new Error("something unhandled");
+});
+
+// `parseError` lifts `why`/`fix`/`link` to the top level only for an
+// `EvlogError`; a plain Error leaves them undefined, which is why the
+// `/__test/unknown` case above never reaches the hint-carrying branches.
+app.get("/__test/hinted", () => {
+  throw createError({
+    code: "PAYMENT_DECLINED",
+    fix: "Try a different payment method",
+    link: "https://docs.example.test/payments",
+    message: "Payment failed",
+    status: 402,
+    why: "Card declined by issuer",
+  });
+});
+
+app.get("/__test/partly-hinted", () => {
+  throw createError({
+    message: "Half hinted",
+    status: 418,
+    why: "just because",
+  });
 });
 
 describe("app error handling", () => {
@@ -64,6 +87,31 @@ describe("app error handling", () => {
 
     expect(res.status).toBeGreaterThanOrEqual(400);
     expect(body.message).toBeTruthy();
+  });
+
+  it("carries the error's own status and every hint it supplies", async () => {
+    const res = await app.request("/__test/hinted");
+
+    expect(res.status).toBe(402);
+    // `toStrictEqual` rather than per-key assertions: the point is that the
+    // body holds these keys and no others, so a refactor cannot start leaking
+    // `code` or `raw` from the parsed error into the response unnoticed.
+    await expect(res.json()).resolves.toStrictEqual({
+      fix: "Try a different payment method",
+      link: "https://docs.example.test/payments",
+      message: "Payment failed",
+      why: "Card declined by issuer",
+    });
+  });
+
+  it("omits the hints the error does not supply", async () => {
+    const res = await app.request("/__test/partly-hinted");
+
+    expect(res.status).toBe(418);
+    await expect(res.json()).resolves.toStrictEqual({
+      message: "Half hinted",
+      why: "just because",
+    });
   });
 });
 

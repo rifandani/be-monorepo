@@ -5,7 +5,7 @@ import { ENV } from "@/core/constants/env.js";
 
 import * as schema from "./schema.js";
 
-export const dbPool = new Pool({
+const dbPool = new Pool({
   connectionString: ENV.DATABASE_URL,
 });
 

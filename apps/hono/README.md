@@ -3,7 +3,6 @@
 ## 🎯 Todo
 
 - [ ] upgrade drizzle to v1.0 when it's stable
-- [ ] database seeding script with `drizzle-seed`
 - [ ] consider load testing with `k6`
 
 ## OpenAPI

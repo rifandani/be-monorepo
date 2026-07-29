@@ -1,12 +1,7 @@
 // import { type ExportResult, ExportResultCode } from '@opentelemetry/core';
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
-// import { DnsInstrumentation } from "@opentelemetry/instrumentation-dns";
-// import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
-// import { NetInstrumentation } from "@opentelemetry/instrumentation-net";
 import { PgInstrumentation } from "@opentelemetry/instrumentation-pg";
-// import { RuntimeNodeInstrumentation } from "@opentelemetry/instrumentation-runtime-node";
-// import { UndiciInstrumentation } from "@opentelemetry/instrumentation-undici";
 import {
   resourceFromAttributes,
   envDetector,
@@ -103,28 +98,15 @@ initLogger({
 //   }
 // }
 
-// const openApiRegex = /^\/openapi(?:\/.*)?$/u;
-// const wellKnownRegex = /^\/\.well-known\/.*/u;
-// const imageRegex = /\.(?:png|jpg|jpeg|gif|svg|ico|webp)$/iu;
-
 const sdk = new NodeSDK({
   serviceName: SERVICE_NAME,
+  // dns/fs/http/net/runtime-node/undici instrumentations were evaluated and
+  // dropped as too verbose; HTTP server spans already come from `@hono/otel`.
   instrumentations: [
-    // new DnsInstrumentation(), too verbose
-    // new FsInstrumentation(), too verbose
-    // new HttpInstrumentation({
-    //   ignoreIncomingRequestHook: (request) =>
-    //     openApiRegex.test(request.url ?? "") ||
-    //     wellKnownRegex.test(request.url ?? "") ||
-    //     imageRegex.test(request.url ?? ""),
-    // }),
-    // new NetInstrumentation(), too verbose
     new PgInstrumentation({
       addSqlCommenterCommentToQueries: true,
       enhancedDatabaseReporting: true,
     }),
-    // new RuntimeNodeInstrumentation(), too verbose
-    // new UndiciInstrumentation(), too verbose
   ],
   resourceDetectors: [
     envDetector,

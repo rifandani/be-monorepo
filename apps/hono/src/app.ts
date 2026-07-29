@@ -15,6 +15,8 @@ import { timeout } from "hono/timeout";
 import { timing } from "hono/timing";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { HTTPError } from "ky";
+import { shake } from "radashi";
+import { match, P } from "ts-pattern";
 import { prettifyError, ZodError } from "zod";
 
 import { ENV } from "@/core/constants/env.js";
@@ -75,36 +77,45 @@ await routes(app);
 //   colorize: true,
 // });
 
-app.onError(async (error, c) => {
+app.onError((error, c) => {
   c.get("log")?.error(error);
 
-  if (error instanceof ZodError) {
-    return c.json(
-      { message: prettifyError(error) },
-      HTTP_STATUS_CODES.BAD_REQUEST
-    );
-  }
-  if (error instanceof HTTPError) {
-    const errors = await error.response.json();
-    return c.json(
-      { error: errors, message: error.message },
-      HTTP_STATUS_CODES.BAD_REQUEST
-    );
-  }
-  if (error instanceof HTTPException) {
-    return error.getResponse();
-  }
+  // `otherwise` rather than `exhaustive`: hono hands us an open `Error`, so
+  // there is no union for ts-pattern to close over.
+  return match(error)
+    .with(P.instanceOf(ZodError), (zodError) =>
+      c.json(
+        { message: prettifyError(zodError) },
+        HTTP_STATUS_CODES.BAD_REQUEST
+      )
+    )
+    .with(P.instanceOf(HTTPError), async (httpError) =>
+      c.json(
+        {
+          error: await httpError.response.json(),
+          message: httpError.message,
+        },
+        HTTP_STATUS_CODES.BAD_REQUEST
+      )
+    )
+    .with(P.instanceOf(HTTPException), (httpException) =>
+      httpException.getResponse()
+    )
+    .otherwise((unknownError) => {
+      const parsed = parseError(unknownError);
 
-  const parsed = parseError(error);
-  return c.json(
-    {
-      message: parsed.message,
-      ...(parsed.why && { why: parsed.why }),
-      ...(parsed.fix && { fix: parsed.fix }),
-      ...(parsed.link && { link: parsed.link }),
-    },
-    parsed.status as ContentfulStatusCode
-  );
+      // `shake` drops the hints the parsed error did not supply, in place of
+      // three conditional spreads.
+      return c.json(
+        shake({
+          fix: parsed.fix,
+          link: parsed.link,
+          message: parsed.message,
+          why: parsed.why,
+        }),
+        parsed.status as ContentfulStatusCode
+      );
+    });
 });
 
 app.notFound((c) => {

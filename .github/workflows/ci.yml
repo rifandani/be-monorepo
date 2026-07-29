@@ -89,7 +89,7 @@ jobs:
         run: |
           {
             echo '```'
-            cat coverage/summary.txt
+            cat coverage/vitest/summary.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -98,5 +98,5 @@ jobs:
         if: always()
         with:
           name: unit-coverage-report
-          path: coverage
+          path: coverage/vitest
           retention-days: 3

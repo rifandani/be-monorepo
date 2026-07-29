@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  clamp,
   deepReadObject,
+  deepWriteObject,
   indonesianPhoneNumberFormat,
   objectToFormData,
   objectToFormDataArrayWithComma,
@@ -11,34 +11,6 @@ import {
   toCamelCase,
   toSnakeCase,
 } from "./core";
-
-describe(clamp, () => {
-  it("returns the value untouched when it is already within range", () => {
-    expect(clamp({ max: 10, min: 0, value: 5 })).toBe(5);
-  });
-
-  it("returns the bound when the value sits exactly on it", () => {
-    expect(clamp({ max: 10, min: 0, value: 0 })).toBe(0);
-    expect(clamp({ max: 10, min: 0, value: 10 })).toBe(10);
-  });
-
-  it("clamps to max when the value is above range", () => {
-    expect(clamp({ max: 10, min: 0, value: 12 })).toBe(10);
-  });
-
-  it("clamps to min when the value is below range", () => {
-    expect(clamp({ max: 10, min: 0, value: -5 })).toBe(0);
-  });
-
-  it("handles negative ranges", () => {
-    expect(clamp({ max: -5, min: -10, value: -20 })).toBe(-10);
-    expect(clamp({ max: -5, min: -10, value: 0 })).toBe(-5);
-  });
-
-  it("collapses to the single value when min equals max", () => {
-    expect(clamp({ max: 3, min: 3, value: 99 })).toBe(3);
-  });
-});
 
 describe(indonesianPhoneNumberFormat, () => {
   it("formats the 8-digit subscriber number from the documented example", () => {
@@ -311,7 +283,76 @@ describe(deepReadObject, () => {
     expect(found).toStrictEqual([false, 0, ""]);
   });
 
-  it("treats a resolved null as absent, unlike dlv", () => {
+  it("treats a resolved null as absent", () => {
     expect(deepReadObject({ a: null }, "a", "dflt")).toBe("dflt");
+  });
+
+  it("reads array members through bracket indices", () => {
+    expect(deepReadObject({ list: [{ id: 1 }, { id: 2 }] }, "list[1].id")).toBe(
+      2
+    );
+  });
+});
+
+describe(deepWriteObject, () => {
+  it("creates the missing levels of the path", () => {
+    expect(deepWriteObject({}, "a.b.c", "hello")).toStrictEqual({
+      a: { b: { c: "hello" } },
+    });
+  });
+
+  it("creates an array for a numeric segment", () => {
+    expect(deepWriteObject({}, "cards[0].value", 2)).toStrictEqual({
+      cards: [{ value: 2 }],
+    });
+  });
+
+  it("overwrites an existing value", () => {
+    expect(deepWriteObject({ a: { b: 1 } }, "a.b", 2)).toStrictEqual({
+      a: { b: 2 },
+    });
+  });
+
+  it("leaves the input object untouched", () => {
+    const original = { a: { b: 1 } };
+
+    deepWriteObject(original, "a.b", 2);
+
+    expect(original).toStrictEqual({ a: { b: 1 } });
+  });
+
+  it("trims surrounding whitespace from the path", () => {
+    expect(deepWriteObject({}, "  a.b  ", 1)).toStrictEqual({ a: { b: 1 } });
+  });
+
+  it("ignores a write of undefined rather than blanking the value", () => {
+    // Held in a variable so the lint autofix cannot drop the argument that is
+    // the whole point of this test.
+    const missing: unknown = undefined;
+
+    expect(deepWriteObject({ a: 1 }, "a", missing)).toStrictEqual({ a: 1 });
+  });
+
+  it("writes falsy values through", () => {
+    const written = [
+      deepWriteObject({}, "a", false),
+      deepWriteObject({}, "a", 0),
+      deepWriteObject({}, "a", ""),
+      deepWriteObject({}, "a", null),
+    ];
+
+    expect(written).toStrictEqual([
+      { a: false },
+      { a: 0 },
+      { a: "" },
+      { a: null },
+    ]);
+  });
+
+  it("refuses to write through a prototype-polluting segment", () => {
+    expect(() => deepWriteObject({}, "__proto__.polluted", true)).toThrow(
+      "Unsafe key in path: __proto__"
+    );
+    expect({}).not.toHaveProperty("polluted");
   });
 });

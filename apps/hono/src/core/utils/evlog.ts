@@ -22,7 +22,7 @@ const pipeline = createDrainPipeline<DrainContext>({
   retry: { maxAttempts: 3 },
 });
 
-export const drain = pipeline(
+const drain = pipeline(
   createOTLPDrain({
     endpoint: ENV.OTEL_EXPORTER_OTLP_ENDPOINT,
     resourceAttributes: {

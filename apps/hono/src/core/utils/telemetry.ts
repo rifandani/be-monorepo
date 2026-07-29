@@ -6,6 +6,7 @@ import type {
   SpanContext,
   Tracer,
 } from "@opentelemetry/api";
+import { match, P } from "ts-pattern";
 
 import { SERVICE_NAME } from "@/core/constants/global.js";
 
@@ -285,44 +286,54 @@ export const flattenAttributesV2 = (
   Object.entries(obj).reduce(
     (acc, [key, value]) => {
       const newKey = prefix ? `${prefix}.${key}` : key;
-      if (value === null || value === undefined) {
-        return acc;
-      }
-      if (Array.isArray(value)) {
-        const allPrimitives = value.every(
-          (item) => typeof item !== "object" || item === null
-        );
-        if (allPrimitives) {
-          // OTel doesn't support mixed-type arrays, so convert all to strings.
-          acc[newKey] = value.filter((item) => item !== null).map(String);
-        } else {
-          for (const [i, item] of value.entries()) {
-            if (typeof item === "object" && item !== null) {
+
+      return (
+        match(value)
+          .with(P.nullish, () => acc)
+          .with(P.array(), (items) => {
+            const allPrimitives = items.every(
+              (item) => typeof item !== "object" || item === null
+            );
+
+            if (allPrimitives) {
+              // OTel doesn't support mixed-type arrays, so convert all to strings.
+              acc[newKey] = items.filter((item) => item !== null).map(String);
+              return acc;
+            }
+
+            for (const [i, item] of items.entries()) {
+              if (typeof item === "object" && item !== null) {
+                Object.assign(
+                  acc,
+                  flattenAttributesV2(
+                    item as Record<string, unknown>,
+                    `${newKey}.${i}`
+                  )
+                );
+              } else if (item !== null && item !== undefined) {
+                acc[`${newKey}.${i}`] = String(item);
+              }
+            }
+
+            return acc;
+          })
+          .with(P.union(P.string, P.number, P.boolean), (primitive) => {
+            acc[newKey] = primitive;
+            return acc;
+          })
+          .with(
+            P.when((candidate) => typeof candidate === "object"),
+            (record) =>
               Object.assign(
                 acc,
-                flattenAttributesV2(
-                  item as Record<string, unknown>,
-                  `${newKey}.${i}`
-                )
-              );
-            } else if (item !== null && item !== undefined) {
-              acc[`${newKey}.${i}`] = String(item);
-            }
-          }
-        }
-      } else if (typeof value === "object") {
-        Object.assign(
-          acc,
-          flattenAttributesV2(value as Record<string, unknown>, newKey)
-        );
-      } else if (
-        typeof value === "string" ||
-        typeof value === "number" ||
-        typeof value === "boolean"
-      ) {
-        acc[newKey] = value;
-      }
-      return acc;
+                flattenAttributesV2(record as Record<string, unknown>, newKey)
+              )
+          )
+          // Anything left is a function, symbol or bigint, none of which OTel
+          // can represent — the original code dropped them via a missing
+          // `else`, which was easy to read as an oversight.
+          .otherwise(() => acc)
+      );
     },
     {} as Record<string, AttributeValue>
   );

@@ -1,3 +1,4 @@
+import { get, isPlainObject, set } from "radashi";
 import type { RequireAtLeastOne, UnknownRecord } from "type-fest";
 
 const PHONE_NUMBER_CODE_LENGTH = 3;
@@ -5,29 +6,6 @@ const PHONE_NUMBER_NDC_LENGTH = 3;
 const PHONE_NUMBER_UNIQ_NUMBER_LENGTH_1 = 6;
 const PHONE_NUMBER_UNIQ_NUMBER_LENGTH_2 = 7;
 const PHONE_NUMBER_UNIQ_NUMBER_LENGTH_3 = 8;
-
-/**
- * Clamps a value to a specified range.
- *
- * @example
- * clamp({ value: 12, min: 0, max: 10 }) // 10
- * clamp({ value: -5, min: 0, max: 10 }) // 0
- *
- * @param {object} options - options object
- * @param {number} options.value - value to clamp
- * @param {number} options.min - minimum value
- * @param {number} options.max - maximum value
- * @returns {number} clamped value
- */
-export const clamp = ({
-  value,
-  min,
-  max,
-}: {
-  value: number;
-  min: number;
-  max: number;
-}): number => Math.min(Math.max(value, min), max);
 
 /**
  * Format phone number based on mockup, currently only covered minimum 11 characters and max 15 characters include +62
@@ -58,23 +36,6 @@ export const indonesianPhoneNumberFormat = (phoneNumber: string) => {
   const matches = uniqNumber.replace(regexp, "$<left>-$<right>");
 
   return [code, ndc, matches].join("-");
-};
-
-/**
- * Whether a value is a plain object, i.e. an object literal or `Object.create(null)`.
- *
- * Class instances (`Date`, `File`, `Map`, `Set`, `RegExp`, …) are not plain.
- * The key converters use this to recurse only into structures whose keys are
- * meaningful; recursing into a `Date` would yield `{}`, silently losing it.
- */
-const isPlainObject = (value: unknown): value is Record<string, unknown> => {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const prototype: unknown = Object.getPrototypeOf(value);
-
-  return prototype === null || prototype === Object.prototype;
 };
 
 /**
@@ -232,7 +193,10 @@ export const objectToFormData = <T extends UnknownRecord>(
     Array.isArray(options?.ignoreList) &&
     options?.ignoreList.includes(_key as keyof T);
 
-  const appendFormData = (_obj: T, _rootName_?: string) => {
+  // `unknown` rather than `T`: recursion descends into nested values, which are
+  // not themselves records. Typing the parameter as the outer generic was what
+  // forced the casts this function used to carry.
+  const appendFormData = (_obj: unknown, _rootName_?: string) => {
     let _rootName = _rootName_;
 
     if (!ignore(_rootName)) {
@@ -245,19 +209,18 @@ export const objectToFormData = <T extends UnknownRecord>(
           appendFormData(_obj[i], `${_rootName}[${i}]`);
         }
       } else if (typeof _obj === "object" && _obj) {
-        for (const key in _obj) {
-          if (Object.hasOwn(_obj, key)) {
-            if (_rootName === "") {
-              // @ts-expect-error i'm not typescript wizard
-              appendFormData(_obj[key], key);
-            } else {
-              // @ts-expect-error i'm not typescript wizard
-              appendFormData(_obj[key], `${_rootName}.${key}`);
-            }
-          }
+        // `Object.entries` covers the same keys as `for…in` guarded by
+        // `Object.hasOwn` — own enumerable string keys, in the same order.
+        for (const [key, nested] of Object.entries(_obj)) {
+          appendFormData(
+            nested,
+            _rootName === "" ? key : `${_rootName}.${key}`
+          );
         }
       } else if (_obj !== null && _obj !== undefined) {
-        formData.append(_rootName, _obj);
+        // FormData stringifies non-Blob values itself; doing it here is the
+        // same conversion, just visible to the type checker.
+        formData.append(_rootName, String(_obj));
       }
     }
   };
@@ -319,7 +282,9 @@ export const objectToFormDataArrayWithComma = <T extends UnknownRecord>(
     Array.isArray(options?.ignoreList) &&
     options?.ignoreList.includes(_key as keyof T);
 
-  const appendFormData = (_obj: T, _rootName_?: string) => {
+  // See the note in `objectToFormData` — `unknown` is what lets the recursion
+  // type-check without casts.
+  const appendFormData = (_obj: unknown, _rootName_?: string) => {
     let _rootName = _rootName_;
 
     if (!ignore(_rootName)) {
@@ -330,19 +295,14 @@ export const objectToFormDataArrayWithComma = <T extends UnknownRecord>(
       } else if (Array.isArray(_obj)) {
         formData.append(_rootName, _obj.join(","));
       } else if (typeof _obj === "object" && _obj) {
-        for (const key in _obj) {
-          if (Object.hasOwn(_obj, key)) {
-            if (_rootName === "") {
-              // @ts-expect-error i'm not typescript wizard
-              appendFormData(_obj[key], key);
-            } else {
-              // @ts-expect-error i'm not typescript wizard
-              appendFormData(_obj[key], `${_rootName}.${key}`);
-            }
-          }
+        for (const [key, nested] of Object.entries(_obj)) {
+          appendFormData(
+            nested,
+            _rootName === "" ? key : `${_rootName}.${key}`
+          );
         }
       } else if (_obj !== null && _obj !== undefined) {
-        formData.append(_rootName, _obj);
+        formData.append(_rootName, String(_obj));
       }
     }
   };
@@ -353,11 +313,11 @@ export const objectToFormDataArrayWithComma = <T extends UnknownRecord>(
 };
 
 /**
- * Safely access deep values in an object via a string path seperated by `.`
- * This util is largely inspired by [dlv](https://github.com/developit/dlv/blob/master/index.js)
+ * Safely access deep values in an object via a string path seperated by `.`,
+ * with `[…]` accepted for array indices.
  *
- * Unlike dlv, a resolved `null` is treated as absent and yields the default.
- * Other falsy values (`0`, `''`, `false`) are returned as found.
+ * A resolved `null` is treated as absent and yields the default; other falsy
+ * values (`0`, `''`, `false`) are returned as found.
  *
  * @param obj {Record<string, unknown>} - The object to parse
  * @param path {string} - The path to search in the object
@@ -376,6 +336,8 @@ export const objectToFormDataArrayWithComma = <T extends UnknownRecord>(
  * // => undefined
  * const notFound = deepReadObject(obj, 'a.b.d', 'not found');
  * // => 'not found'
+ * const indexed = deepReadObject({ list: [{ id: 1 }] }, 'list[0].id');
+ * // => 1
  * ```
  */
 // oxlint-disable-next-line typescript/no-explicit-any
@@ -383,12 +345,38 @@ export const deepReadObject = <T = any>(
   obj: Record<string, unknown>,
   path: string,
   defaultValue?: unknown
-): T => {
-  const value = path
-    .trim()
-    .split(".")
-    // oxlint-disable-next-line typescript/no-explicit-any
-    .reduce<any>((a, b) => (a ? a[b] : undefined), obj);
+): T => get<T>(obj, path.trim()) ?? (defaultValue as T);
 
-  return value ?? (defaultValue as T);
-};
+/**
+ * The counterpart to {@link deepReadObject}: write a deep value via a string
+ * path without mutating the input. Missing levels are created along the way —
+ * a numeric segment creates an array, anything else creates an object.
+ *
+ * Writing `undefined` is a no-op, so this cannot be used to blank a value out;
+ * that keeps a missing argument from quietly wiping part of the object.
+ *
+ * `__proto__`, `prototype` and `constructor` segments throw rather than being
+ * written, so a path taken from user input cannot pollute a prototype.
+ *
+ * @param obj {object} - The object to write into; left untouched
+ * @param path {string} - The path to write, e.g. `a.b.c` or `list[0].id`
+ * @param value {unknown} - The value to write
+ *
+ * @returns A copy of `obj` with `path` set to `value`
+ *
+ * @example
+ *
+ * ```js
+ * deepWriteObject({}, 'a.b.c', 'hello');
+ * // => { a: { b: { c: 'hello' } } }
+ * deepWriteObject({}, 'cards[0].value', 2);
+ * // => { cards: [{ value: 2 }] }
+ * deepWriteObject({ a: 1 }, 'a', undefined);
+ * // => { a: 1 } — unchanged
+ * ```
+ */
+export const deepWriteObject = <T extends object>(
+  obj: T,
+  path: string,
+  value: unknown
+): T => set(obj, path.trim(), value);
