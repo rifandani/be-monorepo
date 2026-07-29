@@ -8,6 +8,7 @@
 
 - [ ] always update `CLAUDE.md` file in root dir and subpackage inside monorepo and consider it as a living document
 - [ ] add new apps for Effect v4 when it's stable. full use of effect ecosystem.
+- [ ] integrate fallow.tools with all strict checks
 
 ## 🛠️ Upgrading Dependencies
 

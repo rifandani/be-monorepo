@@ -1,3 +1,4 @@
+/* oxlint-disable class-methods-use-this */
 import { logger } from "@workspace/core/utils/logger.js";
 import { eq, sql } from "drizzle-orm";
 import type {
@@ -155,7 +156,6 @@ export class DbStore<
    *
    * @public
    */
-  // oxlint-disable-next-line class-methods-use-this
   async decrement(key: string): Promise<void> {
     try {
       const now = Date.now();
@@ -178,7 +178,6 @@ export class DbStore<
    *
    * @public
    */
-  // oxlint-disable-next-line class-methods-use-this
   async resetKey(key: string): Promise<void> {
     try {
       await db.delete(rateLimitTable).where(eq(rateLimitTable.key, key));
@@ -192,7 +191,6 @@ export class DbStore<
    *
    * @public
    */
-  // oxlint-disable-next-line class-methods-use-this
   async resetAll(): Promise<void> {
     try {
       await db.delete(rateLimitTable);
@@ -207,7 +205,6 @@ export class DbStore<
    *
    * @public
    */
-  // oxlint-disable-next-line class-methods-use-this
   shutdown(): void {
     // No cleanup needed for database store
   }

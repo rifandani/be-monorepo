@@ -15,6 +15,7 @@ docker/otel-lgtm
 .vitest-attachments
 .vitest-reports
 .evlog
+.fallow/
 
 # misc
 .DS_Store

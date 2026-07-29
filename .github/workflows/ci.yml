@@ -13,13 +13,29 @@ env:
 
 jobs:
   sherif:
-    name: Lint monorepos
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: QuiiBz/sherif@v1
         # with:
         # args: '--ignore-rule root-package-manager-field'
+
+  # PR-scoped dead code / complexity / duplication / styling gate (new-only).
+  # https://docs.fallow.tools/cli/audit · https://docs.fallow.tools/integrations/ci
+  fallow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fallow audit
+        uses: fallow-rs/fallow@v3
+        with:
+          command: audit
+          gate: new-only
+          dupes-mode: semantic
 
   lint-typecheck:
     runs-on: ubuntu-latest
