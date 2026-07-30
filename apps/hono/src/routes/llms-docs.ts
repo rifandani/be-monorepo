@@ -14,19 +14,27 @@ const TOKENS_PER_CHARACTER = 4;
 
 /**
  * Get all files in a directory
+ *
+ * `readdir` reports link types without resolving them, so recursing on
+ * `isDirectory()` and collecting on `isFile()` drops symlinks — the only way an
+ * entry under `dir` could point outside of it.
+ *
  * @param dir - The directory to get the files from
- * @returns An array of file paths
+ * @returns An array of file paths, all contained within `dir`
  */
 const getAllFiles = async (dir: string): Promise<string[]> => {
   const entries = await readdir(dir, { withFileTypes: true });
 
   const nested = await Promise.all(
     entries.map((entry) => {
+      // `entry.name` is a single path segment from the filesystem, never `..`
+      // or absolute, so the join cannot escape `dir`.
+      // fallow-ignore-next-line security-sink
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         return getAllFiles(fullPath);
       }
-      return [fullPath];
+      return entry.isFile() ? [fullPath] : [];
     })
   );
 
@@ -66,7 +74,9 @@ export const llmsDocsRoutes = async (
       summary: "LLMs Docs",
     }),
     async (c) => {
-      // get the content from the docs folder
+      // get the content from the docs folder. The route takes no parameters, so
+      // both join operands are fixed — nothing request-controlled reaches here.
+      // fallow-ignore-next-line security-sink
       const contentDir = path.join(process.cwd(), "./docs");
       const files = await getAllFiles(contentDir);
 
