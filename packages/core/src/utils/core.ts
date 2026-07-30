@@ -138,6 +138,86 @@ export const removeLeadingWhitespace = (value?: string) => {
   return value.replace(/^\s+/u, "");
 };
 
+type FormDataOptions<T> = RequireAtLeastOne<{
+  rootName?: string;
+  ignoreList: (keyof T)[];
+}>;
+
+/**
+ * Appends a nested value under `rootName`, recursing through `append`.
+ */
+type AppendValue = (value: unknown, rootName?: string) => void;
+
+/**
+ * Encodes an array reached at `rootName`. The `objectToFormData*` variants
+ * differ only here, so this is the one piece they each supply.
+ */
+type AppendArray = (
+  items: unknown[],
+  rootName: string,
+  context: { append: AppendValue; formData: FormData }
+) => void;
+
+/**
+ * Recurses into each own enumerable key of `value`, keyed under the parent's
+ * path.
+ *
+ * `Object.entries` covers the same keys as `for…in` guarded by `Object.hasOwn` —
+ * own enumerable string keys, in the same order.
+ */
+const appendRecord = (value: object, rootName: string, append: AppendValue) => {
+  for (const [key, nested] of Object.entries(value)) {
+    append(nested, rootName === "" ? key : `${rootName}.${key}`);
+  }
+};
+
+/**
+ * Shared recursion behind the `objectToFormData*` helpers.
+ */
+const buildFormData = <T extends UnknownRecord>(
+  obj: T,
+  options: FormDataOptions<T> | undefined,
+  appendArray: AppendArray
+) => {
+  const formData = new FormData();
+
+  const isIgnored = (key?: string) =>
+    Array.isArray(options?.ignoreList) &&
+    options.ignoreList.includes(key as keyof T);
+
+  // `unknown` rather than `T`: recursion descends into nested values, which are
+  // not themselves records. Typing the parameter as the outer generic was what
+  // forced the casts this function used to carry.
+  const append: AppendValue = (value, key) => {
+    if (isIgnored(key)) {
+      return;
+    }
+
+    // FormData has no representation for either, so both are dropped.
+    if (value === null || value === undefined) {
+      return;
+    }
+
+    const rootName = key ?? "";
+
+    if (value instanceof File) {
+      formData.append(rootName, value);
+    } else if (Array.isArray(value)) {
+      appendArray(value, rootName, { append, formData });
+    } else if (typeof value === "object") {
+      appendRecord(value, rootName, append);
+    } else {
+      // FormData stringifies non-Blob values itself; doing it here is the
+      // same conversion, just visible to the type checker.
+      formData.append(rootName, String(value));
+    }
+  };
+
+  append(obj, options?.rootName);
+
+  return formData;
+};
+
 /**
  * Convert deep object to FormData.
  * Supports File, array, and options to add object rootName and ignore object keys.
@@ -182,53 +262,14 @@ export const removeLeadingWhitespace = (value?: string) => {
  */
 export const objectToFormData = <T extends UnknownRecord>(
   obj: T,
-  options?: RequireAtLeastOne<{
-    rootName?: string;
-    ignoreList: (keyof T)[];
-  }>
-) => {
-  const formData = new FormData();
-
-  const ignore = (_key?: string) =>
-    Array.isArray(options?.ignoreList) &&
-    options?.ignoreList.includes(_key as keyof T);
-
-  // `unknown` rather than `T`: recursion descends into nested values, which are
-  // not themselves records. Typing the parameter as the outer generic was what
-  // forced the casts this function used to carry.
-  const appendFormData = (_obj: unknown, _rootName_?: string) => {
-    let _rootName = _rootName_;
-
-    if (!ignore(_rootName)) {
-      _rootName ||= "";
-
-      if (_obj instanceof File) {
-        formData.append(_rootName, _obj);
-      } else if (Array.isArray(_obj)) {
-        for (let i = 0; i < _obj.length; i += 1) {
-          appendFormData(_obj[i], `${_rootName}[${i}]`);
-        }
-      } else if (typeof _obj === "object" && _obj) {
-        // `Object.entries` covers the same keys as `for…in` guarded by
-        // `Object.hasOwn` — own enumerable string keys, in the same order.
-        for (const [key, nested] of Object.entries(_obj)) {
-          appendFormData(
-            nested,
-            _rootName === "" ? key : `${_rootName}.${key}`
-          );
-        }
-      } else if (_obj !== null && _obj !== undefined) {
-        // FormData stringifies non-Blob values itself; doing it here is the
-        // same conversion, just visible to the type checker.
-        formData.append(_rootName, String(_obj));
-      }
+  options?: FormDataOptions<T>
+) =>
+  buildFormData(obj, options, (items, rootName, { append }) => {
+    // Each item keeps its index, so nested objects stay addressable.
+    for (const [index, item] of items.entries()) {
+      append(item, `${rootName}[${index}]`);
     }
-  };
-
-  appendFormData(obj, options?.rootName);
-
-  return formData;
-};
+  });
 
 /**
  * Convert deep object to FormData.
@@ -271,46 +312,11 @@ export const objectToFormData = <T extends UnknownRecord>(
  */
 export const objectToFormDataArrayWithComma = <T extends UnknownRecord>(
   obj: T,
-  options?: RequireAtLeastOne<{
-    rootName?: string;
-    ignoreList: (keyof T)[];
-  }>
-) => {
-  const formData = new FormData();
-
-  const ignore = (_key?: string) =>
-    Array.isArray(options?.ignoreList) &&
-    options?.ignoreList.includes(_key as keyof T);
-
-  // See the note in `objectToFormData` — `unknown` is what lets the recursion
-  // type-check without casts.
-  const appendFormData = (_obj: unknown, _rootName_?: string) => {
-    let _rootName = _rootName_;
-
-    if (!ignore(_rootName)) {
-      _rootName ||= "";
-
-      if (_obj instanceof File) {
-        formData.append(_rootName, _obj);
-      } else if (Array.isArray(_obj)) {
-        formData.append(_rootName, _obj.join(","));
-      } else if (typeof _obj === "object" && _obj) {
-        for (const [key, nested] of Object.entries(_obj)) {
-          appendFormData(
-            nested,
-            _rootName === "" ? key : `${_rootName}.${key}`
-          );
-        }
-      } else if (_obj !== null && _obj !== undefined) {
-        formData.append(_rootName, String(_obj));
-      }
-    }
-  };
-
-  appendFormData(obj, options?.rootName);
-
-  return formData;
-};
+  options?: FormDataOptions<T>
+) =>
+  buildFormData(obj, options, (items, rootName, { formData }) => {
+    formData.append(rootName, items.join(","));
+  });
 
 /**
  * Safely access deep values in an object via a string path seperated by `.`,

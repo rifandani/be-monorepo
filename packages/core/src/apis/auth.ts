@@ -98,6 +98,22 @@ export const authKeys = {
     [...authKeys.all(), "signUpEmail", ...(params ? [params] : [])] as const,
 };
 
+/**
+ * Awaits a request and validates its JSON body, keeping the response headers —
+ * Better Auth carries the session cookie there, so callers need both halves.
+ *
+ * @throws {HTTPError | TimeoutError | ZodError} On request, timeout, or validation failure.
+ */
+const parseResponse = async <Schema extends z.ZodType>(
+  request: Promise<Response>,
+  schema: Schema
+): Promise<{ headers: Headers; json: z.output<Schema> }> => {
+  const resp = await request;
+  const json = await resp.json();
+
+  return { headers: resp.headers, json: schema.parse(json) };
+};
+
 export const authRepositories = (http: InstanceType<typeof Http>) =>
   ({
     /**
@@ -106,15 +122,11 @@ export const authRepositories = (http: InstanceType<typeof Http>) =>
      * @access public
      * @throws {HTTPError | TimeoutError | ZodError} On request, timeout, or validation failure.
      */
-    getSession: async (options?: Options) => {
-      const resp = await http.instance.get("api/auth/get-session", {
-        ...options,
-      });
-      const json = await resp.json();
-      const parsed = authGetSessionResponseSchema.parse(json);
-
-      return { headers: resp.headers, json: parsed };
-    },
+    getSession: (options?: Options) =>
+      parseResponse(
+        http.instance.get("api/auth/get-session", { ...options }),
+        authGetSessionResponseSchema
+      ),
 
     /**
      * POST ${ENV.API_BASE_URL}/api/auth/sign-in/email
@@ -122,17 +134,11 @@ export const authRepositories = (http: InstanceType<typeof Http>) =>
      * @access public
      * @throws {HTTPError | TimeoutError | ZodError} On request, timeout, or validation failure.
      */
-    signInEmail: async (
-      options?: Options & { json: AuthSignInEmailRequestSchema }
-    ) => {
-      const resp = await http.instance.post("api/auth/sign-in/email", {
-        ...options,
-      });
-      const json = await resp.json();
-      const parsed = authSignInEmailResponseSchema.parse(json);
-
-      return { headers: resp.headers, json: parsed };
-    },
+    signInEmail: (options?: Options & { json: AuthSignInEmailRequestSchema }) =>
+      parseResponse(
+        http.instance.post("api/auth/sign-in/email", { ...options }),
+        authSignInEmailResponseSchema
+      ),
 
     /**
      * POST ${ENV.API_BASE_URL}/api/auth/sign-out
@@ -140,15 +146,11 @@ export const authRepositories = (http: InstanceType<typeof Http>) =>
      * @access public
      * @throws {HTTPError | TimeoutError | ZodError} On request, timeout, or validation failure.
      */
-    signOut: async (options?: Options) => {
-      const resp = await http.instance.post("api/auth/sign-out", {
-        ...options,
-      });
-      const json = await resp.json();
-      const parsed = authSignOutResponseSchema.parse(json);
-
-      return { headers: resp.headers, json: parsed };
-    },
+    signOut: (options?: Options) =>
+      parseResponse(
+        http.instance.post("api/auth/sign-out", { ...options }),
+        authSignOutResponseSchema
+      ),
 
     /**
      * POST ${ENV.API_BASE_URL}/api/auth/sign-up/email
@@ -156,15 +158,9 @@ export const authRepositories = (http: InstanceType<typeof Http>) =>
      * @access public
      * @throws {HTTPError | TimeoutError | ZodError} On request, timeout, or validation failure.
      */
-    signUpEmail: async (
-      options?: Options & { json: AuthSignUpEmailRequestSchema }
-    ) => {
-      const resp = await http.instance.post("api/auth/sign-up/email", {
-        ...options,
-      });
-      const json = await resp.json();
-      const parsed = authSignUpEmailResponseSchema.parse(json);
-
-      return { headers: resp.headers, json: parsed };
-    },
+    signUpEmail: (options?: Options & { json: AuthSignUpEmailRequestSchema }) =>
+      parseResponse(
+        http.instance.post("api/auth/sign-up/email", { ...options }),
+        authSignUpEmailResponseSchema
+      ),
   }) as const;

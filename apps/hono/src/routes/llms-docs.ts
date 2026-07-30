@@ -22,7 +22,7 @@ const TOKENS_PER_CHARACTER = 4;
  * @param dir - The directory to get the files from
  * @returns An array of file paths, all contained within `dir`
  */
-const getAllFiles = async (dir: string): Promise<string[]> => {
+export const getAllFiles = async (dir: string): Promise<string[]> => {
   const entries = await readdir(dir, { withFileTypes: true });
 
   const nested = await Promise.all(
@@ -41,11 +41,14 @@ const getAllFiles = async (dir: string): Promise<string[]> => {
   return nested.flat();
 };
 
-export const llmsDocsRoutes = async (
-  app: OpenAPIHono<{
-    Variables: Variables;
-  }>
-) => {
+type DocsApp = OpenAPIHono<{
+  Variables: Variables;
+}>;
+
+/**
+ * `GET /llms-docs` — the concatenated contents of the repo's `docs` folder.
+ */
+const registerDocsFolderRoute = (app: DocsApp) => {
   app.openapi(
     createRoute({
       description: "Get the combined content of the docs folder.",
@@ -95,21 +98,20 @@ export const llmsDocsRoutes = async (
       });
     }
   );
+};
 
-  /**
-   * Register a route to serve the Markdown for LLMs
-   *
-   * Q: Why /llms.txt?
-   * A: It's a proposal to standardise on using an /llms.txt file.
-   *
-   * @see https://llmstxt.org/
-   */
+/**
+ * `GET /llms-auth.txt` — the BetterAuth OpenAPI docs as Markdown.
+ *
+ * Must be registered after the routes it documents so the BetterAuth routes are
+ * already indexed.
+ */
+const registerAuthMarkdownRoute = async (app: DocsApp) => {
   const betterauthOpenapiObject = await auth.api.generateOpenAPISchema();
   const betterauthMarkdown = await createMarkdownFromOpenApi(
     JSON.stringify(betterauthOpenapiObject)
   );
 
-  // this route should be placed at the end to be able to index the better-auth routes OpenAPI docs
   app.openapi(
     createRoute({
       description:
@@ -134,7 +136,19 @@ export const llmsDocsRoutes = async (
     }),
     (c) => c.text(betterauthMarkdown)
   );
+};
 
+/**
+ * `GET /llms.txt` — the app's own OpenAPI docs as Markdown.
+ *
+ * Q: Why /llms.txt?
+ * A: It's a proposal to standardise on using an /llms.txt file.
+ *
+ * Must be registered last so every other route is already indexed.
+ *
+ * @see https://llmstxt.org/
+ */
+const registerOpenApiMarkdownRoute = async (app: DocsApp) => {
   const openapiObject = app.getOpenAPI31Document({
     info: {
       title: ENV.APP_TITLE,
@@ -146,7 +160,6 @@ export const llmsDocsRoutes = async (
     JSON.stringify(openapiObject)
   );
 
-  // this route should be placed at the end to be able to index the other routes OpenAPI docs
   app.openapi(
     createRoute({
       description:
@@ -170,4 +183,16 @@ export const llmsDocsRoutes = async (
     }),
     (c) => c.text(markdown)
   );
+};
+
+/**
+ * Registers the LLM-facing documentation routes.
+ *
+ * Registration order matters: the Markdown routes snapshot the OpenAPI document
+ * at registration time, so they go last.
+ */
+export const llmsDocsRoutes = async (app: DocsApp) => {
+  registerDocsFolderRoute(app);
+  await registerAuthMarkdownRoute(app);
+  await registerOpenApiMarkdownRoute(app);
 };

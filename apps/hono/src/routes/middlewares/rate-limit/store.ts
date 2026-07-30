@@ -38,6 +38,49 @@ export class DbStore<
   }
 
   /**
+   * The record for `key`, or `undefined` when the client has no record yet.
+   */
+  async #findRecord(key: string) {
+    const [record] = await db
+      .select()
+      .from(rateLimitTable)
+      .where(eq(rateLimitTable.key, key))
+      .limit(1);
+
+    return record;
+  }
+
+  /**
+   * Whether `lastRequest` falls outside the current window. A missing
+   * timestamp counts as within the window, matching the write path, which
+   * always stamps one.
+   */
+  #isExpired(lastRequest: number | null, now: number): boolean {
+    return lastRequest ? lastRequest < now - this.#windowMs : false;
+  }
+
+  /**
+   * When the window holding `lastRequest` ends. A missing timestamp is read as
+   * "just now", giving a full window.
+   */
+  #resetTime(lastRequest: number | null, now: number): Date {
+    return new Date(now + this.#windowMs - (now - (lastRequest || now)));
+  }
+
+  /**
+   * The hit count and window end a live record reports to the middleware.
+   */
+  #toRateLimitInfo(
+    record: { count: number | null; lastRequest: number | null },
+    now: number
+  ): ClientRateLimitInfo {
+    return {
+      resetTime: this.#resetTime(record.lastRequest, now),
+      totalHits: record.count ?? 0,
+    };
+  }
+
+  /**
    * Method to fetch a client's hit count and reset time.
    *
    * @param key {string} - The identifier for a client.
@@ -48,38 +91,72 @@ export class DbStore<
    */
   async get(key: string): Promise<ClientRateLimitInfo | undefined> {
     try {
-      const result = await db
-        .select()
-        .from(rateLimitTable)
-        .where(eq(rateLimitTable.key, key))
-        .limit(1);
+      const record = await this.#findRecord(key);
+      const now = Date.now();
 
-      if (result.length === 0) {
+      if (!record) {
         return;
       }
 
-      const [record] = result;
-      const now = Date.now();
-      const windowStart = now - this.#windowMs;
-
-      // Check if the record is expired (outside the current window)
-      if (record.lastRequest && record.lastRequest < windowStart) {
-        // Record is expired, delete it and return undefined
+      if (this.#isExpired(record.lastRequest, now)) {
+        // Record is expired, drop it so the next hit starts a fresh window
         await db.delete(rateLimitTable).where(eq(rateLimitTable.key, key));
         return;
       }
 
-      const resetTime = new Date(
-        now + this.#windowMs - (now - (record.lastRequest || now))
-      );
-
-      return {
-        resetTime,
-        totalHits: record.count || 0,
-      };
+      return this.#toRateLimitInfo(record, now);
     } catch (error) {
       logger.error("Error getting rate limit record:", error);
     }
+  }
+
+  /**
+   * The hit count `record` should carry after this request — a restart when its
+   * window has already expired, one more otherwise.
+   */
+  #nextCount(
+    record: { count: number | null; lastRequest: number | null },
+    now: number
+  ): number {
+    return this.#isExpired(record.lastRequest, now)
+      ? 1
+      : (record.count ?? 0) + 1;
+  }
+
+  /**
+   * Bumps an existing record's counter.
+   *
+   * @returns The stored hit count.
+   */
+  async #bumpRecord(
+    record: { count: number | null; lastRequest: number | null },
+    key: string,
+    now: number
+  ): Promise<number | null | undefined> {
+    const [updated] = await db
+      .update(rateLimitTable)
+      .set({ count: this.#nextCount(record, now), lastRequest: now })
+      .where(eq(rateLimitTable.key, key))
+      .returning();
+
+    return updated?.count;
+  }
+
+  /**
+   * Creates the first record for a client (UUID is auto-generated).
+   *
+   * @returns The stored hit count.
+   */
+  async #createRecord(
+    key: string,
+    now: number
+  ): Promise<number | null | undefined> {
+    const [inserted] = await db
+      .insert(rateLimitTable)
+      .values({ count: 1, key, lastRequest: now })
+      .returning();
+
+    return inserted?.count;
   }
 
   /**
@@ -93,59 +170,19 @@ export class DbStore<
    */
   async increment(key: string): Promise<ClientRateLimitInfo> {
     const now = Date.now();
-    const windowStart = now - this.#windowMs;
+    const resetTime = new Date(now + this.#windowMs);
 
     try {
-      // First, try to get existing record
-      const existing = await db
-        .select()
-        .from(rateLimitTable)
-        .where(eq(rateLimitTable.key, key))
-        .limit(1);
+      const record = await this.#findRecord(key);
+      const totalHits = record
+        ? await this.#bumpRecord(record, key, now)
+        : await this.#createRecord(key, now);
 
-      if (existing.length > 0) {
-        const [record] = existing;
-        // Check if window expired
-        const isExpired = record.lastRequest < windowStart;
-        const newCount = isExpired ? 1 : (record.count || 0) + 1;
-
-        // Update existing record
-        const updated = await db
-          .update(rateLimitTable)
-          .set({
-            count: newCount,
-            lastRequest: now,
-          })
-          .where(eq(rateLimitTable.key, key))
-          .returning();
-
-        return {
-          resetTime: new Date(now + this.#windowMs),
-          totalHits: updated[0]?.count || 1,
-        };
-      }
-
-      // Create new record (UUID will be auto-generated)
-      const inserted = await db
-        .insert(rateLimitTable)
-        .values({
-          count: 1,
-          key,
-          lastRequest: now,
-        })
-        .returning();
-
-      return {
-        resetTime: new Date(now + this.#windowMs),
-        totalHits: inserted[0]?.count || 1,
-      };
+      return { resetTime, totalHits: totalHits || 1 };
     } catch (error) {
       logger.error("Error incrementing rate limit:", error);
       // Fallback: return a conservative estimate
-      return {
-        resetTime: new Date(now + this.#windowMs),
-        totalHits: 1,
-      };
+      return { resetTime, totalHits: 1 };
     }
   }
 

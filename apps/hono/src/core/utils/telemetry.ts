@@ -110,29 +110,7 @@ export const getTracer = ({
   return trace.getTracer(SERVICE_NAME);
 };
 
-/**
- * Wraps a function with a tracer span.
- *
- * @example
- * ```typescript
- * return recordSpan({
- *   name: 'my-function',
- *   tracer: trace.getTracer('ai'),
- *   attributes: { key: 'value' },
- *   fn: async (span) => {
- *     return 'hello';
- *   },
- *   endWhenDone: false,
- * });
- * ```
- */
-export const recordSpan = <T>({
-  name,
-  tracer,
-  attributes,
-  fn,
-  endWhenDone = true,
-}: {
+interface RecordSpanOptions<T> {
   /**
    * The name of the span.
    */
@@ -155,7 +133,55 @@ export const recordSpan = <T>({
    * @default true
    */
   endWhenDone?: boolean;
-}) =>
+}
+
+/**
+ * Marks a span as failed and ends it. The span always ends on failure,
+ * regardless of `endWhenDone`.
+ */
+const endSpanWithError = (span: Span, error: unknown): void => {
+  try {
+    if (error instanceof Error) {
+      span.recordException({
+        message: error.message,
+        name: error.name,
+        stack: error.stack ?? "",
+      });
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: error.message,
+      });
+    } else {
+      span.setStatus({ code: SpanStatusCode.ERROR });
+    }
+  } finally {
+    span.end();
+  }
+};
+
+/**
+ * Wraps a function with a tracer span.
+ *
+ * @example
+ * ```typescript
+ * return recordSpan({
+ *   name: 'my-function',
+ *   tracer: trace.getTracer('ai'),
+ *   attributes: { key: 'value' },
+ *   fn: async (span) => {
+ *     return 'hello';
+ *   },
+ *   endWhenDone: false,
+ * });
+ * ```
+ */
+export const recordSpan = <T>({
+  name,
+  tracer,
+  attributes,
+  fn,
+  endWhenDone = true,
+}: RecordSpanOptions<T>) =>
   tracer.startActiveSpan(name, { attributes }, async (span) => {
     try {
       const result = await fn(span);
@@ -167,28 +193,102 @@ export const recordSpan = <T>({
 
       return result;
     } catch (error) {
-      try {
-        if (error instanceof Error) {
-          span.recordException({
-            message: error.message,
-            name: error.name,
-            stack: error.stack ?? "",
-          });
-          span.setStatus({
-            code: SpanStatusCode.ERROR,
-            message: error.message,
-          });
-        } else {
-          span.setStatus({ code: SpanStatusCode.ERROR });
-        }
-      } finally {
-        // always stop the span when there is an error:
-        span.end();
-      }
-
+      endSpanWithError(span, error);
       throw error;
     }
   });
+
+interface FlattenState {
+  prefix: string;
+  maxDepth: number;
+  currentDepth: number;
+}
+
+/**
+ * Flattens one value of a container, one level deeper than its parent. Passed
+ * in rather than referenced directly so the helpers below stay independent of
+ * the entry point.
+ */
+type FlattenValue = (
+  value: unknown,
+  state: FlattenState
+) => Record<string, string>;
+
+/**
+ * Flattens the `[key, value]` pairs of an array or object, recursing one level
+ * deeper for each value.
+ */
+const flattenEntries = (
+  entries: Iterable<[number | string, unknown]>,
+  { prefix, maxDepth, currentDepth }: FlattenState,
+  flattenValue: FlattenValue
+): Record<string, string> => {
+  const result: Record<string, string> = {};
+
+  for (const [key, value] of entries) {
+    Object.assign(
+      result,
+      flattenValue(value, {
+        currentDepth: currentDepth + 1,
+        maxDepth,
+        prefix: prefix ? `${prefix}.${key}` : String(key),
+      })
+    );
+  }
+
+  return result;
+};
+
+const flattenArray = (
+  items: unknown[],
+  state: FlattenState,
+  flattenValue: FlattenValue
+): Record<string, string> => {
+  const { prefix } = state;
+
+  if (items.length === 0) {
+    return { [prefix]: "[]" };
+  }
+
+  if (items.length > SMALL_ARRAY_LENGTH) {
+    // For large arrays, just show the count and first few items
+    return {
+      [`${prefix}.length`]: String(items.length),
+      [`${prefix}.preview`]: `${JSON.stringify(items.slice(0, PREVIEW_LENGTH))}...`,
+    };
+  }
+
+  // For small arrays, expand each item
+  return flattenEntries(items.entries(), state, flattenValue);
+};
+
+const flattenRecord = (
+  obj: object,
+  state: FlattenState,
+  flattenValue: FlattenValue
+): Record<string, string> => {
+  const entries = Object.entries(obj);
+
+  return entries.length === 0
+    ? { [state.prefix]: "{}" }
+    : flattenEntries(entries, state, flattenValue);
+};
+
+const flattenValue: FlattenValue = (value, state) => {
+  const { prefix, maxDepth, currentDepth } = state;
+
+  if (currentDepth >= maxDepth) {
+    return { [prefix]: JSON.stringify(value) };
+  }
+
+  if (value === null || value === undefined || typeof value !== "object") {
+    return { [prefix]: String(value) };
+  }
+
+  return Array.isArray(value)
+    ? flattenArray(value, state, flattenValue)
+    : flattenRecord(value, state, flattenValue);
+};
 
 /**
  * Recursively flattens nested objects for trace attributes
@@ -205,75 +305,11 @@ export const recordSpan = <T>({
  */
 export const flattenAttributes = (
   obj: unknown,
-  config?: {
-    prefix?: string;
-    maxDepth?: number;
-    currentDepth?: number;
-  }
+  config?: Partial<FlattenState>
 ): Record<string, string> => {
-  const result: Record<string, string> = {};
   const { prefix = "", maxDepth = 3, currentDepth = 0 } = config ?? {};
 
-  if (currentDepth >= maxDepth) {
-    result[prefix] = JSON.stringify(obj);
-    return result;
-  }
-
-  if (obj === null || obj === undefined) {
-    result[prefix] = String(obj);
-    return result;
-  }
-
-  if (typeof obj !== "object") {
-    result[prefix] = String(obj);
-    return result;
-  }
-
-  if (Array.isArray(obj)) {
-    if (obj.length === 0) {
-      result[prefix] = "[]";
-    } else if (obj.length <= SMALL_ARRAY_LENGTH) {
-      // For small arrays, expand each item
-      for (const [index, item] of obj.entries()) {
-        const newPrefix = prefix ? `${prefix}.${index}` : String(index);
-        Object.assign(
-          result,
-          flattenAttributes(item, {
-            currentDepth: currentDepth + 1,
-            maxDepth,
-            prefix: newPrefix,
-          })
-        );
-      }
-    } else {
-      // For large arrays, just show the count and first few items
-      result[`${prefix}.length`] = String(obj.length);
-      result[`${prefix}.preview`] =
-        `${JSON.stringify(obj.slice(0, PREVIEW_LENGTH))}...`;
-    }
-    return result;
-  }
-
-  // Handle regular objects
-  const entries = Object.entries(obj);
-  if (entries.length === 0) {
-    result[prefix] = "{}";
-    return result;
-  }
-
-  for (const [key, value] of entries) {
-    const newPrefix = prefix ? `${prefix}.${key}` : key;
-    Object.assign(
-      result,
-      flattenAttributes(value, {
-        currentDepth: currentDepth + 1,
-        maxDepth,
-        prefix: newPrefix,
-      })
-    );
-  }
-
-  return result;
+  return flattenValue(obj, { currentDepth, maxDepth, prefix });
 };
 
 /**
