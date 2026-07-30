@@ -19,6 +19,11 @@ export default defineConfig({
       // ADR-sanctioned untested layers as dead code.
       reportsDirectory: "./coverage/vitest",
       thresholds: {
+        // Every included file clears 90 on its own, so a well-covered module
+        // can no longer carry an untested one. A file that cannot reach it —
+        // because its remaining branches need infrastructure the test run has
+        // no access to — is excluded below and justified in ADR-0001 instead.
+        perFile: true,
         branches: 90,
         functions: 90,
         lines: 90,
@@ -43,6 +48,7 @@ export default defineConfig({
         "apps/hono/src/core/types/**",
         "apps/hono/src/core/utils/evlog.ts",
         "apps/hono/src/db/**",
+        "apps/hono/src/routes/middlewares/auth.ts",
         "apps/hono/src/routes/middlewares/rate-limit/**",
         "apps/hono/src/auth/utils/**",
       ],

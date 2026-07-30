@@ -245,6 +245,27 @@ describe(objectToFormDataArrayWithComma, () => {
 
     expect(formData.get("file")).toBe(file);
   });
+
+  it("skips keys listed in ignoreList", () => {
+    const formData = objectToFormDataArrayWithComma(
+      { keep: 1, skip: 2 },
+      {
+        ignoreList: ["skip"],
+      }
+    );
+
+    expect([...formData.entries()]).toStrictEqual([["keep", "1"]]);
+  });
+
+  it("omits null and undefined values", () => {
+    const formData = objectToFormDataArrayWithComma({
+      name: "str",
+      nullable: null,
+      und: undefined,
+    });
+
+    expect([...formData.entries()]).toStrictEqual([["name", "str"]]);
+  });
 });
 
 describe(deepReadObject, () => {

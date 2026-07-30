@@ -74,7 +74,9 @@ export const llmsDocsRoutes = async (
       const contents = await Promise.all(
         files.map((file) => readFile(file, "utf-8"))
       );
-      const fullContent = contents.length ? `${contents.join("\n\n")}\n\n` : "";
+      // Each file gets its own trailing separator, which makes the empty-docs
+      // case fall out as `""` without a branch on `contents.length`.
+      const fullContent = contents.map((content) => `${content}\n\n`).join("");
 
       return c.json({
         length: fullContent.length,

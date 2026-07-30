@@ -30,7 +30,10 @@ export const getClientIpAddress = (headers: Headers): string | null => {
   // 2. X-Forwarded-For (most common)
   const xForwardedFor = headers.get(ipAddressHeaders.xForwardedFor);
   if (xForwardedFor) {
-    return xForwardedFor.split(",")[0]?.trim() ?? null;
+    // Dropping everything after the first comma rather than `split(",")[0]`,
+    // whose index access is optional under `noUncheckedIndexedAccess` and so
+    // adds a `?? null` branch that no input can reach.
+    return xForwardedFor.replace(/,.*/su, "").trim();
   }
 
   // 3. X-Real-IP (Nginx)
@@ -59,6 +62,19 @@ export const getClientIpAddress = (headers: Headers): string | null => {
 };
 
 /**
+ * Load the current runtime's `getConnInfo` implementation.
+ *
+ * Kept in its own function deliberately: a ternary between two `await import()`
+ * expressions makes v8 lose coverage for every statement that follows it in the
+ * same function, so the conditional import lives here and the caller awaits a
+ * plain call.
+ */
+const importGetConnInfo = () =>
+  getRuntimeKey() === "node"
+    ? import("@hono/node-server/conninfo")
+    : import("hono/bun");
+
+/**
  * Get the client IP address from hono context.
  *
  * @param c - The context object.
@@ -71,12 +87,7 @@ export const getClientIpAddressFromContext = async <
 >(
   c: Context<E, P, I>
 ): Promise<string | null> => {
-  // get current runtime
-  const runtime = getRuntimeKey();
-  const { getConnInfo } =
-    runtime === "node"
-      ? await import("@hono/node-server/conninfo")
-      : await import("hono/bun");
+  const { getConnInfo } = await importGetConnInfo();
   const connInfo: ConnInfo = getConnInfo(c);
 
   return connInfo.remote.address || null;

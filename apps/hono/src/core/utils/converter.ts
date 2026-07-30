@@ -28,7 +28,12 @@ export const base64ToUint8Array = (base64String: string): Uint8Array => {
   const outputArray = new Uint8Array(rawData.length);
 
   for (let i = 0; i < rawData.length; i += 1) {
-    outputArray[i] = rawData.codePointAt(i) ?? 0;
+    // `charCodeAt` rather than `codePointAt`: `atob` yields a latin1 string
+    // whose units are all < 256, so there are no surrogate pairs to combine,
+    // and its return type is not optional — `codePointAt` would need a `?? 0`
+    // fallback that the loop bounds make unreachable.
+    // oxlint-disable-next-line unicorn/prefer-code-point
+    outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
 };
