@@ -4,6 +4,13 @@
   "workspaces": {
     "patterns": ["apps/*", "packages/*"]
   },
+  "ignoreExports": [
+    {
+      "$comment": "Root-level vitest infrastructure is outside fallow's `entry` graph, so `server` and `MOCK_API_BASE_URL` read as unused and `fallow fix` strips the `export` keyword. They are consumed by vitest.msw-setup.ts and the *.test.ts files that call `server.use()`.",
+      "file": "vitest.msw.ts",
+      "exports": ["*"]
+    }
+  ],
   "overrides": [
     {
       "files": ["oxfmt.config.ts"],
@@ -16,6 +23,13 @@
       "rules": {
         "unused-files": "off"
       }
+    },
+    {
+      "$comment": "Loaded by path from the `setupFiles` array in packages/core/vitest.config.ts, so no import edge reaches it and it reads as unreachable. See docs/adr/0001-unit-tests-are-pure-module-logic-and-api-routes-only.md.",
+      "files": ["vitest.msw-setup.ts"],
+      "rules": {
+        "unused-files": "off"
+      }
     }
   ],
   "duplicates": {
@@ -24,5 +38,5 @@
   "health": {
     "ignore": ["oxlint.config.ts", "**/*.{test,spec}.{ts,tsx}"]
   },
-  "ignoreDependencies": ["@opentelemetry/semantic-conventions"]
+  "ignoreDependencies": ["@opentelemetry/semantic-conventions", "msw"]
 }

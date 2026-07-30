@@ -37,7 +37,6 @@ export default defineConfig({
       // `docs/adr/0001-unit-tests-are-pure-module-logic-and-api-routes-only.md`
       exclude: [
         "**/*.test.ts",
-        "packages/core/src/apis/**",
         "packages/core/src/services/**",
         "packages/core/src/constants/**",
         "packages/core/src/types/**",
