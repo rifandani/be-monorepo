@@ -145,7 +145,7 @@ const endSpanWithError = (span: Span, error: unknown): void => {
       span.recordException({
         message: error.message,
         name: error.name,
-        stack: error.stack ?? "",
+        stack: error.stack,
       });
       span.setStatus({
         code: SpanStatusCode.ERROR,

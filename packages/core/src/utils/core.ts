@@ -95,8 +95,7 @@ export const toSnakeCase = <T>(object: unknown): T => {
       const newKey = key
         .replaceAll(
           /\.?(?<letters>[A-Z]+)/gu,
-          (_match, letters: string) =>
-            `_${letters ? letters.toLowerCase() : ""}`
+          (_match, letters: string) => `_${letters.toLowerCase()}`
         )
         .replace(/^_/u, "");
       transformedObject[newKey] = toSnakeCase(object[key]);

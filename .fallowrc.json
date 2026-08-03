@@ -13,20 +13,13 @@
   ],
   "overrides": [
     {
-      "files": ["oxfmt.config.ts"],
-      "rules": {
-        "unused-files": "off"
-      }
-    },
-    {
-      "files": ["apps/hono/src/routes/middlewares/rate-limit/*.ts"],
-      "rules": {
-        "unused-files": "off"
-      }
-    },
-    {
-      "$comment": "Loaded by path from the `setupFiles` array in packages/core/vitest.config.ts, so no import edge reaches it and it reads as unreachable. See docs/adr/0001-unit-tests-are-pure-module-logic-and-api-routes-only.md.",
-      "files": ["vitest.msw-setup.ts"],
+      "$comment": "Root-level tool configs: nothing imports them, so they sit outside fallow's `entry` graph and read as unused files.",
+      "files": [
+        "oxfmt.config.ts",
+        "stryker.config.mjs",
+        "vitest.msw-setup.ts",
+        "apps/hono/src/routes/middlewares/rate-limit/*.ts"
+      ],
       "rules": {
         "unused-files": "off"
       }
@@ -38,5 +31,10 @@
   "health": {
     "ignore": ["oxlint.config.ts", "**/*.{test,spec}.{ts,tsx}"]
   },
-  "ignoreDependencies": ["@opentelemetry/semantic-conventions", "msw"]
+  "ignoreDependencies": [
+    "@stryker-mutator/core",
+    "@stryker-mutator/vitest-runner",
+    "@opentelemetry/semantic-conventions",
+    "msw"
+  ]
 }

@@ -85,3 +85,7 @@ One v8 quirk is worth knowing before chasing a phantom gap: a ternary between tw
 - Coverage is a root-only vitest option under `projects`, so the gate exists only from the repo root; `bun hono test` runs without it. CI runs unsharded for the same reason — each shard would otherwise be gated against its own partial numbers. If the suite outgrows that, the fix is blob reports plus `vitest --merge-reports --coverage`.
 - Reports go to `coverage/vitest`, deliberately not `coverage`, which is reserved for fallow's runtime sidecar. Pointing fallow at test coverage would make it report every excluded layer as dead code — the exact pressure this ADR exists to resist.
 - **fallow:** `vitest.msw-setup.ts` needs `unused-files: "off"` in `.fallowrc.json`, since `setupFiles` loads it by path and no import edge reaches it. `fallow dead-code` may report `msw` under "dev dependencies used in production" because it counts `*.test.ts` under `src/` as production; every `msw` import site is a test file or `vitest.msw.ts`, and it must stay a root devDependency.
+
+## Amendments
+
+- [ADR-0002](./0002-mutation-testing-is-advisory.md) derives the advisory mutation-testing scope from this ADR's coverage denominator (`include` minus `exclude`), so the two conditional exclusions above enter that scope on the commit that removes them.

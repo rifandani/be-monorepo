@@ -1,0 +1,74 @@
+# Advisory mutation testing. Deliberately NOT part of ci.yml: adding
+# `workflow_dispatch` there would fire all four blocking jobs, and this one must
+# never read as a gate. It runs only when a human asks for it, and Stryker's
+# `thresholds.break` is null, so it cannot fail on score.
+#
+# See docs/adr/0002-mutation-testing-is-advisory.md.
+name: Mutation Testing
+
+on:
+  workflow_dispatch:
+    inputs:
+      mutate:
+        description: "Ad-hoc scope. REPLACES the derived scope entirely (Stryker's -m does not intersect), so results are not comparable to the baseline. Leave empty for the real run."
+        required: false
+        type: string
+
+env:
+  FORCE_COLOR: "1"
+
+jobs:
+  stryker:
+    runs-on: ubuntu-latest
+    environment: dev
+    # Measured baseline is 2m49s (ADR-0003). 30 minutes is ~10x headroom for a slower
+    # runner and a growing suite, while still killing a hung run promptly.
+    timeout-minutes: 30
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 26
+
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install deps
+        run: bun ci
+
+      - name: Prepare env file
+        env:
+          HONO_ENV_FILE: ${{ secrets.HONO_ENV_FILE }}
+        run: |
+          if [ -n "$HONO_ENV_FILE" ]; then
+            echo "$HONO_ENV_FILE" > apps/hono/.env.dev
+          else
+            cp apps/hono/.env.dev.example apps/hono/.env.dev
+          fi
+
+      - name: Run mutation testing
+        # Via `env`, not `${{ }}` interpolation into the script: a dispatch input is
+        # attacker-controlled text and would otherwise be evaluated by the shell.
+        env:
+          MUTATE_SCOPE: ${{ inputs.mutate }}
+        # Calls the binary directly rather than `bun run test:mutate -- -m …`: arg
+        # forwarding through `--` is not reliable, and a silently-dropped `-m` would
+        # look like a successful full run.
+        run: |
+          if [ -n "$MUTATE_SCOPE" ]; then
+            bunx stryker run -m "$MUTATE_SCOPE"
+          else
+            bun run test:mutate
+          fi
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mutation-report
+          path: coverage/stryker
+          retention-days: 3
+          if-no-files-found: error
