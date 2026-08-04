@@ -22,6 +22,7 @@ import { prettifyError, ZodError } from "zod";
 import { ENV } from "@/core/constants/env.js";
 import { SERVICE_NAME, SERVICE_VERSION } from "@/core/constants/global.js";
 import { HTTP_STATUS_CODES } from "@/core/constants/http.js";
+import { languageDetectorOptions } from "@/core/constants/language.js";
 import type { Variables } from "@/core/types/hono.js";
 import { evlogMiddlewareOptions } from "@/core/utils/evlog.js";
 import { routes } from "@/routes/index.js";
@@ -29,6 +30,8 @@ import { authContextMiddleware } from "@/routes/middlewares/auth.js";
 import { identifyMiddleware } from "@/routes/middlewares/identify.js";
 
 const TIMEOUT = 15_000; // 15 seconds
+const NOT_FOUND_MESSAGE = "404 Not found";
+
 const app = new OpenAPIHono<{
   Variables: Variables;
 }>(); // .basePath('/api/v1');
@@ -39,6 +42,7 @@ app.use(
    * instruments the entire request-response lifecycle and metrics.
    * it doesn't provide fine-grained instrumentation for individual middleware.
    */
+  // Stryker disable next-line ObjectLiteral: static middleware wiring at module init; perTest attributes no covering tests
   httpInstrumentationMiddleware({
     serviceName: SERVICE_NAME,
     serviceVersion: SERVICE_VERSION,
@@ -56,16 +60,16 @@ app.use(
     allowMethods: ["GET", "POST", "OPTIONS"],
     credentials: true,
     exposeHeaders: ["Content-Length"],
+    // Stryker disable next-line ArrayDeclaration: static middleware wiring at module init; perTest attributes no covering tests
     origin: [ENV.APP_URL],
   }),
   authContextMiddleware(),
   timing(),
   timeout(TIMEOUT),
-  languageDetector({
-    fallbackLanguage: "en",
-    supportedLanguages: ["en", "id"],
-  }),
+  languageDetector(languageDetectorOptions),
+  // Stryker disable next-line ObjectLiteral: static middleware wiring at module init; perTest attributes no covering tests
   csrf({
+    // Stryker disable next-line ArrayDeclaration: static middleware wiring at module init; perTest attributes no covering tests
     origin: [ENV.APP_URL],
   }),
   secureHeaders(),
@@ -78,6 +82,9 @@ await routes(app);
 // });
 
 app.onError((error, c) => {
+  // evlog always mounts `log` ahead of routes; optional chain is defensive for
+  // the rare case a test mounts onError without that middleware.
+  // Stryker disable next-line OptionalChaining,StringLiteral: log is always set under the real middleware stack; missing-key and ?. vs . are observationally identical there
   c.get("log")?.error(error);
 
   // `otherwise` rather than `exhaustive`: hono hands us an open `Error`, so
@@ -119,9 +126,10 @@ app.onError((error, c) => {
 });
 
 app.notFound((c) => {
-  c.get("log")?.warn("404 Not found");
+  // Stryker disable next-line OptionalChaining,StringLiteral: log is always set under the real middleware stack; missing-key and ?. vs . are observationally identical there
+  c.get("log")?.warn(NOT_FOUND_MESSAGE);
 
-  return c.text("404 Not found", HTTP_STATUS_CODES.NOT_FOUND);
+  return c.text(NOT_FOUND_MESSAGE, HTTP_STATUS_CODES.NOT_FOUND);
 });
 
 export { app };

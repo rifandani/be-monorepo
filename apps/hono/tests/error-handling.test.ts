@@ -53,6 +53,8 @@ app.get("/__test/partly-hinted", () => {
   });
 });
 
+app.get("/__test/lang", (c) => c.text(String(c.get("language"))));
+
 describe("app error handling", () => {
   it("turns a ZodError into a 400 with the prettified issues", async () => {
     const res = await app.request("/__test/zod");
@@ -121,5 +123,19 @@ describe("app not-found handling", () => {
 
     expect(res.status).toBe(404);
     await expect(res.text()).resolves.toBe("404 Not found");
+  });
+});
+
+describe("app language detection", () => {
+  it("detects Indonesian from Accept-Language and falls back to English", async () => {
+    const id = await app.request("/__test/lang", {
+      headers: { "Accept-Language": "id" },
+    });
+    const fallback = await app.request("/__test/lang", {
+      headers: { "Accept-Language": "fr" },
+    });
+
+    await expect(id.text()).resolves.toBe("id");
+    await expect(fallback.text()).resolves.toBe("en");
   });
 });

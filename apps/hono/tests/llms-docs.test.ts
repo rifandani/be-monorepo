@@ -10,20 +10,29 @@ import { getAllFiles } from "@/routes/llms-docs.js";
 import { parseServerTimingHeader } from "./util.js";
 
 describe("/llms-docs endpoint", () => {
-  it("should return the combined content of the docs folder and have Server-Timing with total duration under 1s", async () => {
+  it("returns docs content with length, tokens, and separators", async () => {
     const res = await app.request("/llms-docs");
-    const serverTiming = res.headers.get("Server-Timing");
-    const dur = parseServerTimingHeader(serverTiming);
-    const json = await res.json();
+    const json = (await res.json()) as {
+      length: number;
+      text: string;
+      tokens: number;
+    };
 
     expect(res.status).toBe(200);
-    expect(json).toStrictEqual(
-      expect.objectContaining({
-        length: expect.any(Number),
-        text: expect.any(String),
-        tokens: expect.any(Number),
-      })
-    );
+    expect(json.text).toHaveLength(json.length);
+    // TOKENS_PER_CHARACTER is 4 — pin the ratio so a mutant flipping the
+    // division cannot hide behind `expect.any(Number)`.
+    expect(json.tokens).toBe(json.length / 4);
+    // Each file is joined with a trailing `\n\n`, so ADR prose shows up and the
+    // separator is not an empty string or a Stryker placeholder.
+    expect(json.text).toContain("Mutation testing is advisory");
+    expect(json.text).toContain("\n\n");
+  });
+
+  it("includes Server-Timing under 1s", async () => {
+    const res = await app.request("/llms-docs");
+    const dur = parseServerTimingHeader(res.headers.get("Server-Timing"));
+
     expect(dur).not.toBeNull();
     expect(dur).toBeLessThan(1000);
   });

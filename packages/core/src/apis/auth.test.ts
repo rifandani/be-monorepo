@@ -1,5 +1,10 @@
 import { MOCK_API_BASE_URL, server } from "@test/msw";
-import { authKeys, authRepositories } from "@workspace/core/apis/auth";
+import {
+  authKeys,
+  authRepositories,
+  authSignInEmailRequestSchema,
+  authSignUpEmailRequestSchema,
+} from "@workspace/core/apis/auth";
 import { Http } from "@workspace/core/services/http";
 import { HTTPError } from "ky";
 import { http, HttpResponse } from "msw";
@@ -44,6 +49,53 @@ const signUpJson = {
 /** `authRepositories` takes `Http` by parameter, so the test owns the base URL. */
 const repositories = () =>
   authRepositories(new Http({ prefix: MOCK_API_BASE_URL }));
+
+describe("auth request schemas", () => {
+  it("rejects names and passwords below the Better Auth minimums", () => {
+    expect(
+      authSignUpEmailRequestSchema.safeParse({
+        email: "ada@example.com",
+        name: "Ad",
+        password: "password1",
+      }).success
+    ).toBeFalsy();
+    expect(
+      authSignUpEmailRequestSchema.safeParse({
+        email: "ada@example.com",
+        name: "Ada",
+        password: "short",
+      }).success
+    ).toBeFalsy();
+    expect(
+      authSignUpEmailRequestSchema.safeParse(signUpJson).success
+    ).toBeTruthy();
+  });
+
+  it("omits name from sign-in and requires rememberMe", () => {
+    expect(
+      authSignInEmailRequestSchema.safeParse({
+        email: "ada@example.com",
+        password: "password1",
+        rememberMe: true,
+      }).success
+    ).toBeTruthy();
+    // `omit({ name: true })` — a name field must not be required on sign-in.
+    expect(
+      authSignInEmailRequestSchema.safeParse({
+        email: "ada@example.com",
+        name: "Ada",
+        password: "password1",
+        rememberMe: true,
+      }).success
+    ).toBeTruthy();
+    expect(
+      authSignInEmailRequestSchema.safeParse({
+        email: "ada@example.com",
+        password: "password1",
+      }).success
+    ).toBeFalsy();
+  });
+});
 
 describe(authRepositories, () => {
   it("builds authKeys without params", () => {

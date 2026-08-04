@@ -37,14 +37,14 @@ export default defineConfig({
       // `docs/adr/0001-unit-tests-are-pure-module-logic-and-api-routes-only.md`
       exclude: [
         "**/*.test.ts",
+        "packages/*/src/constants/**",
+        "packages/*/src/types/**",
         "packages/core/src/services/**",
-        "packages/core/src/constants/**",
-        "packages/core/src/types/**",
+        "apps/*/src/**/constants/**",
+        "apps/*/src/**/types/**",
         "apps/hono/src/bun.ts",
         "apps/hono/src/node.ts",
         "apps/hono/src/instrumentation.ts",
-        "apps/hono/src/core/constants/**",
-        "apps/hono/src/core/types/**",
         "apps/hono/src/core/utils/evlog.ts",
         "apps/hono/src/db/**",
         "apps/hono/src/routes/middlewares/auth.ts",
