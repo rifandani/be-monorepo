@@ -29,7 +29,11 @@
     "minOccurrences": 3
   },
   "health": {
-    "ignore": ["oxlint.config.ts", "**/*.{test,spec}.{ts,tsx}"]
+    "ignore": [
+      "oxlint.config.ts",
+      "**/*.{test,spec}.{ts,tsx}",
+      "scripts/security/**"
+    ]
   },
   "ignoreDependencies": [
     "@stryker-mutator/core",
