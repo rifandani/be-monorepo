@@ -23,6 +23,7 @@
     "check:dead-code": "fallow dead-code --quiet",
     "check:dupes": "fallow dupes --mode semantic --quiet",
     "check:security": "fallow security --surface  --quiet",
+    "audit:sca": "node scripts/security/sca-gate.ts",
     "check:all": "fallow --quiet",
     "check:fix": "fallow fix --yes --no-create-config",
     "test": "vitest",
@@ -54,6 +55,9 @@
     "typescript": "7.0.2",
     "ultracite": "7.9.4",
     "vitest": "4.1.10"
+  },
+  "overrides": {
+    "protobufjs": ">=7.5.5"
   },
   "engines": {
     "node": ">=26.0.0"

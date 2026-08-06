@@ -1,0 +1,90 @@
+{
+  "$schema_comment": "Temporary SCA exceptions for high-severity advisories (fed to osv-scanner as IgnoredVulns). Critical must never be listed. Expired entries fail the gate.",
+  "expires_format": "YYYY-MM-DD",
+  "entries": [
+    {
+      "id": "GHSA-5375-pq7m-f5r2",
+      "package": "@grpc/grpc-js",
+      "severity": "high",
+      "expires": "2026-11-06",
+      "reason": "Transitive via @opentelemetry/*-otlp-grpc; bump when upstream releases land"
+    },
+    {
+      "id": "GHSA-99f4-grh7-6pcq",
+      "package": "@grpc/grpc-js",
+      "severity": "high",
+      "expires": "2026-11-06",
+      "reason": "Transitive via @opentelemetry/*-otlp-grpc; bump when upstream releases land"
+    },
+    {
+      "id": "GHSA-mh99-v99m-4gvg",
+      "package": "brace-expansion",
+      "severity": "high",
+      "expires": "2026-11-06",
+      "reason": "Transitive via tooling; bump when upstream releases land"
+    },
+    {
+      "id": "GHSA-rgw5-rvv9-x895",
+      "package": "brace-expansion",
+      "severity": "high",
+      "expires": "2026-11-06",
+      "reason": "Transitive via tooling; bump when upstream releases land"
+    },
+    {
+      "id": "GHSA-3jxr-9vmj-r5cp",
+      "package": "brace-expansion",
+      "severity": "high",
+      "expires": "2026-11-06",
+      "reason": "Transitive via tooling; bump when upstream releases land"
+    },
+    {
+      "id": "GHSA-737v-mqg7-c878",
+      "package": "defu",
+      "severity": "high",
+      "expires": "2026-11-06",
+      "reason": "Transitive via tooling; awaiting upstream"
+    },
+    {
+      "id": "GHSA-52cp-r559-cp3m",
+      "package": "js-yaml",
+      "severity": "high",
+      "expires": "2026-11-06",
+      "reason": "Transitive via tooling; awaiting upstream"
+    },
+    {
+      "id": "GHSA-23c5-xmqv-rm74",
+      "package": "minimatch",
+      "severity": "high",
+      "expires": "2026-11-06",
+      "reason": "Transitive via tooling; awaiting upstream"
+    },
+    {
+      "id": "GHSA-7r86-cg39-jmmj",
+      "package": "minimatch",
+      "severity": "high",
+      "expires": "2026-11-06",
+      "reason": "Transitive via tooling; awaiting upstream"
+    },
+    {
+      "id": "GHSA-c2c7-rcm5-vvqj",
+      "package": "picomatch",
+      "severity": "high",
+      "expires": "2026-11-06",
+      "reason": "Transitive via tooling; awaiting upstream"
+    },
+    {
+      "id": "GHSA-r28c-9q8g-f849",
+      "package": "postcss",
+      "severity": "high",
+      "expires": "2026-11-06",
+      "reason": "Transitive via vite/vitest tooling; bump with framework releases"
+    },
+    {
+      "id": "GHSA-fx2h-pf6j-xcff",
+      "package": "vite",
+      "severity": "high",
+      "expires": "2026-11-06",
+      "reason": "Dev-only Vite; bump when vitest/vite releases land"
+    }
+  ]
+}
