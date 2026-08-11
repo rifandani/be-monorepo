@@ -9,16 +9,6 @@
 - [ ] always update `CLAUDE.md` file in root dir and subpackage inside monorepo and consider it as a living document
 - [ ] add new apps for Effect v4 when it's stable. full use of effect ecosystem.
 
-## 🛠️ Upgrading Dependencies
-
-- Remember to always use EXACT version for each dependency
-- Run `bun bump:deps` to check for outdated dependencies, then run `bun install` to install it
-- Run `bun hono test` to run tests
-- (Optional) run `bun hono node:build` to build with development env (if you use nodejs instead of bun)
-- Run `bun lint-typecheck` for linting and type checking
-
-After making sure all changes are checked, run `bun cs` to create a new changeset and `bun cs:v` to version the changeset.
-
 ## 📝 Environment Variables
 
 For first timer, you need to create the 2 environments in your github repo. First is `dev` environment, and second is `prod` environment (that's why in `.github/workflows/ci.yml` we stated `environment: dev`). In both environments, name it `HONO_ENV_FILE` (that's why in `.github/workflows/ci.yml` we stated `secrets.HONO_ENV_FILE`).
