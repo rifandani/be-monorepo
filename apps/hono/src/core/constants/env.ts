@@ -2,7 +2,11 @@ import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
 export const ENV = createEnv({
-  runtimeEnv: process.env,
+  // PORTLESS_URL is injected by `portless` (incl. worktree subdomain prefixes).
+  runtimeEnv: {
+    ...process.env,
+    APP_URL: process.env.PORTLESS_URL ?? process.env.APP_URL,
+  },
   server: {
     APP_TITLE: z.string().min(1),
     APP_URL: z.string().min(1),

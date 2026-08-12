@@ -7,7 +7,7 @@
 
 ## OpenAPI
 
-Using `@scalar/hono-api-reference` to generate OpenAPI docs. The OpenAPI generated schema is available at `https://hono.localhost/openapi`, and the OpenAPI docs are available at `https://hono.localhost/openapi/docs`.
+Using `@scalar/hono-api-reference` to generate OpenAPI docs. The OpenAPI generated schema is available at `https://hono.be-monorepo.localhost/openapi`, and the OpenAPI docs are available at `https://hono.be-monorepo.localhost/openapi/docs`.
 
 ## Auth
 

@@ -1,3 +1,6 @@
 {
-  "name": "be-monorepo"
+  "name": "be-monorepo",
+  "apps": {
+    "apps/hono": { "name": "hono.be-monorepo" }
+  }
 }
