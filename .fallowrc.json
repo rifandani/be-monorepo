@@ -13,12 +13,13 @@
   ],
   "overrides": [
     {
-      "$comment": "Root-level tool configs: nothing imports them, so they sit outside fallow's `entry` graph and read as unused files.",
+      "$comment": "Root-level tool configs and CI CLI entrypoints: nothing imports them, so they sit outside fallow's `entry` graph and read as unused files.",
       "files": [
         "oxfmt.config.ts",
         "stryker.config.mjs",
         "vitest.msw-setup.ts",
-        "apps/hono/src/routes/middlewares/rate-limit/*.ts"
+        "apps/hono/src/routes/middlewares/rate-limit/*.ts",
+        "scripts/security/sarif-severity-gate.ts"
       ],
       "rules": {
         "unused-files": "off"
