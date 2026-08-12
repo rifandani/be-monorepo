@@ -90,13 +90,22 @@
     ]
   },
   "hooks": {
-    "PreToolUse": [
+    "WorktreeCreate": [
       {
-        "matcher": "Bash|Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/pre-tool.sh"
+            "command": "bash .claude/hooks/worktree-create.sh"
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/worktree-remove.sh"
           }
         ]
       }
