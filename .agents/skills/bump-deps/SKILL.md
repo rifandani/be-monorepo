@@ -32,16 +32,18 @@ Apply the required code/config from step 2.
 
 ### Schema edits carry a migration
 
-A touch to `apps/hono/src/db/schema.ts` is **migration debt** — drizzle and Better Auth majors both land there. Pay it in the same bump:
+If you change `apps/hono/src/db/schema.ts`, you must also write a migration. Drizzle majors and Better Auth majors both change this file. Write the migration in the same bump.
 
-1. `bun hono db:gen` writes the `.sql`, the snapshot, and the journal entry. Only it edits those three.
-2. **One migration per bump.** Already holding an uncommitted one from this bump? Delete its `.sql` and snapshot, drop its `_journal.json` entry, re-gen.
-3. SQL drizzle cannot infer (a rename it reads as drop-plus-add) goes in the generated `.sql` behind `--> statement-breakpoint`. With no schema diff to append to, `bun hono db:gen --custom` opens an empty one.
-4. Better Auth majors: `bun hono auth:gen` writes `src/db/auth-schema.ts`, which drizzle does not read here — treat it as reference, hand-reconcile into `schema.ts`, re-gen.
+1. Run `bun hono db:gen`. It writes the `.sql` file, the snapshot, and the journal entry. Do not edit these three files yourself.
+2. Write only one migration for each bump. If this bump has a migration that you did not commit, delete its `.sql` file and its snapshot, remove its entry from `_journal.json`, then run `bun hono db:gen` again.
+3. Drizzle cannot find a rename. It reads a rename as a drop and an add. Write this SQL yourself in the generated `.sql` file, after `--> statement-breakpoint`. If there is no schema difference, run `bun hono db:gen --custom` to make an empty migration.
+4. For a Better Auth major, run `bun hono auth:gen`. It writes `src/db/auth-schema.ts`. Drizzle does not read that file here. Use it only as a reference: copy the changes into `schema.ts` yourself, then run `bun hono db:gen` again.
 
-**Backfill** rows the move leaves wrong, as **expand → backfill → contract**: nullable column, fill, then tighten in the next migration. A set-based fill is a hand-written `UPDATE` in the migration itself — precedent: `0002_stiff_silvermane.sql`. When the fill needs app logic, an external call, or batching, pair the migration with `src/db/backfills/<migration-tag>.ts` shaped like `src/db/seed.ts`, re-runnable (`WHERE col IS NULL`) and batched, run with `cd apps/hono && bunx dotenvx run --env-file=.env.dev -- bun <path>` (`dotenvx` resolves only in that package).
+If the change makes rows incorrect, correct the data in three steps: expand, backfill, then contract. First add a column that permits null values. Then fill the column. Then make the column more strict in the next migration.
 
-**Done when:** every bite has an edit, or the report says it does not apply — and where `schema.ts` moved, a second `bun hono db:gen` reports no schema changes.
+For a simple fill, write an `UPDATE` statement in the migration. If the fill needs app logic, an external call, or batches, write a script at `src/db/backfills/<migration-tag>.ts`. Use `src/db/seed.ts` as the model. Make the script batched, and make sure that you can run it more than one time (for example, with `WHERE col IS NULL`). Run it with `cd apps/hono && bunx dotenvx run --env-file=.env.dev -- bun <path>`, because `dotenvx` is available only in that package.
+
+**Done when:** you did an edit for each bite, or the report tells that the bite does not apply. If you changed `schema.ts`, a second `bun hono db:gen` must report no schema changes.
 
 ## 4. Gates
 
