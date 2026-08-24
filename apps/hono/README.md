@@ -12,7 +12,7 @@ Using `@scalar/hono-api-reference` to generate OpenAPI docs. The OpenAPI generat
 ## Auth
 
 ```bash
-# everytime we add/remove/change auth schema, generate the new auth schema in `./src/db/auth-schema.ts`
+# everytime we add/remove/change auth schema or there's changes from BetterAuth, generate the new auth schema in `./src/db/auth-schema.ts`
 bun hono auth:gen
 ```
 

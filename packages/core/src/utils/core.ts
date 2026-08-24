@@ -1,3 +1,7 @@
+// These helpers ARE the boundary: `toCamelCase`/`toSnakeCase` rekey an arbitrary payload, `buildFormData` walks one into a `FormData` body, and `deepReadObject`/`deepWriteObject` address one by string path.
+// Every value they touch is untyped by construction and the caller names the resulting shape through the generic, so `unknown` parameters, open dictionaries and `typeof` branching are the contract here rather than a missing parse step.
+// oxlint-disable anti-slop/no-unknown-parameters anti-slop/no-object-parameters anti-slop/no-unsafe-dictionary-type anti-slop/no-runtime-typeof
+
 import { get, isPlainObject, set } from "radashi";
 import type { RequireAtLeastOne, UnknownRecord } from "type-fest";
 
@@ -46,10 +50,14 @@ export const indonesianPhoneNumberFormat = (phoneNumber: string) => {
  */
 export const toCamelCase = <T>(object: unknown): T => {
   if (Array.isArray(object)) {
+    // SAFETY: `T` is the caller's claim about the rekeyed payload; renaming
+    // keys cannot verify it, so the assertion just forwards that claim.
     return object.map((item) => toCamelCase(item)) as T;
   }
 
   if (!isPlainObject(object)) {
+    // SAFETY: a non-record value is returned untouched, so it is whatever the
+    // caller already had — `T` is again their claim about it.
     return object as T;
   }
 
@@ -66,6 +74,8 @@ export const toCamelCase = <T>(object: unknown): T => {
     }
   }
 
+  // SAFETY: `transformedObject` holds the same values under renamed keys, so
+  // it matches `T` exactly as far as the caller's claim holds.
   return transformedObject as T;
 };
 
@@ -81,10 +91,14 @@ export const toCamelCase = <T>(object: unknown): T => {
  */
 export const toSnakeCase = <T>(object: unknown): T => {
   if (Array.isArray(object)) {
+    // SAFETY: `T` is the caller's claim about the rekeyed payload; renaming
+    // keys cannot verify it, so the assertion just forwards that claim.
     return object.map((item) => toSnakeCase(item)) as T;
   }
 
   if (!isPlainObject(object)) {
+    // SAFETY: a non-record value is returned untouched, so it is whatever the
+    // caller already had — `T` is again their claim about it.
     return object as T;
   }
 
@@ -102,6 +116,8 @@ export const toSnakeCase = <T>(object: unknown): T => {
     }
   }
 
+  // SAFETY: `transformedObject` holds the same values under renamed keys, so
+  // it matches `T` exactly as far as the caller's claim holds.
   return transformedObject as T;
 };
 
@@ -180,6 +196,9 @@ const buildFormData = <T extends UnknownRecord>(
 ) => {
   const formData = new FormData();
 
+  // SAFETY: `ignoreList` holds `keyof T`, all of which are strings here, so
+  // comparing an arbitrary path segment against it is a plain string lookup —
+  // the assertion only satisfies `includes`' parameter type.
   const isIgnored = (key?: string) =>
     Array.isArray(options?.ignoreList) &&
     options.ignoreList.includes(key as keyof T);
@@ -350,7 +369,10 @@ export const deepReadObject = <T = any>(
   obj: Record<string, unknown>,
   path: string,
   defaultValue?: unknown
-): T => get<T>(obj, path.trim()) ?? (defaultValue as T);
+): T =>
+  // SAFETY: `T` is the caller's claim about what lives at `path`; the default
+  // is theirs too, so it is asserted to the same unverifiable type.
+  get<T>(obj, path.trim()) ?? (defaultValue as T);
 
 /**
  * The counterpart to {@link deepReadObject}: write a deep value via a string

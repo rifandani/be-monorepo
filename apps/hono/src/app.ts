@@ -120,6 +120,8 @@ app.onError((error, c) => {
           message: parsed.message,
           why: parsed.why,
         }),
+        // SAFETY: `parseError` only ever reports an error status (>= 400), and
+        // every such code carries a body, so none of the bodiless `StatusCode`s (101/204/205/304) that `ContentfulStatusCode` excludes can reach here.
         parsed.status as ContentfulStatusCode
       );
     });
