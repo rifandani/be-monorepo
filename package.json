@@ -58,9 +58,6 @@
     "ultracite": "7.10.6",
     "vitest": "4.1.11"
   },
-  "overrides": {
-    "protobufjs": ">=7.5.5"
-  },
   "engines": {
     "node": ">=26.0.0"
   },
