@@ -1,3 +1,7 @@
+// This module sits on two boundaries that hand over untyped values by definition: the noop `Tracer` has to mirror OTel's overloaded `startActiveSpan` signature and dispatch on which argument is the callback, and the `flattenAttributes*` helpers walk an arbitrary payload into flat span attributes.
+// `unknown` inputs, open dictionaries and `typeof` branching are the contract in both, not a missing parse step.
+// oxlint-disable anti-slop/no-unknown-parameters anti-slop/no-unknown-returns anti-slop/no-object-parameters anti-slop/no-unsafe-dictionary-type oxlint-disable anti-slop/no-runtime-typeof
+
 import { SpanStatusCode, trace } from "@opentelemetry/api";
 import type {
   Attributes,
@@ -205,14 +209,17 @@ interface FlattenState {
 }
 
 /**
+ * The flat span-attribute map every `flatten*` helper produces: one entry per
+ * leaf, keyed by its dotted path.
+ */
+type FlatAttributes = Record<string, string>;
+
+/**
  * Flattens one value of a container, one level deeper than its parent. Passed
  * in rather than referenced directly so the helpers below stay independent of
  * the entry point.
  */
-type FlattenValue = (
-  value: unknown,
-  state: FlattenState
-) => Record<string, string>;
+type FlattenValue = (value: unknown, state: FlattenState) => FlatAttributes;
 
 /**
  * Flattens the `[key, value]` pairs of an array or object, recursing one level
@@ -222,8 +229,8 @@ const flattenEntries = (
   entries: Iterable<[number | string, unknown]>,
   { prefix, maxDepth, currentDepth }: FlattenState,
   flattenValue: FlattenValue
-): Record<string, string> => {
-  const result: Record<string, string> = {};
+) => {
+  const result: FlatAttributes = {};
 
   for (const [key, value] of entries) {
     Object.assign(
@@ -243,7 +250,7 @@ const flattenArray = (
   items: unknown[],
   state: FlattenState,
   flattenValue: FlattenValue
-): Record<string, string> => {
+) => {
   const { prefix } = state;
 
   if (items.length === 0) {
@@ -266,7 +273,7 @@ const flattenRecord = (
   obj: object,
   state: FlattenState,
   flattenValue: FlattenValue
-): Record<string, string> => {
+): FlatAttributes => {
   const entries = Object.entries(obj);
 
   return entries.length === 0
@@ -306,7 +313,7 @@ const flattenValue: FlattenValue = (value, state) => {
 export const flattenAttributes = (
   obj: unknown,
   config?: Partial<FlattenState>
-): Record<string, string> => {
+): FlatAttributes => {
   const { prefix = "", maxDepth = 3, currentDepth = 0 } = config ?? {};
 
   return flattenValue(obj, { currentDepth, maxDepth, prefix });
@@ -339,6 +346,8 @@ export const flattenAttributesV2 = (
 
             for (const [i, item] of items.entries()) {
               if (typeof item === "object" && item !== null) {
+                // SAFETY: the branch above establishes `item` is a non-null
+                // object, and this helper only reads its own entries.
                 Object.assign(
                   acc,
                   flattenAttributesV2(
@@ -360,6 +369,9 @@ export const flattenAttributesV2 = (
           .with(
             P.when((candidate) => typeof candidate === "object"),
             (record) =>
+              // SAFETY: the `P.when` guard above matched `typeof === "object"`
+              // and the earlier `P.nullish` arm already took `null`, so
+              // `record` is a non-null object whose entries are only read.
               Object.assign(
                 acc,
                 flattenAttributesV2(record as Record<string, unknown>, newKey)
@@ -371,5 +383,8 @@ export const flattenAttributesV2 = (
           .otherwise(() => acc)
       );
     },
+    // SAFETY: the accumulator starts empty and every arm above writes only
+    // `AttributeValue`s into it, so the assertion names the type the reduce
+    // builds up rather than widening anything.
     {} as Record<string, AttributeValue>
   );

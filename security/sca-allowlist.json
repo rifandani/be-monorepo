@@ -45,32 +45,18 @@
       "reason": "Transitive via tooling; awaiting upstream"
     },
     {
-      "id": "GHSA-52cp-r559-cp3m",
-      "package": "js-yaml",
-      "severity": "high",
-      "expires": "2026-11-06",
-      "reason": "Transitive via tooling; awaiting upstream"
-    },
-    {
-      "id": "GHSA-5p4m-2wfm-xmqj",
-      "package": "js-yaml",
-      "severity": "high",
-      "expires": "2026-11-06",
-      "reason": "Transitive via changesets tooling (3.x+4.x); Bun cannot dual-major override — bump when upstream releases land"
-    },
-    {
       "id": "GHSA-28wg-ghj8-5hjv",
       "package": "nanoid",
       "severity": "high",
       "expires": "2026-11-06",
-      "reason": "Transitive via postcss/vite and @scalar (3.x+5.x); Bun cannot dual-major override — bump when upstream releases land"
+      "reason": "Transitive via postcss/vite and @scalar (3.x+5.x); Bun cannot dual-major override \u2014 bump when upstream releases land"
     },
     {
       "id": "GHSA-2v37-7h3g-55p8",
       "package": "nanoid",
       "severity": "high",
       "expires": "2026-11-06",
-      "reason": "Transitive via postcss/vite and @scalar (3.x+5.x); Bun cannot dual-major override — bump when upstream releases land"
+      "reason": "Transitive via postcss/vite and @scalar (3.x+5.x); Bun cannot dual-major override \u2014 bump when upstream releases land"
     },
     {
       "id": "GHSA-23c5-xmqv-rm74",

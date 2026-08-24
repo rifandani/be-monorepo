@@ -6,14 +6,12 @@
   },
   "ignoreExports": [
     {
-      "$comment": "Root-level vitest infrastructure is outside fallow's `entry` graph, so `server` and `MOCK_API_BASE_URL` read as unused and `fallow fix` strips the `export` keyword. They are consumed by vitest.msw-setup.ts and the *.test.ts files that call `server.use()`.",
       "file": "vitest.msw.ts",
       "exports": ["*"]
     }
   ],
   "overrides": [
     {
-      "$comment": "Root-level tool configs and CI CLI entrypoints: nothing imports them, so they sit outside fallow's `entry` graph and read as unused files.",
       "files": [
         "oxfmt.config.ts",
         "stryker.config.mjs",

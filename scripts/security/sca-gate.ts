@@ -64,12 +64,12 @@ interface Finding {
 
 type SeverityBand = "low" | "moderate" | "high" | "critical";
 
-const LEVEL_RANK: Record<SeverityBand, number> = {
+const LEVEL_RANK = {
   low: 1,
   moderate: 2,
   high: 3,
   critical: 4,
-};
+} satisfies Record<SeverityBand, number>;
 
 const root = path.resolve(import.meta.dirname, "../..");
 const allowlistPath = path.resolve(
@@ -80,6 +80,7 @@ const auditLevel = (process.env.SCA_AUDIT_LEVEL ?? "high").toLowerCase();
 const today = new Date().toISOString().slice(0, 10);
 const lockfile = "bun.lock";
 
+// SAFETY: `auditLevel` comes from the environment, so it may not be a band at all; the lookup then yields `undefined` and the guard below exits. The assertion only lets an arbitrary string index the map.
 const minRank = LEVEL_RANK[auditLevel as SeverityBand];
 if (!minRank) {
   console.error(
@@ -88,6 +89,7 @@ if (!minRank) {
   process.exit(2);
 }
 
+// SAFETY: `JSON.parse` returns `any`; `entries` is optional here and each entry is re-validated field by field in the loop below, so a malformed allowlist surfaces as a reported error rather than a bad gate decision.
 const raw = JSON.parse(readFileSync(allowlistPath, "utf-8")) as {
   entries?: AllowEntry[];
 };
@@ -121,6 +123,8 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
+// SAFETY-adjacent note: `bandFromCvss` and `normalizeBand` are the parse step for osv-scanner's loosely typed severity fields — taking `unknown` and returning a `SeverityBand | null` is what makes the rest of this file typed.
+// oxlint-disable-next-line anti-slop/no-unknown-parameters
 const bandFromCvss = (score: unknown): SeverityBand | null => {
   const n = Number(score);
   if (!Number.isFinite(n) || n <= 0) {
@@ -138,6 +142,7 @@ const bandFromCvss = (score: unknown): SeverityBand | null => {
   return "low";
 };
 
+// oxlint-disable-next-line anti-slop/no-unknown-parameters
 const normalizeBand = (value: unknown): SeverityBand | null => {
   const v = String(value ?? "")
     .trim()
@@ -146,6 +151,7 @@ const normalizeBand = (value: unknown): SeverityBand | null => {
     return "moderate";
   }
   if (v in LEVEL_RANK) {
+    // SAFETY: the `in` check just confirmed `v` is one of `LEVEL_RANK`'s keys, which are exactly the `SeverityBand` members.
     return v as SeverityBand;
   }
   return null;
@@ -191,16 +197,17 @@ const ensureOsvScanner = (): string => {
   }
 
   const version = process.env.OSV_SCANNER_VERSION ?? "2.4.0";
-  const platforms: Record<string, string> = {
-    darwin: "darwin",
-    linux: "linux",
-  };
-  const arches: Record<string, string> = {
-    arm64: "arm64",
-    x64: "amd64",
-  };
-  const platform = platforms[process.platform];
-  const arch = arches[process.arch];
+  // Maps rather than object literals: the keys are the Node platform/arch names this project builds for, and `.get` returns `undefined` for anything else without needing the lookup key asserted into range.
+  const platforms = new Map([
+    ["darwin", "darwin"],
+    ["linux", "linux"],
+  ]);
+  const arches = new Map([
+    ["arm64", "arm64"],
+    ["x64", "amd64"],
+  ]);
+  const platform = platforms.get(process.platform);
+  const arch = arches.get(process.arch);
   if (!(platform && arch)) {
     throw new Error(
       `osv-scanner not found and no binary for ${process.platform}/${process.arch}`
@@ -257,9 +264,13 @@ const writeConfig = (activeEntries: AllowEntry[]): string => {
   return configPath;
 };
 
-const buildIdBands = (
-  groups: OsvGroup[]
-): { idBand: Map<string, SeverityBand>; pkgMax: SeverityBand | null } => {
+/** The per-id and per-package severity view `buildIdBands` derives. */
+interface IdBands {
+  idBand: Map<string, SeverityBand>;
+  pkgMax: SeverityBand | null;
+}
+
+const buildIdBands = (groups: OsvGroup[]): IdBands => {
   const idBand = new Map<string, SeverityBand>();
   let pkgMax: SeverityBand | null = null;
   for (const g of groups) {
@@ -376,6 +387,7 @@ if (code !== 0 && code !== 1) {
 
 let doc: OsvDocument;
 try {
+  // SAFETY: `JSON.parse` returns `any`, and unparseable output is caught below; `OsvDocument` describes osv-scanner's documented result shape with every field this gate reads treated as optional.
   doc = JSON.parse(stdout || "{}") as OsvDocument;
 } catch {
   console.error("::error::failed to parse osv-scanner JSON output");

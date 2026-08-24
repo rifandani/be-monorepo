@@ -31,5 +31,19 @@ const shutdown = async (exitCode: number) => {
   });
 };
 
-process.on("SIGINT", () => void shutdown(0));
-process.on("SIGTERM", () => void shutdown(0));
+// `void shutdown(0)` used to discard the promise here; oxlint 1.79 turns
+// `no-void` on, and a rejection had nowhere to go anyway.
+const handleSignal = async () => {
+  try {
+    await shutdown(0);
+  } catch (error: unknown) {
+    log.error(
+      "node-server",
+      error instanceof Error ? error.message : String(error)
+    );
+    process.exit(1);
+  }
+};
+
+process.on("SIGINT", handleSignal);
+process.on("SIGTERM", handleSignal);

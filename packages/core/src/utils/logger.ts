@@ -27,7 +27,7 @@ export const logger = {
   // oxlint-disable-next-line typescript/no-explicit-any
   debug(message: string, ...attributes: any[]) {
     const severity = "DEBUG";
-    const severityColor = LEVEL_COLORS[severity as keyof typeof LEVEL_COLORS];
+    const severityColor = LEVEL_COLORS[severity];
     const timeFormatted = formatTime(new Date());
 
     console.debug(
@@ -39,7 +39,7 @@ export const logger = {
   // oxlint-disable-next-line typescript/no-explicit-any
   error(message: string, ...attributes: any[]) {
     const severity = "ERROR";
-    const severityColor = LEVEL_COLORS[severity as keyof typeof LEVEL_COLORS];
+    const severityColor = LEVEL_COLORS[severity];
     const timeFormatted = formatTime(new Date());
 
     console.error(
@@ -51,7 +51,7 @@ export const logger = {
   // oxlint-disable-next-line typescript/no-explicit-any
   log(message: string, ...attributes: any[]) {
     const severity = "INFO";
-    const severityColor = LEVEL_COLORS[severity as keyof typeof LEVEL_COLORS];
+    const severityColor = LEVEL_COLORS[severity];
     const timeFormatted = formatTime(new Date());
 
     console.log(
@@ -63,7 +63,7 @@ export const logger = {
   // oxlint-disable-next-line typescript/no-explicit-any
   warn(message: string, ...attributes: any[]) {
     const severity = "WARN";
-    const severityColor = LEVEL_COLORS[severity as keyof typeof LEVEL_COLORS];
+    const severityColor = LEVEL_COLORS[severity];
     const timeFormatted = formatTime(new Date());
 
     console.warn(

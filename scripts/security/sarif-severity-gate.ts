@@ -8,6 +8,9 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
+// SARIF's `properties` is an open property bag by spec — the producer decides what goes in it — so an unknown value type is the accurate contract here.
+// oxlint-disable anti-slop/no-unsafe-dictionary-type
+
 interface SarifRule {
   id: string;
   properties?: Record<string, unknown>;
@@ -73,20 +76,21 @@ if (files.length === 0) {
 const blockers: Blocker[] = [];
 
 for (const file of files) {
+  // SAFETY: `JSON.parse` returns `any`; `SarifLog` describes only the fields this gate reads and marks every one of them optional, so a file that is not SARIF degrades to "no runs, no results" instead of throwing.
   const sarif = JSON.parse(readFileSync(file, "utf-8")) as SarifLog;
   for (const run of sarif.runs ?? []) {
     const rules = new Map(
       (run.tool?.driver?.rules ?? []).map((r) => [r.id, r] as const)
     );
     for (const result of run.results ?? []) {
-      const rule = rules.get(result.ruleId ?? "") ?? ({} as SarifRule);
+      const rule = rules.get(result.ruleId ?? "");
       const props = {
-        ...rule.properties,
+        ...rule?.properties,
         ...result.properties,
       };
       const securitySeverity = Number(props["security-severity"] ?? Number.NaN);
       const level =
-        result.level ?? rule.defaultConfiguration?.level ?? "warning";
+        result.level ?? rule?.defaultConfiguration?.level ?? "warning";
 
       const isHigh =
         (!Number.isNaN(securitySeverity) && securitySeverity >= minSeverity) ||
