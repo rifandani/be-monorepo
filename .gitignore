@@ -149,6 +149,8 @@ prisma/_sqlite/migrations
 .notes
 .worktrees/
 .claude/worktrees/
+.agent-repos
+repos/
 
 # containers
 container
