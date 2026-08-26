@@ -1,0 +1,43 @@
+{
+  "name": "@workspace/effect",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Effect v4 HTTP API template",
+  "license": "MIT",
+  "author": "Tri Rizeki Rifandani",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "portless": "portless proxy start --https",
+    "dev:server": "bun run --env-file=.env.dev --hot src/bun.ts",
+    "dev": "portless run --name effect.be-monorepo --script dev:server",
+    "dev:prod:server": "bun run --env-file=.env.prod --hot src/bun.ts",
+    "dev:prod": "portless run --name effect.be-monorepo --script dev:prod:server",
+    "node:dev:server": "dotenvx run --env-file=.env.dev -- tsx watch src/node.ts",
+    "node:dev": "portless run --name effect.be-monorepo --script node:dev:server",
+    "node:dev:prod:server": "dotenvx run --env-file=.env.prod -- tsx watch src/node.ts",
+    "node:dev:prod": "portless run --name effect.be-monorepo --script node:dev:prod:server",
+    "node:build": "dotenvx run --env-file=.env.dev -- tsc -p .",
+    "node:build:prod": "dotenvx run --env-file=.env.prod -- tsc -p .",
+    "node:start": "dotenvx run --env-file=.env.dev -- node ./dist/src/node.js",
+    "node:start:prod": "dotenvx run --env-file=.env.prod -- node ./dist/src/node.js"
+  },
+  "dependencies": {
+    "@dotenvx/dotenvx": "2.21.0",
+    "@effect/platform-bun": "4.0.0-rc.112",
+    "@effect/platform-node": "4.0.0-rc.112",
+    "effect": "4.0.0-rc.112"
+  },
+  "devDependencies": {
+    "@effect/language-service": "0.87.2",
+    "@effect/vitest": "4.0.0-rc.112",
+    "@types/bun": "1.4.0",
+    "@types/node": "26.2.0",
+    "@workspace/typescript-config": "workspace:*",
+    "portless": "0.15.5",
+    "tsx": "4.23.12",
+    "typescript": "7.0.2",
+    "vitest": "4.1.11"
+  }
+}

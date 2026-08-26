@@ -8,3 +8,7 @@
 apps/hono/.env.dev
 apps/hono/.env.prod
 apps/hono/.env.local
+
+apps/effect/.env.dev
+apps/effect/.env.prod
+apps/effect/.env.local

@@ -4,7 +4,7 @@ status: accepted
 
 # Unit tests are pure module logic, api repositories, and api routes
 
-Automated tests cover three things: **pure module logic** (self-contained functions, called directly), **api repositories** (`packages/core/src/apis/**`, HTTP clients that build requests and parse responses), and **api routes** (`apps/hono/tests/*.test.ts`, driven end-to-end through `app.request()` against the real app). Thin wrappers between them — HTTP client factories, declarative schemas-as-data, type-only modules — stay untested when mocking at the module boundary would prove nothing.
+Automated tests cover three things: **pure module logic** (self-contained functions, called directly), **api repositories** (`packages/core/src/apis/**`, HTTP clients that build requests and parse responses), and **api routes** (`apps/*/tests/*.test.ts`, driven end-to-end against the real app — through `app.request()` in `apps/hono`, and through `HttpApiTest.groups` plus `HttpRouter.toWebHandler` in `apps/effect`). Thin wrappers between them — HTTP client factories, declarative schemas-as-data, type-only modules — stay untested when mocking at the module boundary would prove nothing.
 
 Coverage of that surface is enforced: `bun run test:cov` fails below **90%** on lines, functions, branches, and statements, **per file** (`thresholds.perFile`). A well-covered module cannot carry an untested one, so a file that lands inside the denominator has to be tested on its own merits.
 
@@ -39,7 +39,7 @@ Other layers we still reject:
 
 - **Pure module logic** — colocated `src/**/*.test.ts`, in packages and apps alike, called with real inputs (a real `Headers`, a real `new Hono()` context, a real `File`). No `vi.mock`. `vi.spyOn(console, …)` is fine: console is the output under assertion, not a faked collaborator.
 - **Api repositories** — colocated `packages/core/src/apis/*.test.ts`, MSW at the Network Boundary. Every test declares its handlers via `server.use()`; `onUnhandledRequest: "error"` hard-fails anything undeclared. `authRepositories(http)` takes `Http` by parameter, so tests own the base URL via `new Http({ prefix: MOCK_API_BASE_URL })`.
-- **Api routes** — `apps/hono/tests/*.test.ts` against the real `app`, no mocking. To reach app-level behaviour such as `onError`, register a test-only route under `/__test/` using `get` rather than `openapi`, which keeps it out of the OpenAPI document.
+- **Api routes** — `apps/*/tests/*.test.ts` against the real `app`, no mocking. In `apps/hono`, to reach app-level behaviour such as `onError`, register a test-only route under `/__test/` using `get` rather than `openapi`, which keeps it out of the OpenAPI document. In `apps/effect` there are two idioms, and the difference matters: `HttpApiTest.groups` rebuilds the routes from the api description, so it exercises real routing, encoding and decoding but is blind to where `app.ts` mounts anything; `HttpRouter.toWebHandler` drives the composed layer and is the only thing that fails when a mount point moves. Endpoint behaviour uses the first, mount points the second.
 
 ## MSW lifecycle
 
@@ -53,7 +53,7 @@ Other layers we still reject:
 
 ## The coverage denominator
 
-`coverage.include` is every source file under `apps/hono/src` and `packages/core/src`. The gate is fail-closed: a new module counts the moment it lands, so it must be tested or earn an exclusion here.
+`coverage.include` is every source file under `apps/hono/src`, `apps/effect/src` and `packages/core/src`. The gate is fail-closed: a new module counts the moment it lands, so it must be tested or earn an exclusion here.
 
 | Excluded | Reason |
 | --- | --- |
@@ -63,8 +63,11 @@ Other layers we still reject:
 | `apps/hono/src/auth/utils/**` | better-auth configuration |
 | `apps/hono/src/core/utils/evlog.ts` | evlog drain configuration |
 | `apps/hono/src/{bun,node,instrumentation}.ts` | Process bootstrap; importing them starts a server or an OTel SDK |
+| `apps/effect/src/{bun,node}.ts` | The same: importing either calls `Layer.launch` and binds a port |
 | `apps/hono/src/routes/middlewares/auth.ts` | **Conditional** — see below |
 | `apps/hono/src/routes/middlewares/rate-limit/**` | **Conditional** — see below |
+
+`apps/effect/src/server/http.ts` is **not** excluded, although the nearest hono bootstrap files are. It starts nothing: it is `Layer` composition, and `Config` resolves in the layer and not at import. `tests/app.test.ts` therefore builds it with `HttpRouter.toWebHandler` and asserts each mount point. `apps/effect/src/config.ts` does get a row: it holds declarative `Config` values that only `node.ts` and `bun.ts` read, so it is outside the gate on the same grounds as hono's `constants/**`, which the `apps/*/src/**/constants/**` glob covers. `apps/effect/src/metadata.ts` needs no row — the API description imports it, so the endpoint tests execute it.
 
 Every exclusion above is justified by test cost except the last two, which are justified by missing infrastructure — a Postgres that CI has no service container for:
 
@@ -88,4 +91,5 @@ One v8 quirk is worth knowing before chasing a phantom gap: a ternary between tw
 
 ## Amendments
 
+- `apps/effect` entered the denominator when it landed. Its divergence from the hono libraries is argued in [`apps/effect/docs/adr/0001`](../../apps/effect/docs/adr/0001-effect-native-stack-over-the-hono-app-conventions.md); the coverage consequences are the two rows and the `app.ts` note above.
 - [ADR-0002](./0002-mutation-testing-is-advisory.md) derives the advisory mutation-testing scope from this ADR's coverage denominator (`include` minus `exclude`), so the two conditional exclusions above enter that scope on the commit that removes them.

@@ -6,7 +6,7 @@ export default defineConfig({
     isolate: false,
     passWithNoTests: false,
     pool: "threads",
-    projects: ["apps/hono", "packages/core"],
+    projects: ["apps/hono", "apps/effect", "packages/core"],
     // Coverage is a root-only option in a `projects` setup — running vitest
     // from inside a package (`bun hono test`) ignores everything below, so the
     // gate only exists at the repo root via `bun run test:cov`.
@@ -29,7 +29,11 @@ export default defineConfig({
         lines: 90,
         statements: 90,
       },
-      include: ["apps/hono/src/**/*.ts", "packages/core/src/**/*.ts"],
+      include: [
+        "apps/hono/src/**/*.ts",
+        "apps/effect/src/**/*.ts",
+        "packages/core/src/**/*.ts",
+      ],
       // The denominator is fail-closed: every source file counts unless it is
       // subtracted here, so a new module lands inside the gate by default. Each
       // exclusion below is justified in ADR-0001, which is also where the
@@ -45,6 +49,9 @@ export default defineConfig({
         "apps/hono/src/bun.ts",
         "apps/hono/src/node.ts",
         "apps/hono/src/instrumentation.ts",
+        "apps/effect/src/bun.ts",
+        "apps/effect/src/node.ts",
+        "apps/effect/src/config.ts",
         "apps/hono/src/core/utils/evlog.ts",
         "apps/hono/src/db/**",
         "apps/hono/src/routes/middlewares/auth.ts",

@@ -1,0 +1,282 @@
+import { afterAll, assert, describe, it } from "@effect/vitest";
+import { ConfigProvider, Layer } from "effect";
+import { HttpRouter, HttpServer } from "effect/unstable/http";
+
+import { app } from "../src/server/http.js";
+import { SECURE_HEADERS } from "../src/server/secure-headers.js";
+
+const ALLOWED_ORIGIN = "https://effect.be-monorepo.localhost";
+
+// The cors layer reads `APP_URL`, and this project deliberately runs its tests
+// without an env file (see `vitest.config.ts`). An explicit provider keeps that
+// property: the policy under test is stated here, not in the ambient process.
+const configProvider = ConfigProvider.layer(
+  ConfigProvider.fromEnvRecord({ APP_URL: `${ALLOWED_ORIGIN}/` })
+);
+
+// `HttpApiTest.groups` (see `greetings.test.ts`) rebuilds the routes from the
+// api description and never touches `app.ts`, so it cannot see a mount point
+// move. This suite drives the composed layer instead, which is the only thing
+// that fails when the OpenAPI or docs path regresses.
+//
+// `disableLogger` silences the per-request logging that `toWebHandler` applies
+// by default; the requests here are assertions, not traffic worth reporting.
+const { dispose, handler } = HttpRouter.toWebHandler(
+  app.pipe(Layer.provide([HttpServer.layerServices, configProvider])),
+  { disableLogger: true }
+);
+
+describe("app routes", () => {
+  afterAll(() => dispose());
+
+  it("serves the greeting at the root", async () => {
+    const response = await handler(new Request("http://localhost/"));
+
+    assert.strictEqual(response.status, 200);
+    assert.deepStrictEqual(await response.json(), { message: "Hello World" });
+  });
+
+  it("serves the OpenAPI document", async () => {
+    const response = await handler(new Request("http://localhost/openapi"));
+    const document = (await response.json()) as {
+      info: { title: string; version: string };
+      paths: Record<string, unknown>;
+    };
+
+    assert.strictEqual(response.status, 200);
+    assert.strictEqual(document.info.title, "@workspace/effect");
+    assert.isTrue(Object.hasOwn(document.paths, "/"));
+  });
+
+  it("serves the Scalar reference page", async () => {
+    const response = await handler(
+      new Request("http://localhost/openapi/docs")
+    );
+
+    assert.strictEqual(response.status, 200);
+    assert.isTrue(
+      (response.headers.get("content-type") ?? "").includes("text/html")
+    );
+  });
+
+  it("returns 404 for an unknown path", async () => {
+    const response = await handler(new Request("http://localhost/nope"));
+
+    assert.strictEqual(response.status, 404);
+  });
+
+  it("answers a CORS preflight from the allowed origin", async () => {
+    const response = await handler(
+      new Request("http://localhost/", {
+        method: "OPTIONS",
+        headers: {
+          origin: ALLOWED_ORIGIN,
+          "access-control-request-method": "POST",
+        },
+      })
+    );
+
+    assert.strictEqual(response.status, 204);
+    assert.strictEqual(
+      response.headers.get("access-control-allow-origin"),
+      ALLOWED_ORIGIN
+    );
+    assert.strictEqual(
+      response.headers.get("access-control-allow-credentials"),
+      "true"
+    );
+  });
+
+  it("adds the CORS headers to a plain request", async () => {
+    const response = await handler(
+      new Request("http://localhost/", { headers: { origin: ALLOWED_ORIGIN } })
+    );
+
+    assert.strictEqual(response.status, 200);
+    assert.strictEqual(
+      response.headers.get("access-control-allow-origin"),
+      ALLOWED_ORIGIN
+    );
+    assert.strictEqual(
+      response.headers.get("access-control-expose-headers"),
+      "Content-Length"
+    );
+  });
+
+  // The api has one GET endpoint, so a request that clears the CSRF check
+  // reaches the router and stops at 404. That is the point of the assertions
+  // below: 403 means the middleware rejected it, 404 means it let it through.
+  it("rejects a cross-site form post", async () => {
+    const response = await handler(
+      new Request("http://localhost/", { method: "POST" })
+    );
+
+    assert.strictEqual(response.status, 403);
+    assert.strictEqual(await response.text(), "Forbidden");
+    // csrf is the innermost middleware, so a rejection still carries what the
+    // ones outside it add. See the nesting in `src/server/http.ts`.
+    assert.isNotNull(response.headers.get("x-request-id"));
+  });
+
+  it("allows a form post from the allowed origin", async () => {
+    const response = await handler(
+      new Request("http://localhost/", {
+        method: "POST",
+        headers: {
+          origin: ALLOWED_ORIGIN,
+          "content-type": "application/x-www-form-urlencoded",
+        },
+      })
+    );
+
+    assert.strictEqual(response.status, 404);
+  });
+
+  it("allows a form post marked same-origin by the browser", async () => {
+    const response = await handler(
+      new Request("http://localhost/", {
+        method: "POST",
+        headers: {
+          "sec-fetch-site": "same-origin",
+          "content-type": "multipart/form-data",
+        },
+      })
+    );
+
+    assert.strictEqual(response.status, 404);
+  });
+
+  // A form element cannot send this content type, so the same-origin policy
+  // already covers it and CORS governs the rest.
+  it("does not guard a JSON post", async () => {
+    const response = await handler(
+      new Request("http://localhost/", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+      })
+    );
+
+    assert.strictEqual(response.status, 404);
+  });
+
+  it("generates a request id and returns it", async () => {
+    const response = await handler(new Request("http://localhost/"));
+
+    assert.match(
+      response.headers.get("x-request-id") ?? "",
+      /^[0-9a-f-]{36}$/u
+    );
+  });
+
+  it("keeps a well formed inbound request id", async () => {
+    const response = await handler(
+      new Request("http://localhost/", {
+        headers: { "x-request-id": "upstream-1=" },
+      })
+    );
+
+    assert.strictEqual(response.headers.get("x-request-id"), "upstream-1=");
+  });
+
+  it("replaces an inbound request id it cannot trust", async () => {
+    const response = await handler(
+      new Request("http://localhost/", {
+        headers: { "x-request-id": "no spaces or punctuation!" },
+      })
+    );
+
+    assert.match(
+      response.headers.get("x-request-id") ?? "",
+      /^[0-9a-f-]{36}$/u
+    );
+  });
+
+  it("replaces an inbound request id that is too long", async () => {
+    const response = await handler(
+      new Request("http://localhost/", {
+        headers: { "x-request-id": "x".repeat(256) },
+      })
+    );
+
+    assert.match(
+      response.headers.get("x-request-id") ?? "",
+      /^[0-9a-f-]{36}$/u
+    );
+  });
+
+  it("times the request", async () => {
+    const response = await handler(new Request("http://localhost/"));
+
+    assert.match(
+      response.headers.get("server-timing") ?? "",
+      /^total;dur=\d+\.\d;desc="Total Response Time"$/u
+    );
+  });
+
+  // The nesting `src/server/http.ts` fixes puts timing outside csrf, so a
+  // rejected request is timed too. Nothing else here depends on the order.
+  it("times a request csrf rejected", async () => {
+    const response = await handler(
+      new Request("http://localhost/", { method: "POST" })
+    );
+
+    assert.strictEqual(response.status, 403);
+    assert.include(response.headers.get("server-timing") ?? "", "total;dur=");
+  });
+
+  // The record is the contract, so the test reads it rather than repeating it:
+  // an entry added there is asserted here without an edit.
+  it("sends the security headers", async () => {
+    const response = await handler(new Request("http://localhost/"));
+
+    for (const [header, value] of Object.entries(SECURE_HEADERS)) {
+      assert.strictEqual(response.headers.get(header), value);
+    }
+  });
+
+  // `require-corp` would block every cross-origin resource that does not opt
+  // in. It is off in `apps/hono` too.
+  it("does not send Cross-Origin-Embedder-Policy", async () => {
+    const response = await handler(new Request("http://localhost/"));
+
+    assert.isNull(response.headers.get("cross-origin-embedder-policy"));
+  });
+
+  // `src/server/http.ts` puts secure headers outside csrf, which is where it
+  // parts with `apps/hono`. This is the assertion that keeps it there.
+  it("sends the security headers on a request csrf rejected", async () => {
+    const response = await handler(
+      new Request("http://localhost/", { method: "POST" })
+    );
+
+    assert.strictEqual(response.status, 403);
+    assert.strictEqual(
+      response.headers.get("x-content-type-options"),
+      "nosniff"
+    );
+  });
+
+  it("detects the language from the query and caches it", async () => {
+    const response = await handler(new Request("http://localhost/?lang=id"));
+
+    assert.include(response.headers.get("set-cookie") ?? "", "language=id");
+  });
+
+  it("negotiates the language from the header", async () => {
+    const response = await handler(
+      new Request("http://localhost/", {
+        headers: { "accept-language": "fr;q=0.9, id;q=0.8" },
+      })
+    );
+
+    assert.include(response.headers.get("set-cookie") ?? "", "language=id");
+  });
+
+  // Caching the fallback would pin a client that stated no preference to `en`,
+  // which is the one case that should keep negotiating.
+  it("does not cache the fallback language", async () => {
+    const response = await handler(new Request("http://localhost/"));
+
+    assert.isNull(response.headers.get("set-cookie"));
+  });
+});

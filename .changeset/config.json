@@ -3,7 +3,12 @@
   "changelog": "@changesets/cli/changelog",
   "commit": false,
   "fixed": [
-    ["@workspace/hono", "@workspace/core", "@workspace/typescript-config"]
+    [
+      "@workspace/hono",
+      "@workspace/effect",
+      "@workspace/core",
+      "@workspace/typescript-config"
+    ]
   ],
   "linked": [],
   "access": "restricted",

@@ -121,5 +121,6 @@ export default {
     "**/.evlog/**",
     "**/.vercel/**",
     "**/.repos/**",
+    "**/repos/**",
   ],
 };
