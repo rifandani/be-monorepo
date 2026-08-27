@@ -46,7 +46,14 @@ type DocsApp = OpenAPIHono<{
 }>;
 
 /**
- * `GET /llms-docs` — the concatenated contents of the repo's `docs` folder.
+ * `GET /llms-docs` — the concatenated contents of the `docs` folder resolved
+ * against `process.cwd()`.
+ *
+ * That is `apps/hono/docs` for every way the server is actually started (each
+ * script runs inside the package), and the repo-root `docs` only when a process
+ * is launched from the repo root — a root `vitest` run, or Stryker's sandbox,
+ * whose cwd is the sandbox root. The tests rebuild their expectation from the
+ * same directory rather than assuming either one.
  */
 const registerDocsFolderRoute = (app: DocsApp) => {
   app.openapi(

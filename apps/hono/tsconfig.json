@@ -10,8 +10,7 @@
     "rootDir": "../../",
     "paths": {
       "*": ["./*"],
-      "@/*": ["./src/*"],
-      "@workspace/core/*": ["../../packages/core/src/*"]
+      "@/*": ["./src/*"]
     },
     "strictNullChecks": true
   },

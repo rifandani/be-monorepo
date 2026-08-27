@@ -1,6 +1,5 @@
-/* oxlint-disable class-methods-use-this */
-import { logger } from "@workspace/core/utils/logger.js";
 import { eq, sql } from "drizzle-orm";
+import { log } from "evlog";
 import type {
   ClientRateLimitInfo,
   HonoConfigType,
@@ -9,8 +8,26 @@ import type {
 } from "hono-rate-limiter";
 import type { Env, Input } from "hono/types";
 
+/* oxlint-disable class-methods-use-this */
 import { db } from "@/db/index.js";
 import { rateLimitTable } from "@/db/schema.js";
+
+/**
+ * The tag every failure in this store is logged under. `DbStore` runs inside a
+ * request but `hono-rate-limiter` hands its `Store` only a key, never the hono
+ * context, so `c.get("log")` — the only way into the request's wide event, since
+ * evlog's hono integration does not bind a logger through AsyncLocalStorage — is
+ * out of reach. These go to evlog's process-level logger instead, the same one
+ * `node.ts` uses for startup and shutdown, and they do not reach the OTLP drain.
+ */
+const LOG_TAG = "rate-limit-store";
+
+// A `catch` binding is `unknown` by TypeScript's own design and there is no
+// boundary schema to parse it with — narrowing it here IS the parse step, and it
+// is the same one `node.ts` performs inline at its two catch sites.
+// oxlint-disable-next-line anti-slop/no-unknown-parameters
+const reason = (error: unknown) =>
+  error instanceof Error ? error.message : String(error);
 
 /**
  * A `Store` that stores the hit count for each client in a PostgreSQL database.
@@ -106,7 +123,7 @@ export class DbStore<
 
       return this.#toRateLimitInfo(record, now);
     } catch (error) {
-      logger.error("Error getting rate limit record:", error);
+      log.error(LOG_TAG, `get failed: ${reason(error)}`);
     }
   }
 
@@ -180,7 +197,7 @@ export class DbStore<
 
       return { resetTime, totalHits: totalHits || 1 };
     } catch (error) {
-      logger.error("Error incrementing rate limit:", error);
+      log.error(LOG_TAG, `increment failed: ${reason(error)}`);
       // Fallback: return a conservative estimate
       return { resetTime, totalHits: 1 };
     }
@@ -204,7 +221,7 @@ export class DbStore<
         })
         .where(eq(rateLimitTable.key, key));
     } catch (error) {
-      logger.error("Error decrementing rate limit:", error);
+      log.error(LOG_TAG, `decrement failed: ${reason(error)}`);
     }
   }
 
@@ -219,7 +236,7 @@ export class DbStore<
     try {
       await db.delete(rateLimitTable).where(eq(rateLimitTable.key, key));
     } catch (error) {
-      logger.error("Error resetting rate limit key:", error);
+      log.error(LOG_TAG, `resetKey failed: ${reason(error)}`);
     }
   }
 
@@ -232,7 +249,7 @@ export class DbStore<
     try {
       await db.delete(rateLimitTable);
     } catch (error) {
-      logger.error("Error resetting all rate limits:", error);
+      log.error(LOG_TAG, `resetAll failed: ${reason(error)}`);
     }
   }
 

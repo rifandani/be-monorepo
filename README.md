@@ -8,8 +8,7 @@
 
 - [ ] https://github.com/stella/stella/tree/main/.oxlint-plugins
 - [ ] switch to Node's imports field `(#/*)` in package.json, which Node, Bun, tsx, and Vitest all resolve natively at runtime for both hono & effect apps.
-- [ ] move all @workspace/core contents into hono app, because it actually only needed by hono app and doesn't needed by effect.
-- [ ] add https://github.com/honojs/hono as git subtree into repos folder
+- [ ] add https://github.com/honojs/hono and drizzle as git subtree into repos folder
 - [ ] adjust /bump-deps to also update the all git subtree in repos folder
 
 ```bash
@@ -54,10 +53,6 @@ Source of truth is local env files. When changing them, update deployment/CI pro
 [See here](./apps/effect/README.md)
 
 ## 📦 Packages
-
-### @workspace/core
-
-[See here](./packages/core/README.md)
 
 ### @workspace/typescript-config
 

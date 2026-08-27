@@ -41,7 +41,7 @@ If you change `apps/hono/src/db/schema.ts`, you must also write a migration. Dri
 
 If the change makes rows incorrect, correct the data in three steps: expand, backfill, then contract. First add a column that permits null values. Then fill the column. Then make the column more strict in the next migration.
 
-For a simple fill, write an `UPDATE` statement in the migration. If the fill needs app logic, an external call, or batches, write a script at `src/db/backfills/<migration-tag>.ts`. Use `src/db/seed.ts` as the model. Make the script batched, and make sure that you can run it more than one time (for example, with `WHERE col IS NULL`). Run it with `cd apps/hono && bunx dotenvx run --env-file=.env.dev -- bun <path>`, because `dotenvx` is available only in that package.
+For a simple fill, write an `UPDATE` statement in the migration. If the fill needs app logic, an external call, or batches, write a script at `src/db/backfills/<migration-tag>.ts`. Use `src/db/seeds/seed-user.ts` as the model. Make the script batched, and make sure that you can run it more than one time (for example, with `WHERE col IS NULL`). Run it with `cd apps/hono && bunx dotenvx run --env-file=.env.dev -- bun <path>`, because `dotenvx` is available only in that package.
 
 **Done when:** you did an edit for each bite, or the report tells that the bite does not apply. If you changed `schema.ts`, a second `bun hono db:gen` must report no schema changes.
 

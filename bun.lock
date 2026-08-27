@@ -62,7 +62,6 @@
         "@scalar/hono-api-reference": "0.11.16",
         "@scalar/openapi-to-markdown": "0.5.42",
         "@t3-oss/env-core": "0.13.11",
-        "@workspace/core": "workspace:*",
         "better-auth": "1.7.1",
         "drizzle-orm": "0.45.2",
         "drizzle-seed": "0.3.1",
@@ -85,22 +84,6 @@
         "drizzle-kit": "0.31.10",
         "portless": "0.15.5",
         "tsx": "4.23.12",
-        "typescript": "7.0.2",
-        "vitest": "4.1.11",
-      },
-    },
-    "packages/core": {
-      "name": "@workspace/core",
-      "version": "1.0.0",
-      "dependencies": {
-        "ky": "2.0.2",
-        "radashi": "12.9.1",
-        "type-fest": "5.8.0",
-        "zod": "4.4.3",
-      },
-      "devDependencies": {
-        "@types/node": "26.2.0",
-        "@workspace/typescript-config": "workspace:*",
         "typescript": "7.0.2",
         "vitest": "4.1.11",
       },
@@ -831,8 +814,6 @@
     "@vueuse/metadata": ["@vueuse/metadata@13.9.0", "", {}, "sha512-1AFRvuiGphfF7yWixZa0KwjYH8ulyjDCC0aFgrGRz8+P4kvDFSdXLVfTk5xAN9wEuD1J6z4/myMoYbnHoX07zg=="],
 
     "@vueuse/shared": ["@vueuse/shared@13.9.0", "", { "peerDependencies": { "vue": "^3.5.0" } }, "sha512-e89uuTLMh0U5cZ9iDpEI2senqPGfbPRTHM/0AaQkcxnpqjkZqDYP8rpfm7edOz8s+pOCOROEy1PIveSW8+fL5g=="],
-
-    "@workspace/core": ["@workspace/core@workspace:packages/core"],
 
     "@workspace/effect": ["@workspace/effect@workspace:apps/effect"],
 

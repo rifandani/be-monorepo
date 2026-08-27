@@ -1,3 +1,9 @@
+// Moved verbatim from the dissolved `@workspace/core` package, where `DbStore` was
+// its only caller. That call site moved to evlog's `log` (one logging vocabulary
+// with `node.ts`), so nothing in production reaches this any more — only its own
+// test does, which is why `fallow dead-code` stays quiet without a suppression.
+// Kept, not deleted, on the same basis as the rest of the move.
+
 const COLOR = {
   BLUE: "\u001B[34m",
   GREEN: "\u001B[32m",

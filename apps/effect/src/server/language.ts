@@ -16,9 +16,11 @@ import {
  * The same pair `apps/hono` configures in
  * `src/core/constants/language.ts`. They live here and not in `domain/` because
  * nothing outside this middleware reads them yet; move them the moment a
- * handler needs to know the set.
+ * handler needs to know the set. `SUPPORTED_LANGUAGES` is deliberately not
+ * exported for the same reason — `Language` below is the exported surface, and
+ * an unexported const still backs it.
  */
-export const SUPPORTED_LANGUAGES = ["en", "id"] as const;
+const SUPPORTED_LANGUAGES = ["en", "id"] as const;
 export const FALLBACK_LANGUAGE = "en";
 
 export type Language = (typeof SUPPORTED_LANGUAGES)[number];
