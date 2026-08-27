@@ -20,8 +20,8 @@ const bodyOf = (response: HttpServerResponse.HttpServerResponse) =>
 describe(errorMessage, () => {
   it("tells a client what it got wrong", () => {
     assert.strictEqual(
-      errorMessage(400, Cause.fail(new Error("payload is not a Greeting"))),
-      "payload is not a Greeting"
+      errorMessage(400, Cause.fail(new Error("payload is not a HealthReport"))),
+      "payload is not a HealthReport"
     );
   });
 

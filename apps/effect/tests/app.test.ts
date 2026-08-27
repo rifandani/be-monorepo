@@ -4,6 +4,7 @@ import { HttpRouter, HttpServer } from "effect/unstable/http";
 
 import { app } from "../src/server/http.js";
 import { NOT_FOUND_MESSAGE } from "../src/server/not-found.js";
+import { LIVE_PATH, READY_PATH, STARTUP_PATH } from "../src/server/probes.js";
 import { SECURE_HEADERS } from "../src/server/secure-headers.js";
 
 const ALLOWED_ORIGIN = "https://effect.be-monorepo.localhost";
@@ -15,7 +16,7 @@ const configProvider = ConfigProvider.layer(
   ConfigProvider.fromEnvRecord({ APP_URL: `${ALLOWED_ORIGIN}/` })
 );
 
-// `HttpApiTest.groups` (see `greetings.test.ts`) rebuilds the routes from the
+// `HttpApiTest.groups` (see `health.test.ts`) rebuilds the routes from the
 // api description and never touches `app.ts`, so it cannot see a mount point
 // move. This suite drives the composed layer instead, which is the only thing
 // that fails when the OpenAPI or docs path regresses.
@@ -30,11 +31,44 @@ const { dispose, handler } = HttpRouter.toWebHandler(
 describe("app routes", () => {
   afterAll(() => dispose());
 
-  it("serves the greeting at the root", async () => {
+  // The three probes are asserted here and not only in `tests/health.test.ts`,
+  // which rebuilds the routes from the api description and so cannot see a
+  // mount point move. These are the paths `src/server/probes.ts` excludes from
+  // the traces and the log line by literal string, so this is what keeps the
+  // two lists in step.
+  it("serves the three health probes where the probe policy expects them", async () => {
+    const paths = [STARTUP_PATH, LIVE_PATH, READY_PATH];
+
+    const answers = await Promise.all(
+      paths.map(async (path) => {
+        const response = await handler(new Request(`http://localhost${path}`));
+
+        return { body: await response.json(), path, status: response.status };
+      })
+    );
+
+    for (const answer of answers) {
+      assert.strictEqual(answer.status, 200, answer.path);
+      assert.deepStrictEqual(answer.body, { checks: [], status: "ok" });
+    }
+  });
+
+  // There is deliberately no bare `/health`: an endpoint meaning "whichever of
+  // the three you assumed" is the ambiguity the split exists to remove.
+  it("does not serve a bare /health", async () => {
+    const response = await handler(new Request("http://localhost/health"));
+
+    assert.strictEqual(response.status, 404);
+  });
+
+  // The greeting that used to be here is gone, and `/` is now a miss like any
+  // other path. Asserted rather than left implied, because a redirect to the
+  // docs would be a guess about who is calling.
+  it("has nothing at the root", async () => {
     const response = await handler(new Request("http://localhost/"));
 
-    assert.strictEqual(response.status, 200);
-    assert.deepStrictEqual(await response.json(), { message: "Hello World" });
+    assert.strictEqual(response.status, 404);
+    assert.strictEqual(await response.text(), NOT_FOUND_MESSAGE);
   });
 
   it("serves the OpenAPI document", async () => {
@@ -46,7 +80,9 @@ describe("app routes", () => {
 
     assert.strictEqual(response.status, 200);
     assert.strictEqual(document.info.title, "@workspace/effect");
-    assert.isTrue(Object.hasOwn(document.paths, "/"));
+    for (const path of [STARTUP_PATH, LIVE_PATH, READY_PATH]) {
+      assert.isTrue(Object.hasOwn(document.paths, path), path);
+    }
   });
 
   it("serves the Scalar reference page", async () => {
@@ -109,7 +145,9 @@ describe("app routes", () => {
 
   it("adds the CORS headers to a plain request", async () => {
     const response = await handler(
-      new Request("http://localhost/", { headers: { origin: ALLOWED_ORIGIN } })
+      new Request(`http://localhost${LIVE_PATH}`, {
+        headers: { origin: ALLOWED_ORIGIN },
+      })
     );
 
     assert.strictEqual(response.status, 200);
@@ -123,7 +161,7 @@ describe("app routes", () => {
     );
   });
 
-  // The api has one GET endpoint, so a request that clears the CSRF check
+  // Every endpoint the api has is a GET, so a POST that clears the CSRF check
   // reaches the router and stops at 404. That is the point of the assertions
   // below: 403 means the middleware rejected it, 404 means it let it through.
   it("rejects a cross-site form post", async () => {

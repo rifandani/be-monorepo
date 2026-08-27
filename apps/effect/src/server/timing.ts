@@ -1,7 +1,7 @@
 import { Context, Duration, Effect } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/unstable/http";
 
-// `Metrics` names both the state a request collects and the reference that
+// `ServerTiming` names both the state a request collects and the reference that
 // carries it, which is the same deliberate pair as `Language` in `language.ts`.
 // This rule reads it as a mistake.
 // oxlint-disable no-redeclare
@@ -30,7 +30,7 @@ interface Timer {
  * happens — a handler, a service below it — and the middleware reads the lot
  * once, on the way out.
  */
-export interface Metrics {
+export interface ServerTiming {
   readonly entries: string[];
   readonly timers: Map<string, Timer>;
 }
@@ -39,21 +39,28 @@ export interface Metrics {
  * The Server-Timing state of the request being served, for a handler or a
  * service to record into.
  *
+ * Named `ServerTiming` and not `Metrics`, which it was until observability
+ * landed. `Metric` now means an aggregate this app exports over OTLP
+ * (`server/metrics.ts`), and two unrelated things called "metrics" under
+ * `src/server/` is one ambiguity too many. `CONTEXT.md` keeps the two words
+ * apart: what this holds is per-request and client-facing, where a Metric is
+ * aggregate and exported.
+ *
  * A `Context.Reference` for the same reason as `RequestId` in `request-id.ts`:
  * its default keeps it readable anywhere without becoming a requirement that
  * every caller — and every test — has to satisfy.
  *
- * The default is `undefined` rather than an empty `Metrics`, which is the one
+ * The default is `undefined` rather than an empty `ServerTiming`, which is the one
  * place this differs from the references next to it. `Context.Reference` caches
- * what `defaultValue` returns, so a default `Metrics` would be one collector
+ * what `defaultValue` returns, so a default `ServerTiming` would be one collector
  * shared by every caller outside a request and nothing would ever drain it —
  * an unbounded array. `undefined` says what is true instead: no request is
  * being served, so there is nothing to record into. The helpers below then do
  * nothing, where `hono/timing` warns.
  */
-export const Metrics = Context.Reference<Metrics | undefined>(
-  "@workspace/effect/Metrics",
-  { defaultValue: (): Metrics | undefined => undefined }
+export const ServerTiming = Context.Reference<ServerTiming | undefined>(
+  "@workspace/effect/ServerTiming",
+  { defaultValue: (): ServerTiming | undefined => undefined }
 );
 
 /**
@@ -85,13 +92,14 @@ export const formatMetric = (options: {
 // wall time in milliseconds, which is both coarse enough to print `dur=0.0` for
 // most requests and free to step backwards, while `performance.now` is
 // monotonic and sub-millisecond. `hono/timing` uses the same one.
-const now = () => globalThis.performance.now();
+// Exported so `metrics.ts`, which times the same interval, reads one clock.
+export const now = (): number => globalThis.performance.now();
 
-// Every helper below is a no-op outside a request. See `Metrics` for why.
-const update = (f: (metrics: Metrics) => void): Effect.Effect<void> =>
-  Metrics.pipe(
-    Effect.flatMap((metrics) =>
-      metrics === undefined ? Effect.void : Effect.sync(() => f(metrics))
+// Every helper below is a no-op outside a request. See `ServerTiming` for why.
+const update = (f: (timings: ServerTiming) => void): Effect.Effect<void> =>
+  ServerTiming.pipe(
+    Effect.flatMap((timings) =>
+      timings === undefined ? Effect.void : Effect.sync(() => f(timings))
     )
   );
 
@@ -127,8 +135,8 @@ export const setMetric = (options: {
   readonly description?: string | undefined;
   readonly precision?: number | undefined;
 }): Effect.Effect<void> =>
-  update((metrics) => {
-    metrics.entries.push(
+  update((timings) => {
+    timings.entries.push(
       formatMetric({
         description: options.description,
         duration:
@@ -152,8 +160,8 @@ export const startTime = (options: {
   readonly name: string;
   readonly description?: string | undefined;
 }): Effect.Effect<void> =>
-  update((metrics) => {
-    metrics.timers.set(options.name, {
+  update((timings) => {
+    timings.timers.set(options.name, {
       description: options.description,
       start: now(),
     });
@@ -170,12 +178,12 @@ export const endTime = (options: {
   readonly name: string;
   readonly precision?: number | undefined;
 }): Effect.Effect<void> =>
-  update((metrics) => {
-    const timer = metrics.timers.get(options.name);
+  update((timings) => {
+    const timer = timings.timers.get(options.name);
 
     if (timer !== undefined) {
-      metrics.timers.delete(options.name);
-      metrics.entries.push(measure(options.name, timer, options.precision));
+      timings.timers.delete(options.name);
+      timings.entries.push(measure(options.name, timer, options.precision));
     }
   });
 
@@ -203,8 +211,8 @@ export const timed =
 
       return self.pipe(
         Effect.ensuring(
-          update((metrics) => {
-            metrics.entries.push(
+          update((timings) => {
+            timings.entries.push(
               measure(
                 options.name,
                 { description: options.description, start },
@@ -240,16 +248,16 @@ export const timed =
 export const timing = HttpRouter.middleware(
   (httpEffect) =>
     Effect.suspend(() => {
-      const metrics: Metrics = { entries: [], timers: new Map() };
+      const timings: ServerTiming = { entries: [], timers: new Map() };
       const start = now();
 
       return httpEffect.pipe(
-        Effect.provideService(Metrics, metrics),
+        Effect.provideService(ServerTiming, timings),
         Effect.map((response) => {
           // `total` lands after the metrics the request recorded itself, and
           // the timers it left running land after that — the order
           // `hono/timing` appends them in.
-          metrics.entries.push(
+          timings.entries.push(
             formatMetric({
               description: TOTAL_DESCRIPTION,
               duration: now() - start,
@@ -257,16 +265,16 @@ export const timing = HttpRouter.middleware(
             })
           );
 
-          for (const [name, timer] of metrics.timers) {
-            metrics.entries.push(measure(name, timer));
+          for (const [name, timer] of timings.timers) {
+            timings.entries.push(measure(name, timer));
           }
 
-          metrics.timers.clear();
+          timings.timers.clear();
 
           return HttpServerResponse.setHeader(
             response,
             HEADER,
-            metrics.entries.join(",")
+            timings.entries.join(",")
           );
         })
       );

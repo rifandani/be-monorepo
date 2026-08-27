@@ -1,21 +1,13 @@
 import { BunHttpServer, BunRuntime } from "@effect/platform-bun";
-import { Effect, Layer } from "effect";
-import { HttpRouter } from "effect/unstable/http";
+import { Layer } from "effect";
 
-import { APP_TITLE, APP_URL, PORT } from "./config.js";
-import { app } from "./server/http.js";
+import { PORT } from "./config.js";
+import { main } from "./main.js";
 
-// See the note in `node.ts`: this reports the portless URL, not the bound port.
-const banner = Effect.gen(function* banner() {
-  const title = yield* APP_TITLE;
-  const url = yield* APP_URL;
-
-  yield* Effect.log(`${title} is reachable at ${url.toString()}`);
-});
-
-const server = HttpRouter.serve(app).pipe(
-  Layer.provide(BunHttpServer.layerConfig({ port: PORT })),
-  Layer.merge(Layer.effectDiscard(banner))
+// The composition lives in `main.ts` and is shared with `node.ts`. The one
+// runtime-specific note: `observability` uses `NodeSdk` here too, because it
+// needs `AsyncLocalStorage`, which Bun implements — so one telemetry module
+// serves both entrypoints and there is no `WebSdk` anywhere.
+Layer.launch(main(BunHttpServer.layerConfig({ port: PORT }))).pipe(
+  BunRuntime.runMain
 );
-
-Layer.launch(server).pipe(BunRuntime.runMain);

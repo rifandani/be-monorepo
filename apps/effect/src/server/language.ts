@@ -6,8 +6,8 @@ import {
 } from "effect/unstable/http";
 
 // `Language` names both the union of supported languages and the reference that
-// carries one, which is the same deliberate pair as `Greeting` in
-// `domain/greeting.ts`. This rule reads it as a mistake.
+// carries one, which is the same deliberate pair as `HealthReport` in
+// `domain/health.ts`. This rule reads it as a mistake.
 // oxlint-disable no-redeclare
 
 /**
@@ -142,6 +142,43 @@ export const detectLanguage = (sources: {
         .find((language) => language !== undefined));
 
 /**
+ * The `?lang=` value of a request url, if it states one.
+ *
+ * This reads `request.url` and parses the query itself, where the obvious
+ * spelling is `new URL(request.originalUrl).searchParams`. That spelling is a
+ * trap, and it is worth knowing why: `originalUrl` is the absolute url the
+ * client sent for a `toWebHandler` request, and the raw `req.url` — a bare
+ * path — under `NodeHttpServer`. So `new URL` on it succeeds under
+ * `tests/app.test.ts` and throws `TypeError: Invalid URL` on the Node server,
+ * turning every single request into a 500 that no test can see.
+ *
+ * `request.url` is `removeHost(originalUrl)` on the web side and `req.url` on
+ * the node side, so it is a path with a query in both, and `URLSearchParams`
+ * over the part after the `?` needs no host at all. A fragment is never sent to
+ * a server, but it is stripped anyway so the value cannot pick one up.
+ */
+export const queryLanguage = (url: string): string | undefined => {
+  const start = url.indexOf("?");
+
+  if (start === -1) {
+    return undefined;
+  }
+
+  // `split("#")[0]` would read the same and carry an unreachable `?? ""` to
+  // satisfy `noUncheckedIndexedAccess`. ADR-0001 asks for code without the
+  // branch rather than a branch nothing can cover; both sides of this one are
+  // covered.
+  const query = url.slice(start + 1);
+  const fragment = query.indexOf("#");
+
+  return (
+    new URLSearchParams(fragment === -1 ? query : query.slice(0, fragment)).get(
+      QUERY_PARAM
+    ) ?? undefined
+  );
+};
+
+/**
  * Language detection, with the same behaviour as `apps/hono` (`src/app.ts`).
  *
  * Effect has no language middleware, so this is a port of `hono/language` with
@@ -162,9 +199,7 @@ export const language = HttpRouter.middleware(
         const detected = detectLanguage({
           cookie: request.cookies[COOKIE],
           header: request.headers[HEADER],
-          query:
-            new URL(request.originalUrl).searchParams.get(QUERY_PARAM) ??
-            undefined,
+          query: queryLanguage(request.url),
         });
         const resolved = detected ?? FALLBACK_LANGUAGE;
         const served = httpEffect.pipe(

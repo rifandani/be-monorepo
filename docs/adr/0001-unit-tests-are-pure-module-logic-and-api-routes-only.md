@@ -63,7 +63,8 @@ Other layers we still reject:
 | `apps/hono/src/auth/utils/**` | better-auth configuration |
 | `apps/hono/src/core/utils/evlog.ts` | evlog drain configuration |
 | `apps/hono/src/{bun,node,instrumentation}.ts` | Process bootstrap; importing them starts a server or an OTel SDK |
-| `apps/effect/src/{bun,node}.ts` | The same: importing either calls `Layer.launch` and binds a port |
+| `apps/effect/src/{bun,node,main}.ts` | The same: importing an entrypoint calls `Layer.launch` and binds a port, and `main.ts` is the composition they share |
+| `apps/effect/src/observability.ts` | Declarative OTLP exporter and layer configuration; only the two entrypoints read it, and importing it constructs exporters |
 | `apps/hono/src/routes/middlewares/auth.ts` | **Conditional** — see below |
 | `apps/hono/src/routes/middlewares/rate-limit/**` | **Conditional** — see below |
 
@@ -100,4 +101,5 @@ One v8 quirk is worth knowing before chasing a phantom gap: a ternary between tw
 - **The coverage denominator moved rather than shrank.** `packages/core/src/services/**` became `apps/hono/src/core/services/**`; the `packages/*/src/{constants,types}/**` rows are now covered by the existing `apps/*/src/**/{constants,types}/**` globs. `packages/core` left `projects`, so its four test files run under the `hono` project.
 - **2026-08-26 — `apps/hono/src/core/services/` deleted.** The ky `Http` wrapper had no consumer after the `packages/core` move; it was the only file in the directory. The `vitest.config.ts` exclusion and `.fallowrc.json` `unused-class-members` override for it are gone with it.
 - **2026-08-27 — `constants/core.ts`, `types/core.ts`, and `utils/core.ts` deleted.** The first two had no consumer; the third (`packages/core/src/utils/core.ts` in the old layout) had colocated tests but no production import site. `core.test.ts` went with it. `.fallowrc.json` `ignoreExports` and the `unused-files` override for the constants/types files are gone with them.
+- **2026-08-27 — `apps/effect` gained observability.** `apps/effect/src/observability.ts` joins the exclusion table on the same grounds as `config.ts`: declarative configuration that only `bun.ts` and `node.ts` read. Everything else the change added is inside the gate — `server/metrics.ts` and `server/probes.ts` have colocated tests, the health slice is covered by `tests/health.test.ts` and `tests/app.test.ts`, and `server/health.ts` takes its readiness checks by parameter precisely so the failing path is reachable from a test in an app that depends on nothing. The reasoning is in [`apps/effect/docs/adr/0002`](../../apps/effect/docs/adr/0002-observability-is-an-effect-layer-not-a-preload.md).
 - [ADR-0002](./0002-mutation-testing-is-advisory.md) derives the advisory mutation-testing scope from this ADR's coverage denominator (`include` minus `exclude`), so the two conditional exclusions above enter that scope on the commit that removes them.

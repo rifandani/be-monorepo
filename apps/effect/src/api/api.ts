@@ -1,7 +1,7 @@
 import { HttpApi, OpenApi } from "effect/unstable/httpapi";
 
 import { SERVICE_NAME, SERVICE_VERSION } from "../metadata.js";
-import { GreetingsApiGroup } from "./greetings.js";
+import { HealthApiGroup } from "./health.js";
 
 /**
  * The API description: every group, plus the OpenAPI metadata.
@@ -12,7 +12,7 @@ import { GreetingsApiGroup } from "./greetings.js";
  * become an `Effect` and stop being shareable with a client.
  */
 export class Api extends HttpApi.make("effect-api")
-  .add(GreetingsApiGroup)
+  .add(HealthApiGroup)
   .annotateMerge(
     OpenApi.annotations({
       title: SERVICE_NAME,

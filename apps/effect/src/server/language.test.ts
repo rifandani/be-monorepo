@@ -7,6 +7,7 @@ import {
   Language,
   normalizeLanguage,
   parseAcceptLanguage,
+  queryLanguage,
 } from "./language.js";
 
 // The middleware itself is covered through the composed app in
@@ -119,6 +120,53 @@ describe("language reference", () => {
   it("reads what the middleware provided", () => {
     assert.strictEqual(
       Effect.runSync(read.pipe(Effect.provideService(Language, "id"))),
+      "id"
+    );
+  });
+});
+
+// `request.url` is a path with a query under both runtimes. It was
+// `new URL(request.originalUrl)` here, which is absolute for a `toWebHandler`
+// request and a bare path under `NodeHttpServer` — so it threw
+// `TypeError: Invalid URL` on the real Node server for *every* request, while
+// every test kept passing. These cases are that bug's fence.
+describe(queryLanguage, () => {
+  it("reads the language from a path with a query", () => {
+    assert.strictEqual(queryLanguage("/health/live?lang=id"), "id");
+  });
+
+  it("reads it from a bare query on the root", () => {
+    assert.strictEqual(queryLanguage("/?lang=id"), "id");
+  });
+
+  it("returns undefined when there is no query at all", () => {
+    assert.isUndefined(queryLanguage("/health/live"));
+  });
+
+  it("returns undefined when the query states something else", () => {
+    assert.isUndefined(queryLanguage("/?other=id"));
+  });
+
+  it("returns undefined for an empty value", () => {
+    assert.strictEqual(queryLanguage("/?lang="), "");
+  });
+
+  it("picks the parameter out of several", () => {
+    assert.strictEqual(queryLanguage("/?a=1&lang=id&b=2"), "id");
+  });
+
+  // A fragment never reaches a server, but it must not end up inside the value
+  // if one ever does.
+  it("does not let a fragment into the value", () => {
+    assert.strictEqual(queryLanguage("/?lang=id#section"), "id");
+  });
+
+  // The absolute form is what `originalUrl` carries under `toWebHandler`, and
+  // it has to keep working: `request.url` is host-stripped, but nothing stops a
+  // caller passing the other one.
+  it("also handles an absolute url", () => {
+    assert.strictEqual(
+      queryLanguage("http://localhost/health/live?lang=id"),
       "id"
     );
   });

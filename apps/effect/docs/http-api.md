@@ -12,18 +12,19 @@ states its own reasons in its doc comment. Read the module before you change it.
 ```
 src/
   domain/         the shared vocabulary: schemas and typed errors
-    greeting.ts   the `Greeting` schema, used by the description and the service
+    health.ts     the `HealthReport` and `Check` schemas, and the `Unhealthy` error
   api/            the description: which endpoints exist, and their schemas
     api.ts        HttpApi.make(...), with the OpenAPI annotations
-    greetings.ts  the "greetings" group and its endpoints
+    health.ts     the "health" group and its three probes
   server/         the implementation
-    greetings.ts  the `Greetings` service: what the app does
-    greetings/
-      http.ts     HttpApiBuilder.group(Api, "greetings", ...): the handlers
+    health.ts     the `Health` service: what the three probes claim
+    health/
+      http.ts     HttpApiBuilder.group(Api, "health", ...): the handlers
     http.ts       every group, plus the docs route, as one servable layer
     *.ts          one global middleware per file (see below)
     *.test.ts     unit tests for the pure parts of those modules
   config.ts       the environment
+  observability.ts the OpenTelemetry layer (see `observability.md`)
   metadata.ts     the OpenAPI title and version, from `package.json`
   node.ts         platform layer + runMain
   bun.ts          platform layer + runMain
@@ -39,8 +40,8 @@ above it in this list:
 
 `api/` must not import from `server/`. A client needs the description only. A
 client that also loaded handler code would load the database and the secrets
-with it. `Greeting` is in `domain/` for the same reason: the service constructs
-it, and the service is server code.
+with it. `HealthReport` is in `domain/` for the same reason: the service
+constructs it, and the service is server code.
 
 `api/` also contains no `Config`. Annotations are values that the module reads
 when it loads, so a title from the environment would make the description an
@@ -55,18 +56,18 @@ alias, but `tsc` does not rewrite an alias when it emits, which makes its
 
 1. Put any new schema in `src/domain/`.
 
-2. Declare the endpoint in the group in `src/api/greetings.ts`. For a new group,
+2. Declare the endpoint in the group in `src/api/health.ts`. For a new group,
    declare the group and register it in `src/api/api.ts`:
 
    ```ts
-   HttpApiEndpoint.get("hello", "/", { success: Greeting });
+   HttpApiEndpoint.get("live", "/live", { success: HealthReport });
    ```
 
    Add a `payload`, `path` or `urlParams` schema if the endpoint takes input.
    Add an `error` schema for each failure that the caller must tell apart.
 
-3. Add the operation to the service in `src/server/greetings.ts`, then call it
-   from the handler in `src/server/greetings/http.ts`. Put the logic in the
+3. Add the operation to the service in `src/server/health.ts`, then call it
+   from the handler in `src/server/health/http.ts`. Put the logic in the
    service, not in the handler. The database calls and the test double go there
    too.
 
@@ -74,8 +75,8 @@ alias, but `tsc` does not rewrite an alias when it emits, which makes its
    It uses no server and no port:
 
    ```ts
-   const client = yield* HttpApiTest.groups(Api, ["greetings"]);
-   const greeting = yield* client.greetings.hello();
+   const client = yield* HttpApiTest.groups(Api, ["health"]);
+   const report = yield* client.health.live();
    ```
 
 A new group also needs a `Layer.provide` in `src/server/http.ts`. If you forget
@@ -83,10 +84,12 @@ it, the app fails at runtime with `HttpApiGroup "..." not found`. The compiler
 does not catch it. `tests/app.test.ts` drives the composed layer for this
 reason.
 
-Each handler module exports its layer twice: `greetingsHandlersNoDeps`, with the
-service still open, and `greetingsHandlers`, with `Greetings.layer` provided.
-The server mounts the second. `tests/greetings.test.ts` uses the first, which is
-where a stub goes.
+Each handler module exports its layer twice: `healthHandlersNoDeps`, with the
+service still open, and `healthHandlers`, with `Health.layer` provided. The
+server mounts the second. `tests/health.test.ts` uses the first, and not
+hypothetically: this app depends on nothing, so its real `Health` can never
+report a failed check, and the 503 half of the readiness contract is only
+reachable through a swapped service.
 
 ## Routes
 
@@ -123,7 +126,7 @@ says so in its doc comment.
   both entrypoints. The client gets the same status either way.
 - **Per-request state is a `Context.Reference`, not a `Context.Service`.** The
   default value makes it readable without a requirement on every caller and
-  every test. `RequestId`, `Language` and `Metrics` all use one.
+  every test. `RequestId`, `Language` and `ServerTiming` all use one.
 - **Response headers are set with `Effect.map`, which runs only on success.**
   Every response this app makes on purpose is a success value, so the 404 from
   an unknown path, the csrf 403 and the timeout 504 all carry the headers. A
@@ -144,6 +147,8 @@ are ports of the matching `hono/*` middleware with the options `apps/hono` uses.
 | `request-id.ts` | Trusts a well formed inbound `X-Request-Id`, generates a UUID if there is none, sends it back. | none |
 | `language.ts` | `?lang=` then a `language` cookie then `Accept-Language`, over `en` and `id`. Writes the detected language back as a cookie. | own `Accept-Language` parser; `setCookieUnsafe` |
 | `timing.ts` | A `Server-Timing` header on every response. Closes any open timer. | `crossOrigin` not ported |
+| `metrics.ts` | Records `http.server.request.duration` for every response. | no counterpart |
+| `probes.ts` | Silences the three health probes: no log line for any, no spans for the startup and liveness ones. | no counterpart |
 | `timeout.ts` | 15 seconds, then a 504. Interrupts the fiber, so the abandoned work stops and its finalizers run. | `hono/timeout` races a `setTimeout` and lets the handler run on |
 | `error.ts` | Logs every failure, defect and interrupt, then answers JSON `{ message }` at the status Effect picked. | a 5xx reports nothing about itself |
 | `not-found.ts` | Logs a warning, then answers 404 with `404 Not found`. | none |
@@ -154,7 +159,8 @@ header added to the record is covered without a test edit, so do not copy the
 set into a second place.
 
 `src/server/language.test.ts`, `request-id.test.ts`, `timing.test.ts`,
-`timeout.test.ts`, `error.test.ts` and `not-found.test.ts` cover the pure parts.
+`timeout.test.ts`, `error.test.ts`, `not-found.test.ts`, `metrics.test.ts` and
+`probes.test.ts` cover the pure parts.
 `tests/app.test.ts` covers the wiring. `app` has no route that fails, so
 `tests/error.test.ts` mounts routes that do — a defect, an interrupt and a
 handler that answers with its own response — over the same middleware.
@@ -168,12 +174,12 @@ to whichever layer won the race. `src/server/http.ts` therefore chains them with
 `Layer.flatMap`, which builds one after another:
 
 ```
-requestId → secureHeaders → cors → timing → timeout → language → csrf →
-onError → notFound → router → handler
+requestId → metrics → quietProbes → secureHeaders → cors → timing → timeout →
+language → csrf → onError → notFound → router → handler
 ```
 
-`apps/hono` mounts the same middleware in this order, except for
-`secureHeaders`.
+`apps/hono` mounts the seven it has in this order, except for `secureHeaders`.
+`metrics` and `quietProbes` have no counterpart there.
 
 Most behaviour here does not depend on the nesting. Cors answers `OPTIONS`
 itself, and csrf treats `OPTIONS` as safe either way. Request id, secure
@@ -190,6 +196,11 @@ Four placements are deliberate:
   before the headers are set and the 403 leaves without them. Out here it covers
   the csrf 403, the timeout 504 and the cors preflight. It reads nothing and
   answers nothing, so the move affects nothing else in the chain.
+- `metrics` and `quietProbes` are as far out as they go. `metrics` records the
+  status of the response that actually leaves, so it has to be outside `onError`
+  and `notFound`; being outside `cors` and `csrf` too is what makes the preflight
+  and the csrf 403 count as the served traffic they are. Neither reads nor writes
+  a response, so like secure headers they change nothing else by sitting there.
 - The two error handlers are innermost, and `notFound` is inside `onError`.
   Every middleware above sets its headers with `Effect.map`, which runs only on
   success, so a failure that travelled out to them would leave without a
@@ -209,7 +220,13 @@ timings, so a move in the chain fails a test.
 - **Request logs** — `HttpRouter.serve` and `HttpRouter.toWebHandler` apply
   `HttpMiddleware.logger` unless you give them `disableLogger: true`. They apply
   it outside the router, so that log line carries no request id. Handler logs
-  do.
+  do. It *does* carry a trace id, for the reason in the next entry.
+- **A server span per request, applied for you.** `HttpEffect.toHandled`, which
+  every platform `serve` goes through, applies `HttpMiddleware.tracer` itself and
+  wraps the middleware with it — so the span encloses the log line above and
+  nothing in this app wires it. Passing the tracer through `serve`'s `middleware`
+  option adds a second, nested span instead of moving anything;
+  `docs/observability.md` has the measurement.
 - **Controlled shutdown** — `NodeRuntime.runMain` and `BunRuntime.runMain` catch
   `SIGINT` and `SIGTERM`, and `Layer.launch` runs the finalizers.
 - **Schema failures as 400s** — a bad payload decodes to an `HttpApiSchemaError`
@@ -225,5 +242,5 @@ timings, so a move in the chain fails a test.
 
 There is none. `apps/hono` rate limits only its auth endpoints, through Better
 Auth (`src/auth/utils/index.ts`), so there is no app-wide middleware to port.
-This app has one public endpoint and no credentials. Add a rate limit with
+This app has three public probes and no credentials. Add a rate limit with
 `HttpMiddleware` or `HttpApiMiddleware` when the app needs one.

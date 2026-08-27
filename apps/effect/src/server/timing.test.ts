@@ -4,7 +4,7 @@ import { Duration, Effect } from "effect";
 import {
   endTime,
   formatMetric,
-  Metrics,
+  ServerTiming,
   setMetric,
   startTime,
   timed,
@@ -12,13 +12,16 @@ import {
 
 // The middleware is covered through the composed app in `tests/app.test.ts`.
 // What is left is the format, and the recording helpers a handler calls — which
-// need a `Metrics` to record into but no request to reach it.
-const makeMetrics = (): Metrics => ({ entries: [], timers: new Map() });
+// need a `ServerTiming` to record into but no request to reach it.
+const makeServerTiming = (): ServerTiming => ({
+  entries: [],
+  timers: new Map(),
+});
 
-const run = (metrics: Metrics, effect: Effect.Effect<void>) => {
-  Effect.runSync(effect.pipe(Effect.provideService(Metrics, metrics)));
+const run = (timings: ServerTiming, effect: Effect.Effect<void>) => {
+  Effect.runSync(effect.pipe(Effect.provideService(ServerTiming, timings)));
 
-  return metrics.entries;
+  return timings.entries;
 };
 
 describe(formatMetric, () => {
@@ -61,11 +64,11 @@ describe(formatMetric, () => {
 
 describe("recording", () => {
   it("records a marker and a duration", () => {
-    const metrics = makeMetrics();
+    const timings = makeServerTiming();
 
     assert.deepStrictEqual(
       run(
-        metrics,
+        timings,
         Effect.andThen(
           setMetric({ description: "europe-west3", name: "region" }),
           setMetric({ duration: Duration.millis(24), name: "custom" })
@@ -76,9 +79,9 @@ describe("recording", () => {
   });
 
   it("records what a timer measured", () => {
-    const metrics = makeMetrics();
+    const timings = makeServerTiming();
     const entries = run(
-      metrics,
+      timings,
       Effect.andThen(
         startTime({ description: "Query", name: "db" }),
         endTime({ name: "db" })
@@ -87,32 +90,37 @@ describe("recording", () => {
 
     assert.lengthOf(entries, 1);
     assert.match(entries[0] ?? "", /^db;dur=\d+\.\d;desc="Query"$/u);
-    assert.strictEqual(metrics.timers.size, 0);
+    assert.strictEqual(timings.timers.size, 0);
   });
 
   it("ignores a timer that is not running", () => {
-    assert.deepStrictEqual(run(makeMetrics(), endTime({ name: "db" })), []);
+    assert.deepStrictEqual(
+      run(makeServerTiming(), endTime({ name: "db" })),
+      []
+    );
   });
 
   it("times an effect that fails, and keeps the failure", () => {
-    const metrics = makeMetrics();
+    const timings = makeServerTiming();
     const exit = Effect.runSyncExit(
       Effect.fail("nope").pipe(
         timed({ name: "db" }),
-        Effect.provideService(Metrics, metrics)
+        Effect.provideService(ServerTiming, timings)
       )
     );
 
     assert.isTrue(exit._tag === "Failure");
-    assert.lengthOf(metrics.entries, 1);
-    assert.match(metrics.entries[0] ?? "", /^db;dur=\d+\.\d$/u);
+    assert.lengthOf(timings.entries, 1);
+    assert.match(timings.entries[0] ?? "", /^db;dur=\d+\.\d$/u);
   });
 
-  // Outside a request there is no `Metrics` to record into. That is not an
+  // Outside a request there is no `ServerTiming` to record into. That is not an
   // error, it is just not a request — see the reference in `timing.ts`.
   it("does nothing outside a request", () => {
     assert.strictEqual(
-      Effect.runSync(Effect.andThen(setMetric({ name: "region" }), Metrics)),
+      Effect.runSync(
+        Effect.andThen(setMetric({ name: "region" }), ServerTiming)
+      ),
       undefined
     );
   });
