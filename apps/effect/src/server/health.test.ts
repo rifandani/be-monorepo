@@ -8,7 +8,7 @@ import { probeAttributes, probeResult } from "./metrics.js";
 // The endpoints are covered in `tests/health.test.ts` and their mount points in
 // `tests/app.test.ts`. What is left is what the three probes claim — and, for
 // readiness, the failing path this app has no dependency to reach on its own.
-// `makeHealth` taking its checks by parameter is that seam.
+// `Health.make` taking its checks by parameter is that seam.
 //
 // A fresh registry per run, for the reason `metrics.test.ts` explains: the
 // default one is shared by every test in the process.
