@@ -145,14 +145,19 @@ are ports of the matching `hono/*` middleware with the options `apps/hono` uses.
 | `language.ts` | `?lang=` then a `language` cookie then `Accept-Language`, over `en` and `id`. Writes the detected language back as a cookie. | own `Accept-Language` parser; `setCookieUnsafe` |
 | `timing.ts` | A `Server-Timing` header on every response. Closes any open timer. | `crossOrigin` not ported |
 | `timeout.ts` | 15 seconds, then a 504. Interrupts the fiber, so the abandoned work stops and its finalizers run. | `hono/timeout` races a `setTimeout` and lets the handler run on |
+| `error.ts` | Logs every failure, defect and interrupt, then answers JSON `{ message }` at the status Effect picked. | a 5xx reports nothing about itself |
+| `not-found.ts` | Logs a warning, then answers 404 with `404 Not found`. | none |
 
 `src/server/secure-headers.ts` exports `SECURE_HEADERS`, and
 `tests/app.test.ts` asserts the response against that record entry by entry. A
 header added to the record is covered without a test edit, so do not copy the
 set into a second place.
 
-`src/server/language.test.ts`, `request-id.test.ts`, `timing.test.ts` and
-`timeout.test.ts` cover the pure parts. `tests/app.test.ts` covers the wiring.
+`src/server/language.test.ts`, `request-id.test.ts`, `timing.test.ts`,
+`timeout.test.ts`, `error.test.ts` and `not-found.test.ts` cover the pure parts.
+`tests/app.test.ts` covers the wiring. `app` has no route that fails, so
+`tests/error.test.ts` mounts routes that do — a defect, an interrupt and a
+handler that answers with its own response — over the same middleware.
 
 ## Middleware order
 
@@ -164,7 +169,7 @@ to whichever layer won the race. `src/server/http.ts` therefore chains them with
 
 ```
 requestId → secureHeaders → cors → timing → timeout → language → csrf →
-router → handler
+onError → notFound → router → handler
 ```
 
 `apps/hono` mounts the same middleware in this order, except for
@@ -174,7 +179,7 @@ Most behaviour here does not depend on the nesting. Cors answers `OPTIONS`
 itself, and csrf treats `OPTIONS` as safe either way. Request id, secure
 headers, timing and language detection reject nothing.
 
-Three placements are deliberate:
+Four placements are deliberate:
 
 - Timing is outside timeout, so a request that times out still carries a
   `Server-Timing` header.
@@ -185,6 +190,13 @@ Three placements are deliberate:
   before the headers are set and the 403 leaves without them. Out here it covers
   the csrf 403, the timeout 504 and the cors preflight. It reads nothing and
   answers nothing, so the move affects nothing else in the chain.
+- The two error handlers are innermost, and `notFound` is inside `onError`.
+  Every middleware above sets its headers with `Effect.map`, which runs only on
+  success, so a failure that travelled out to them would leave without a
+  request id, a `Server-Timing` header or the security headers. Catching it
+  down here turns it into a response before any of them see it, which is what
+  makes a 404 and a 500 carry what a 200 carries. `notFound` sits inside
+  `onError` so the route miss it claims never reaches the catch-all.
 
 The nesting decides what a rejected request keeps, because a rejected request
 never reaches the middleware inside it. A csrf 403 carries the request id, the
@@ -201,7 +213,12 @@ timings, so a move in the chain fails a test.
 - **Controlled shutdown** — `NodeRuntime.runMain` and `BunRuntime.runMain` catch
   `SIGINT` and `SIGTERM`, and `Layer.launch` runs the finalizers.
 - **Schema failures as 400s** — a bad payload decodes to an `HttpApiSchemaError`
-  response. You do not need error middleware.
+  response before `src/server/error.ts` ever sees it.
+- **A status for every failure** — `HttpServerError.causeResponse` maps a parse
+  failure to 400, an unknown path to 404, a client that hung up to 499, a
+  shutdown to 503 and anything else to 500, and it honours an error that picks
+  its own. `src/server/error.ts` leaves that decision to it and only supplies
+  the body Effect does not.
 - **The listen address in the log** — `HttpServer.withLogAddress`.
 
 ## Rate limit

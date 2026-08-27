@@ -3,6 +3,7 @@ import { ConfigProvider, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 
 import { app } from "../src/server/http.js";
+import { NOT_FOUND_MESSAGE } from "../src/server/not-found.js";
 import { SECURE_HEADERS } from "../src/server/secure-headers.js";
 
 const ALLOWED_ORIGIN = "https://effect.be-monorepo.localhost";
@@ -63,6 +64,25 @@ describe("app routes", () => {
     const response = await handler(new Request("http://localhost/nope"));
 
     assert.strictEqual(response.status, 404);
+    assert.strictEqual(await response.text(), NOT_FOUND_MESSAGE);
+  });
+
+  // Effect answers an unknown path on its own, but as a failure and with an
+  // empty body, so it would leave without any of these. `src/server/error.ts`
+  // and `not-found.ts` are innermost to make it a response instead. See the
+  // chain in `src/server/http.ts`.
+  it("gives the 404 the headers a 200 gets", async () => {
+    const response = await handler(new Request("http://localhost/nope"));
+
+    assert.match(
+      response.headers.get("x-request-id") ?? "",
+      /^[0-9a-f-]{36}$/u
+    );
+    assert.include(response.headers.get("server-timing") ?? "", "total;dur=");
+    assert.strictEqual(
+      response.headers.get("x-content-type-options"),
+      "nosniff"
+    );
   });
 
   it("answers a CORS preflight from the allowed origin", async () => {

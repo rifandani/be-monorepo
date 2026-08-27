@@ -4,8 +4,10 @@ import { HttpApiBuilder, HttpApiScalar } from "effect/unstable/httpapi";
 import { Api } from "../api/api.js";
 import { cors } from "./cors.js";
 import { csrf } from "./csrf.js";
+import { onError } from "./error.js";
 import { greetingsHandlers } from "./greetings/http.js";
 import { language } from "./language.js";
+import { notFound } from "./not-found.js";
 import { requestId } from "./request-id.js";
 import { secureHeaders } from "./secure-headers.js";
 import { timeout } from "./timeout.js";
@@ -30,6 +32,14 @@ import { timing } from "./timing.js";
  * Timing sits outside timeout on purpose: a request given up on is one worth
  * having a `Server-Timing` header for.
  *
+ * `onError` and `notFound` are innermost, which is the other placement worth
+ * stating. Every middleware above sets its headers with `Effect.map`, which
+ * runs only on success, so a failure that travelled past them would leave
+ * without a request id, a `Server-Timing` header or the security headers.
+ * Turning the failure into a response down here, before any of them see it,
+ * is what makes a 404 and a 500 carry the same headers a 200 does. `notFound`
+ * is inside `onError` so the miss it claims never reaches the catch-all.
+ *
  * Secure headers is the one entry out of the `apps/hono` order, and on purpose.
  * That app mounts it after csrf, so a rejection there short-circuits before the
  * headers are ever set and the 403 leaves without them. Here it sits second,
@@ -44,7 +54,9 @@ const middleware = requestId.pipe(
   Layer.flatMap(() => timing),
   Layer.flatMap(() => timeout),
   Layer.flatMap(() => language),
-  Layer.flatMap(() => csrf)
+  Layer.flatMap(() => csrf),
+  Layer.flatMap(() => onError),
+  Layer.flatMap(() => notFound)
 );
 
 /**
