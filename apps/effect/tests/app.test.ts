@@ -2,10 +2,10 @@ import { afterAll, assert, describe, it } from "@effect/vitest";
 import { ConfigProvider, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 
-import { app } from "../src/server/http.js";
-import { NOT_FOUND_MESSAGE } from "../src/server/not-found.js";
-import { LIVE_PATH, READY_PATH, STARTUP_PATH } from "../src/server/probes.js";
-import { SECURE_HEADERS } from "../src/server/secure-headers.js";
+import { app } from "#server/http.ts";
+import { NOT_FOUND_MESSAGE } from "#server/not-found.ts";
+import { LIVE_PATH, READY_PATH, STARTUP_PATH } from "#server/probes.ts";
+import { SECURE_HEADERS } from "#server/secure-headers.ts";
 
 const ALLOWED_ORIGIN = "https://effect.be-monorepo.localhost";
 

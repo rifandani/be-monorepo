@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Effect } from "effect";
 
-import { RequestId } from "./request-id.js";
+import { RequestId } from "./request-id.ts";
 
 // The middleware itself is covered through the composed app in
 // `tests/app.test.ts`. What is left is the reference a handler reads, and the

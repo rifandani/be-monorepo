@@ -1,7 +1,8 @@
 import { Context, Effect, Layer } from "effect";
 
-import { Check, HealthReport, Unhealthy } from "../domain/health.js";
-import { recordProbe } from "./metrics.js";
+import { Check, HealthReport, Unhealthy } from "#domain/health.ts";
+
+import { recordProbe } from "./metrics.ts";
 
 /**
  * One dependency the readiness probe verifies.

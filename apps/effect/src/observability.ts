@@ -13,8 +13,8 @@ import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
 import { BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
 import { Effect } from "effect";
 
-import { OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_LOG_LEVEL } from "./config.js";
-import { SERVICE_NAME, SERVICE_VERSION } from "./metadata.js";
+import { OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_LOG_LEVEL } from "./config.ts";
+import { SERVICE_NAME, SERVICE_VERSION } from "./metadata.ts";
 
 /**
  * The endpoint the per-signal urls below are built on, with any trailing slash

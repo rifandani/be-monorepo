@@ -3,10 +3,10 @@ import { Effect, Layer } from "effect";
 import { HttpServer } from "effect/unstable/http";
 import { HttpApiTest } from "effect/unstable/httpapi";
 
-import { Api } from "../src/api/api.js";
-import { Unhealthy } from "../src/domain/health.js";
-import { Health } from "../src/server/health.js";
-import { healthHandlersNoDeps } from "../src/server/health/http.js";
+import { Api } from "#api/api.ts";
+import { Unhealthy } from "#domain/health.ts";
+import { Health } from "#server/health.ts";
+import { healthHandlersNoDeps } from "#server/health/http.ts";
 
 // `HttpApiTest.groups` builds a typed client wired straight to the handlers,
 // using the real request encoding, routing and response decoding — but without

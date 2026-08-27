@@ -8,7 +8,7 @@ import {
   recordRequest,
   requestAttributes,
   requestDuration,
-} from "./metrics.js";
+} from "./metrics.ts";
 
 // The middleware is covered through the composed app in `tests/app.test.ts`.
 // What is left is the recording, which needs a registry rather than a request.

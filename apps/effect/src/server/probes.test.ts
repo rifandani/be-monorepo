@@ -11,7 +11,7 @@ import {
   READY_PATH,
   STARTUP_PATH,
   tracerDisabledForProbes,
-} from "./probes.js";
+} from "./probes.ts";
 
 // The middleware is covered through the composed app in `tests/app.test.ts`.
 // What is left is the policy: which url is a probe, and which probe is traced.

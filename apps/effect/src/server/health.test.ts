@@ -1,9 +1,10 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Metric } from "effect";
 
-import { Unhealthy } from "../domain/health.js";
-import { Health, READINESS_CHECKS } from "./health.js";
-import { probeAttributes, probeResult } from "./metrics.js";
+import { Unhealthy } from "#domain/health.ts";
+
+import { Health, READINESS_CHECKS } from "./health.ts";
+import { probeAttributes, probeResult } from "./metrics.ts";
 
 // The endpoints are covered in `tests/health.test.ts` and their mount points in
 // `tests/app.test.ts`. What is left is what the three probes claim — and, for

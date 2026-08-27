@@ -10,7 +10,7 @@ import {
   errorMessage,
   SERVER_ERROR_MESSAGE,
   toErrorResponse,
-} from "./error.js";
+} from "./error.ts";
 
 const request = HttpServerRequest.fromWeb(new Request("http://localhost/"));
 

@@ -9,8 +9,8 @@ import type {
 import type { Env, Input } from "hono/types";
 
 /* oxlint-disable class-methods-use-this */
-import { db } from "@/db/index.js";
-import { rateLimitTable } from "@/db/schema.js";
+import { db } from "#db/index.ts";
+import { rateLimitTable } from "#db/schema.ts";
 
 /**
  * The tag every failure in this store is logged under. `DbStore` runs inside a

@@ -7,7 +7,7 @@ import { Effect, Metric } from "effect";
 import { HttpRouter, HttpServerRequest } from "effect/unstable/http";
 
 // One clock for the app: see the note on `now` in `timing.ts`.
-import { now } from "./timing.js";
+import { now } from "./timing.ts";
 
 const MILLISECONDS_PER_SECOND = 1000;
 

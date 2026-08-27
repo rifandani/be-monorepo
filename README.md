@@ -8,7 +8,6 @@
 
 - [ ] consider https://github.com/stella/stella/tree/main/.oxlint-plugins, https://github.com/chenglou/freerange
 - [ ] turn on complexity lint, with max 80, make sure it doesnt contradict with ultracite, fallow
-- [ ] switch to Node's imports field `(#/*)` in package.json, which Node, Bun, tsx, and Vitest all resolve natively at runtime for both hono & effect apps.
 - [ ] add https://github.com/honojs/hono and drizzle as git subtree into repos folder
 - [ ] adjust /bump-deps to also update the all git subtree in repos folder
 

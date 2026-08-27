@@ -5,10 +5,10 @@ import { createRoute, z } from "@hono/zod-openapi";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createMarkdownFromOpenApi } from "@scalar/openapi-to-markdown";
 
-import { auth } from "@/auth/utils/index.js";
-import { ENV } from "@/core/constants/env.js";
-import { SERVICE_VERSION } from "@/core/constants/global.js";
-import type { Variables } from "@/core/types/hono.js";
+import { auth } from "#auth/utils/index.ts";
+import { ENV } from "#core/constants/env.ts";
+import { SERVICE_VERSION } from "#core/constants/global.ts";
+import type { Variables } from "#core/types/hono.ts";
 
 const TOKENS_PER_CHARACTER = 4;
 

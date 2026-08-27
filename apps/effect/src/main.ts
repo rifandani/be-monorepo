@@ -2,10 +2,10 @@ import type { Layer as LayerType } from "effect";
 import { Effect, Layer } from "effect";
 import { HttpRouter } from "effect/unstable/http";
 
-import { APP_TITLE, APP_URL } from "./config.js";
-import { observability } from "./observability.js";
-import { app } from "./server/http.js";
-import { tracerDisabledForProbes } from "./server/probes.js";
+import { APP_TITLE, APP_URL } from "./config.ts";
+import { observability } from "./observability.ts";
+import { app } from "./server/http.ts";
+import { tracerDisabledForProbes } from "./server/probes.ts";
 
 // `HttpServer.withLogAddress`, which `HttpRouter.serve` applies, reports the
 // socket the process bound to. That is not the address a developer opens —

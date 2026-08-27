@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { base64ToUint8Array, fileToDataUri } from "./converter.js";
+import { base64ToUint8Array, fileToDataUri } from "./converter.ts";
 
 const decode = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
 

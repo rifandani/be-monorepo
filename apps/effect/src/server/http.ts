@@ -1,19 +1,20 @@
 import { Layer } from "effect";
 import { HttpApiBuilder, HttpApiScalar } from "effect/unstable/httpapi";
 
-import { Api } from "../api/api.js";
-import { cors } from "./cors.js";
-import { csrf } from "./csrf.js";
-import { onError } from "./error.js";
-import { healthHandlers } from "./health/http.js";
-import { language } from "./language.js";
-import { metrics } from "./metrics.js";
-import { notFound } from "./not-found.js";
-import { quietProbes } from "./probes.js";
-import { requestId } from "./request-id.js";
-import { secureHeaders } from "./secure-headers.js";
-import { timeout } from "./timeout.js";
-import { timing } from "./timing.js";
+import { Api } from "#api/api.ts";
+
+import { cors } from "./cors.ts";
+import { csrf } from "./csrf.ts";
+import { onError } from "./error.ts";
+import { healthHandlers } from "./health/http.ts";
+import { language } from "./language.ts";
+import { metrics } from "./metrics.ts";
+import { notFound } from "./not-found.ts";
+import { quietProbes } from "./probes.ts";
+import { requestId } from "./request-id.ts";
+import { secureHeaders } from "./secure-headers.ts";
+import { timeout } from "./timeout.ts";
+import { timing } from "./timing.ts";
 
 /**
  * The global middleware, outermost first.

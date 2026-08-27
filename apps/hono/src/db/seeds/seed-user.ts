@@ -8,8 +8,9 @@ import {
   sessionTable,
   userTable,
   verificationTable,
-} from "../schema.js";
-import { SEED_BULK_PASSWORD, SEED_USER } from "./seed-user-data.js";
+} from "#db/schema.ts";
+
+import { SEED_BULK_PASSWORD, SEED_USER } from "./seed-user-data.ts";
 
 const RANDOM_USER_COUNT = 10;
 

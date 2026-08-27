@@ -1,6 +1,6 @@
 import { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi";
 
-import { HealthReport, Unhealthy } from "../domain/health.js";
+import { HealthReport, Unhealthy } from "#domain/health.ts";
 
 /**
  * The `health` group: three probes, one prefix, no handler and no service.

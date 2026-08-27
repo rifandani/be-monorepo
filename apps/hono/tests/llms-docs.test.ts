@@ -11,10 +11,10 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { app } from "@/app.js";
-import { getAllFiles } from "@/routes/llms-docs.js";
+import { app } from "#app.ts";
+import { getAllFiles } from "#routes/llms-docs.ts";
 
-import { parseServerTimingHeader } from "./util.js";
+import { parseServerTimingHeader } from "./util.ts";
 
 describe("/llms-docs endpoint", () => {
   it("returns docs content with length, tokens, and separators", async () => {

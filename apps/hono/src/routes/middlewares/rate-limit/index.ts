@@ -1,12 +1,12 @@
 import { rateLimiter } from "hono-rate-limiter";
 
-import type { Variables } from "@/core/types/hono.js";
+import type { Variables } from "#core/types/hono.ts";
 import {
   getClientIpAddress,
   getClientIpAddressFromContext,
-} from "@/core/utils/net.js";
+} from "#core/utils/net.ts";
 
-import { DbStore } from "./store.js";
+import { DbStore } from "./store.ts";
 
 const RATE_LIMIT_WINDOW_MS = 15_000; // 15 seconds
 const RATE_LIMIT_LIMIT = 15; // Limit each IP to 150 requests per 15 seconds (10 req/s average)

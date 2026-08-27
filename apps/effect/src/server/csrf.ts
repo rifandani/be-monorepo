@@ -5,7 +5,7 @@ import {
   HttpServerResponse,
 } from "effect/unstable/http";
 
-import { APP_URL } from "../config.js";
+import { APP_URL } from "#config.ts";
 
 // The same tests `hono/csrf` applies, in the same order. A request is rejected
 // only when every one of them agrees it looks like a cross-site form post.

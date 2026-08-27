@@ -3,7 +3,7 @@ import { Duration, Effect, Fiber } from "effect";
 import { TestClock } from "effect/testing";
 import { HttpServerResponse } from "effect/unstable/http";
 
-import { TIMEOUT, withTimeout } from "./timeout.js";
+import { TIMEOUT, withTimeout } from "./timeout.ts";
 
 // The middleware wires `withTimeout` to `TIMEOUT`, which is 15 seconds — too
 // long to wait out, and not the part worth testing. What is worth testing is

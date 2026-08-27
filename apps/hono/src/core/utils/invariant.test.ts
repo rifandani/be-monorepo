@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { invariant as invariantImpl } from "@/core/utils/invariant.js";
+import { invariant as invariantImpl } from "#core/utils/invariant.ts";
 
 // TS2775: a statement-level call to an `asserts condition` function requires its
 // target to carry an explicit type annotation, which an import binding cannot.
@@ -31,7 +31,7 @@ describe("invariant", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.resetModules();
     // `isProduction` is read at module load, so the module must be re-imported
-    const prodModule = await import("@/core/utils/invariant.js");
+    const prodModule = await import("#core/utils/invariant.ts");
     const prodInvariant: typeof invariantImpl = prodModule.invariant;
 
     expect(() => prodInvariant(false, "secret detail")).toThrow(

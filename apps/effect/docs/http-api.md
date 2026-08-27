@@ -7,7 +7,7 @@ implementation). A folder imports only from the ones before it.
 
 - **`api/` must not import `server/`.** A client needs the description only; one that loaded handler code would load the database and the secrets with it. `HealthReport` lives in `domain/` for the same reason.
 - **`api/` contains no `Config`.** Annotations are read at module load, so a title from the environment would make the description an `Effect`.
-- Imports are relative, not aliased: `tsc` does not rewrite an alias when it emits, which is what makes `apps/hono`'s `node:build` output unusable.
+- A sibling is imported relatively (`./cors.ts`); anything across a folder goes through `#*`, Node's own subpath imports (`#domain/health.ts`). A tsconfig `paths` alias is not an option: Node reads no tsconfig, so `paths` would resolve for `tsc` and fail at startup. See ADR-0003.
 - Test split (`vitest.config.ts`): `src/**` for pure modules, `tests/**` for endpoints.
 
 ## Conventions

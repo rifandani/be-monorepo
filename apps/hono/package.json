@@ -6,6 +6,9 @@
   "license": "MIT",
   "author": "Tri Rizeki Rifandani",
   "type": "module",
+  "imports": {
+    "#*": "./src/*"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "db:pull": "dotenvx run --env-file=.env.dev -- drizzle-kit pull",
@@ -21,14 +24,12 @@
     "dev": "portless run --name hono.be-monorepo --script dev:server",
     "dev:prod:server": "bun run --env-file=.env.prod --hot --preload src/instrumentation.ts src/bun.ts",
     "dev:prod": "portless run --name hono.be-monorepo --script dev:prod:server",
-    "node:dev:server": "dotenvx run --env-file=.env.dev -- tsx watch --import src/instrumentation.ts src/node.ts",
+    "node:dev:server": "dotenvx run --env-file=.env.dev -- node --watch --import ./src/instrumentation.ts src/node.ts",
     "node:dev": "portless run --name hono.be-monorepo --script node:dev:server",
-    "node:dev:prod:server": "dotenvx run --env-file=.env.prod -- tsx watch --import src/instrumentation.ts src/node.ts",
+    "node:dev:prod:server": "dotenvx run --env-file=.env.prod -- node --watch --import ./src/instrumentation.ts src/node.ts",
     "node:dev:prod": "portless run --name hono.be-monorepo --script node:dev:prod:server",
-    "node:build": "dotenvx run --env-file=.env.dev -- tsc -p .",
-    "node:build:prod": "dotenvx run --env-file=.env.prod -- tsc -p .",
-    "node:start": "dotenvx run --env-file=.env.dev -- node ./dist/node.js",
-    "node:start:prod": "dotenvx run --env-file=.env.prod -- node ./dist/node.js"
+    "node:start": "dotenvx run --env-file=.env.dev -- node ./src/node.ts",
+    "node:start:prod": "dotenvx run --env-file=.env.prod -- node ./src/node.ts"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "2.21.0",
@@ -67,8 +68,10 @@
     "@workspace/typescript-config": "workspace:*",
     "drizzle-kit": "0.31.10",
     "portless": "0.15.5",
-    "tsx": "4.23.12",
     "typescript": "7.0.2",
     "vitest": "4.1.11"
+  },
+  "engines": {
+    "node": ">=26.0.0"
   }
 }

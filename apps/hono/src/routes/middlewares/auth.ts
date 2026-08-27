@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "hono";
 
-import { auth } from "@/auth/utils/index.js";
+import { auth } from "#auth/utils/index.ts";
 
 /**
  * a middleware to save the session and user in a context (if authenticated, or `null` if not).

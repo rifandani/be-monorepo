@@ -1,7 +1,8 @@
 import { HttpApi, OpenApi } from "effect/unstable/httpapi";
 
-import { SERVICE_NAME, SERVICE_VERSION } from "../metadata.js";
-import { HealthApiGroup } from "./health.js";
+import { SERVICE_NAME, SERVICE_VERSION } from "#metadata.ts";
+
+import { HealthApiGroup } from "./health.ts";
 
 /**
  * The API description: every group, plus the OpenAPI metadata.

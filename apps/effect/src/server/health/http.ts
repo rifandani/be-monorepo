@@ -1,8 +1,8 @@
 import { Effect, Layer } from "effect";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
 
-import { Api } from "../../api/api.js";
-import { Health } from "../health.js";
+import { Api } from "#api/api.ts";
+import { Health } from "#server/health.ts";
 
 /**
  * The handlers with their dependencies still open, so a test can supply a

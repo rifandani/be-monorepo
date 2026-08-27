@@ -6,8 +6,8 @@ import {
   HttpServerResponse,
 } from "effect/unstable/http";
 
-import { onError, SERVER_ERROR_MESSAGE } from "../src/server/error.js";
-import { requestId } from "../src/server/request-id.js";
+import { onError, SERVER_ERROR_MESSAGE } from "#server/error.ts";
+import { requestId } from "#server/request-id.ts";
 
 // `app` has no route that fails, so the catch-all in `src/server/error.ts` has
 // nothing to catch there. This suite mounts routes that do, over the same

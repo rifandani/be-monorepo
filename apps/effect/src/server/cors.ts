@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect";
 import { HttpRouter } from "effect/unstable/http";
 
-import { APP_URL } from "../config.js";
+import { APP_URL } from "#config.ts";
 
 /**
  * CORS, with the same policy as `apps/hono` (`src/app.ts`): one allowed origin,

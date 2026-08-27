@@ -8,7 +8,7 @@ import {
   normalizeLanguage,
   parseAcceptLanguage,
   queryLanguage,
-} from "./language.js";
+} from "./language.ts";
 
 // The middleware itself is covered through the composed app in
 // `tests/app.test.ts`. The precedence and the tag matching are pure, so they are

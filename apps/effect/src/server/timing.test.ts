@@ -8,7 +8,7 @@ import {
   setMetric,
   startTime,
   timed,
-} from "./timing.js";
+} from "./timing.ts";
 
 // The middleware is covered through the composed app in `tests/app.test.ts`.
 // What is left is the format, and the recording helpers a handler calls — which

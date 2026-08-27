@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { HttpServerError, HttpServerRequest } from "effect/unstable/http";
 
-import { isRouteNotFound } from "./not-found.js";
+import { isRouteNotFound } from "./not-found.ts";
 
 // The middleware itself is covered end to end by `tests/app.test.ts`, which is
 // the only place a real route miss happens. What is worth testing here is the

@@ -12,7 +12,9 @@ Leading word: **bump**. Universe is the root `bump:deps` script.
 
 `bun bump:deps`, then `bun i`.
 
-**Done when:** install succeeded and git shows `package.json` / `bun.lock` version moves.
+Then bump the node runtime: set `.node-version` to the newest release on the 26.x line (`curl -s https://nodejs.org/dist/index.json | head -c 200`). Leave `engines.node` alone — it is the support floor, not the pin.
+
+**Done when:** install succeeded, git shows `package.json` / `bun.lock` version moves, and `.node-version` is current.
 
 ## 2. Classify
 
@@ -51,7 +53,7 @@ Loop until all green, in parallel/subagent:
 
 1. `bun lint-typecheck`
 2. `bun test:cov`
-3. `bun hono node:build`
+3. Boot each app on Node and hit one route, then stop it: `bun effect node:start` → `curl localhost:$PORT/health/ready`, `bun hono node:start` → `curl localhost:$PORT/openapi`. Both must answer `200`. There is no build step to stand in for this any more — since ADR-0003 the apps run their own `.ts`, so a wrong import specifier fails at startup and gate 1 will not catch it.
 4. `bun audit:sca`
 5. `bun check:all`
 

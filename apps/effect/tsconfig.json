@@ -4,13 +4,6 @@
     "declaration": false,
     "declarationMap": false,
     "resolveJsonModule": true,
-    "types": ["bun"],
-    // `outDir` is restated because the shared preset declares it relative to
-    // its own directory, which sends the emit into
-    // `packages/typescript-config/dist/`. `rootDir` is left to inference —
-    // `apps/effect`, the common root of `src`, `tests` and this file — so the
-    // server lands at `dist/src/node.js`, which is what `node:start` runs.
-    "outDir": "./dist",
     // The shared `node.json` preset relaxes both of these for the Hono app.
     // Effect's types assume the strict readings: without
     // `exactOptionalPropertyTypes` an `{ port?: number | undefined }` option

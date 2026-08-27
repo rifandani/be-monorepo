@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { app } from "@/app.js";
-import { ENV } from "@/core/constants/env.js";
-import { SERVICE_VERSION } from "@/core/constants/global.js";
+import { app } from "#app.ts";
+import { ENV } from "#core/constants/env.ts";
+import { SERVICE_VERSION } from "#core/constants/global.ts";
 
 interface OpenApiDoc {
   info: { description: string; title: string; version: string };
