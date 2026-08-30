@@ -26,7 +26,7 @@
     "node:start:prod": "dotenvx run --env-file=.env.prod -- node ./src/node.ts"
   },
   "dependencies": {
-    "@dotenvx/dotenvx": "2.21.0",
+    "@dotenvx/dotenvx": "2.22.0",
     "@effect/opentelemetry": "4.0.0-rc.112",
     "@effect/platform-bun": "4.0.0-rc.112",
     "@effect/platform-node": "4.0.0-rc.112",
@@ -45,9 +45,9 @@
     "@effect/language-service": "0.87.2",
     "@effect/vitest": "4.0.0-rc.112",
     "@types/bun": "1.4.0",
-    "@types/node": "26.2.0",
+    "@types/node": "26.4.0",
     "@workspace/typescript-config": "workspace:*",
-    "portless": "0.15.5",
+    "portless": "0.15.6",
     "typescript": "7.0.2",
     "vitest": "4.1.11"
   },
