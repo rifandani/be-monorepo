@@ -4,6 +4,7 @@
 
 - [ ] change the version to `effect@4.0.0` when the release candidate completes
 - [ ] add more of the ecosystem: `@effect/sql`, cluster
+- [ ] drizzle/effect
 
 ## OpenAPI
 

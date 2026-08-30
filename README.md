@@ -6,16 +6,7 @@
 
 ## 🎯 Todo
 
-- [ ] bump deps first, then add https://github.com/honojs/hono and drizzle as git subtree into repos folder
-- [ ] adjust /bump-deps to also update the all git subtree in repos folder
-
-```bash
-git subtree pull \
-  --prefix=repos/<REPO_NAME> \
-  https://github.com/<GITHUB_ACCOUNT_NAME>/<REPO_NAME>.git \
-  main \
-  --squash
-```
+- [ ] bump deps first, then add drizzle as git subtree into repos folder
 
 ## 📝 Environment Variables
 
