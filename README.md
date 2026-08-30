@@ -6,7 +6,6 @@
 
 ## 🎯 Todo
 
-- [ ] consider https://github.com/stella/stella/tree/main/.oxlint-plugins, https://github.com/chenglou/freerange
 - [ ] bump deps first, then add https://github.com/honojs/hono and drizzle as git subtree into repos folder
 - [ ] adjust /bump-deps to also update the all git subtree in repos folder
 

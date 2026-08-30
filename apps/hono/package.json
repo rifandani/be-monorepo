@@ -11,6 +11,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "typerange": "fr",
     "db:pull": "dotenvx run --env-file=.env.dev -- drizzle-kit pull",
     "db:push": "dotenvx run --env-file=.env.dev -- drizzle-kit push --verbose --strict",
     "db:gen": "dotenvx run --env-file=.env.dev -- drizzle-kit generate",
