@@ -1,4 +1,4 @@
-# Cursor Agents Window / CLI worktree setup for be-monorepo (hono + portless).
+# Worktree bootstrap for hono + portless (`/wt` skill).
 # Runs inside the new worktree. ROOT_WORKTREE_PATH = main checkout.
 $ErrorActionPreference = 'Stop'
 

@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Shared worktree bootstrap for hono + portless.
-# - Cursor: `.cursor/worktrees.json` → setup-worktree-unix.sh
-# - Claude Code: `.claude/hooks/worktree-create.sh` (after git worktree add)
+# Worktree bootstrap for hono + portless (`/wt` skill).
 # Runs inside the new worktree. ROOT_WORKTREE_PATH = main checkout.
 set -euo pipefail
 
