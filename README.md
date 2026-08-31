@@ -7,7 +7,6 @@
 ## 🎯 Todo
 
 - [ ] bump deps first, then add drizzle as git subtree into repos folder
-- [ ] `/settle-mr` skill with support of compounding knowledge for every settled/rejected PR comments
 
 ## 📝 Environment Variables
 
