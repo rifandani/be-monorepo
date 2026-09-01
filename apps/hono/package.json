@@ -59,7 +59,7 @@
     "radashi": "12.9.1",
     "ts-pattern": "5.9.0",
     "type-fest": "5.8.0",
-    "zod": "4.4.3"
+    "zod": "4.5.1"
   },
   "devDependencies": {
     "@types/bun": "1.4.0",
