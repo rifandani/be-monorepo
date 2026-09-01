@@ -19,7 +19,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "ky": "2.0.2",
+    "ky": "2.1.0",
     "radashi": "12.9.1",
     "type-fest": "5.8.0",
     "zod": "4.4.3"
