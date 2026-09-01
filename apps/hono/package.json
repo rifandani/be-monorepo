@@ -51,7 +51,7 @@
     "drizzle-orm": "0.45.2",
     "drizzle-seed": "0.3.1",
     "drizzle-zod": "0.8.3",
-    "evlog": "2.27.0",
+    "evlog": "2.27.1",
     "hono": "4.13.3",
     "hono-rate-limiter": "0.5.3",
     "ky": "2.0.2",
