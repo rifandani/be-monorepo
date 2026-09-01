@@ -67,7 +67,7 @@
     "@types/pg": "8.23.1",
     "@workspace/typescript-config": "workspace:*",
     "drizzle-kit": "0.31.10",
-    "portless": "0.15.5",
+    "portless": "0.15.6",
     "tsx": "4.23.12",
     "typescript": "7.0.2",
     "vitest": "4.1.11"
