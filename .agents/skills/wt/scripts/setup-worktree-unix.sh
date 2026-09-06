@@ -25,18 +25,18 @@ for f in .env.dev .env.prod .env.local; do
   fi
 done
 
+example="$HONO_DIR/.env.example"
 for env_name in dev prod; do
   target="$HONO_DIR/.env.$env_name"
-  example="$HONO_DIR/.env.$env_name.example"
   if [[ ! -f "$target" && -f "$example" ]]; then
     cp "$example" "$target"
-    echo "    seeded .env.$env_name from example"
+    echo "    seeded .env.$env_name from .env.example"
     copied=$((copied + 1))
   fi
 done
 
 if [[ "$copied" -eq 0 ]]; then
-  echo "    warning: no hono env files found in $ROOT/$HONO_DIR (copy *.example manually)"
+  echo "    warning: no hono env files found in $ROOT/$HONO_DIR (copy .env.example manually)"
 fi
 
 echo "==> Checking portless (required for bun hono dev)"

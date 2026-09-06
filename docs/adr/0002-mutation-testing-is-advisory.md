@@ -96,7 +96,7 @@ rm coverage/stryker/incremental.json
 
 Incremental is **off by default** and opted into per invocation, so the flag appears in the shell history of the run that used it. Stryker keys its cache on source and test file content and does **not** watch `stryker.config.mjs`, so a scope change leaves cached results for a scope that no longer exists — silently. Delete the file.
 
-`apps/hono/.env.dev` is a hard precondition. `apps/hono/vitest.config.ts` loads it at config-eval time, so without it every hono test fails, the dry run aborts, and the run dies — including the `packages/core` mutants that have nothing to do with it. `cp apps/hono/.env.dev.example apps/hono/.env.dev` first.
+`apps/hono/.env.dev` is a hard precondition. `apps/hono/vitest.config.ts` loads it at config-eval time, so without it every hono test fails, the dry run aborts, and the run dies — including the `packages/core` mutants that have nothing to do with it. `cp apps/hono/.env.example apps/hono/.env.dev` first.
 
 Reports go to `coverage/stryker/`, sibling to `coverage/vitest` and for the same reason ADR-0001 gives: the `coverage` gitignore entry already covers it, and bare `coverage/` stays reserved for fallow's runtime sidecar traces.
 

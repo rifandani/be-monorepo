@@ -7,6 +7,7 @@
 ## 🎯 Todo
 
 - [ ] bump deps first, then add drizzle as git subtree into repos folder
+- [ ] risk-based system PR, if we change public APIs/MCP, auth, design system, db schema changes, agent skills, etc, we need human review, enforced with scripts to add github labels (or adjust `/ship`). and we could also re-think our folder structure based on this
 
 ## 📝 Environment Variables
 
@@ -16,7 +17,7 @@ The value for `HONO_ENV_FILE` in `dev` environment is `.env.dev`, and the value 
 
 Source of truth is local env files. When changing them, update deployment/CI project env too.
 
-`@workspace/effect` needs no secret. Its two variables, `APP_TITLE` and `APP_URL`, are not sensitive, so the committed `apps/effect/.env.dev.example` holds the whole file. Copy it to `apps/effect/.env.dev` before you run `bun effect dev`. CI needs no step for it, because the tests read no environment.
+`@workspace/effect` needs no secret. Its variables are not sensitive, so the committed `apps/effect/.env.example` holds the whole file. Copy it to `apps/effect/.env.dev` before you run `bun effect dev`. CI needs no step for it, because the tests read no environment.
 
 <!-- For first timer, you need to create 2 environments in your github repo.
 Go to your Github repo -> `Settings` tabs -> `Environments` -> `New environment` -> `dev` and `prod` (that's why in `.github/workflows/ci.yml` we stated `environment: dev` and `environment: prod`).

@@ -28,7 +28,6 @@ stryker-setup-*.js
 **/.env.*
 **/.cache.json
 !**/.env.example
-!**/.env.*.example
 .repos
 node_modules
 build
