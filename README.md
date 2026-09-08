@@ -8,6 +8,7 @@
 
 - [ ] bump deps first, then add drizzle as git subtree into repos folder
 - [ ] risk-based system PR, if we change public APIs/MCP, auth, design system, db schema changes, agent skills, etc, we need human review, enforced with scripts to add github labels (or adjust `/ship`). and we could also re-think our folder structure based on this
+- [ ] simplify PR templates to also use `/show-me` by humanlayer, describe changes in pseudocode, mermaid diagram, evidence of TDD (make sure `/ship` follow strictly the PR templates) (we already use `/pre-lens` so see which is redundant)
 
 ## 📝 Environment Variables
 
