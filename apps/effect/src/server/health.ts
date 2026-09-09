@@ -1,8 +1,8 @@
-import { Context, Effect, Layer } from "effect";
+import { Context, Effect, Layer, Metric } from "effect";
+import { HttpApiBuilder } from "effect/unstable/httpapi";
 
+import { Api } from "#api/api.ts";
 import { Check, HealthReport, Unhealthy } from "#domain/health.ts";
-
-import { recordProbe } from "./metrics.ts";
 
 /**
  * One dependency the readiness probe verifies.
@@ -30,6 +30,45 @@ export const READINESS_CHECKS: readonly ReadinessCheck[] = [];
 // their report never varies.
 const NO_CHECKS = HealthReport.make({ checks: [], status: "ok" });
 
+interface ProbeOptions {
+  readonly probe: "live" | "ready" | "startup";
+  readonly outcome: "ok" | "unhealthy";
+}
+
+/**
+ * How many times each health probe was called, and how it answered.
+ *
+ * This is what the probes get *instead* of a span and a log line each. A
+ * deployment polls them about once a second apiece, so tracing and logging them
+ * would be a quarter of a million near-identical events a day; a counter is the
+ * instrument shaped for exactly that. See `server/probes.ts`, which does the
+ * excluding.
+ */
+export const probeResult = Metric.counter("health.probe.result", {
+  description: "Health probe calls, by probe and outcome",
+});
+
+/**
+ * The attributes one probe's series is keyed by.
+ *
+ * Exported, and the only place these two keys are written, because a metric's
+ * series is keyed by `JSON.stringify(Object.entries(attributes))` — so
+ * `{ probe, outcome }` and `{ outcome, probe }` are two different time series
+ * holding half the traffic each. One helper is what makes the insertion order
+ * a single fact rather than a convention every call site has to remember.
+ */
+export const probeAttributes = (options: ProbeOptions) => ({
+  probe: options.probe,
+  outcome: options.outcome,
+});
+
+/** Records that one probe answered, and how. */
+const recordProbe = (options: ProbeOptions): Effect.Effect<void> =>
+  Metric.update(
+    Metric.withAttributes(probeResult, probeAttributes(options)),
+    1
+  );
+
 /**
  * Runs one check and reports what happened, never failing.
  *
@@ -55,9 +94,9 @@ const runCheck = Effect.fn("Health.runCheck")(function* check(
 /**
  * What the app claims about its own health, apart from how it is asked.
  *
- * The handler in `server/health/http.ts` only calls and encodes. The three
- * probes mean three different things to whoever polls them, and `CONTEXT.md` is
- * where that vocabulary lives.
+ * The three probes mean three different things to whoever polls them, and
+ * `CONTEXT.md` is where that vocabulary lives. `handlers` only calls and
+ * encodes.
  */
 export class Health extends Context.Service<
   Health,
@@ -145,5 +184,24 @@ export class Health extends Context.Service<
    */
   static readonly layer: Layer.Layer<Health> = Layer.sync(Health, () =>
     Health.make(READINESS_CHECKS)
+  );
+
+  /**
+   * The handlers with their dependencies still open, so a test can supply a
+   * `Health` whose readiness checks fail — which this app, depending on nothing,
+   * cannot otherwise produce. `http.ts` provides `layer` at the call site.
+   */
+  static readonly handlers = HttpApiBuilder.group(
+    Api,
+    "health",
+    Effect.fn(function* makeHealthHandlers(handlers) {
+      const health = yield* Health;
+
+      return handlers.handleAll({
+        startup: () => health.startup(),
+        live: () => health.live(),
+        ready: () => health.ready(),
+      });
+    })
   );
 }

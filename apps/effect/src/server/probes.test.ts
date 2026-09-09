@@ -3,13 +3,12 @@ import { Effect } from "effect";
 import type { HttpServerRequest } from "effect/unstable/http";
 import { HttpMiddleware } from "effect/unstable/http";
 
+import { LIVE_PATH, READY_PATH, STARTUP_PATH } from "#api/health.ts";
+
 import {
   isProbe,
   isUntracedProbe,
-  LIVE_PATH,
   pathOf,
-  READY_PATH,
-  STARTUP_PATH,
   tracerDisabledForProbes,
 } from "./probes.ts";
 

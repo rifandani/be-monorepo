@@ -6,7 +6,6 @@ import { HttpApiTest } from "effect/unstable/httpapi";
 import { Api } from "#api/api.ts";
 import { Unhealthy } from "#domain/health.ts";
 import { Health } from "#server/health.ts";
-import { healthHandlersNoDeps } from "#server/health/http.ts";
 
 // `HttpApiTest.groups` builds a typed client wired straight to the handlers,
 // using the real request encoding, routing and response decoding — but without
@@ -20,7 +19,7 @@ const makeClient = HttpApiTest.groups(Api, ["health"]);
 // untestable without swapping the service.
 const withHealth = (health: Health["Service"]) =>
   Layer.mergeAll(
-    healthHandlersNoDeps.pipe(Layer.provide(Layer.succeed(Health)(health))),
+    Health.handlers.pipe(Layer.provide(Layer.succeed(Health)(health))),
     HttpServer.layerServices
   );
 

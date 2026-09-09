@@ -2,9 +2,9 @@ import { afterAll, assert, describe, it } from "@effect/vitest";
 import { ConfigProvider, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 
+import { LIVE_PATH, PREFIX, READY_PATH, STARTUP_PATH } from "#api/health.ts";
 import { app } from "#server/http.ts";
 import { NOT_FOUND_MESSAGE } from "#server/not-found.ts";
-import { LIVE_PATH, READY_PATH, STARTUP_PATH } from "#server/probes.ts";
 import { SECURE_HEADERS } from "#server/secure-headers.ts";
 
 const ALLOWED_ORIGIN = "https://effect.be-monorepo.localhost";
@@ -33,9 +33,9 @@ describe("app routes", () => {
 
   // The three probes are asserted here and not only in `tests/health.test.ts`,
   // which rebuilds the routes from the api description and so cannot see a
-  // mount point move. These are the paths `src/server/probes.ts` excludes from
-  // the traces and the log line by literal string, so this is what keeps the
-  // two lists in step.
+  // mount point move. These are the paths `quietProbes` excludes from the
+  // traces and the log line, so this is what keeps the mount and the silence
+  // policy on the same list.
   it("serves the three health probes where the probe policy expects them", async () => {
     const paths = [STARTUP_PATH, LIVE_PATH, READY_PATH];
 
@@ -56,7 +56,7 @@ describe("app routes", () => {
   // There is deliberately no bare `/health`: an endpoint meaning "whichever of
   // the three you assumed" is the ambiguity the split exists to remove.
   it("does not serve a bare /health", async () => {
-    const response = await handler(new Request("http://localhost/health"));
+    const response = await handler(new Request(`http://localhost${PREFIX}`));
 
     assert.strictEqual(response.status, 404);
   });

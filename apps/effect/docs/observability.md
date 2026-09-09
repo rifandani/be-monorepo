@@ -5,12 +5,12 @@ Decisions and rejected alternatives: [`docs/adr/0002`](./adr/0002-observability-
 ## Signals
 
 - **Traces** — `HttpMiddleware.tracer` opens a server span per request, honours inbound `traceparent`. `Effect.fn("Name")` spans nest under it.
-- **Metrics** — two, both in `src/server/metrics.ts`:
+- **Metrics** — two:
 
-  | Metric | Type | Attributes |
-  | --- | --- | --- |
-  | `http.server.request.duration` | histogram, **seconds** | `http.request.method`, `http.response.status_code` |
-  | `health.probe.result` | counter | `probe`, `outcome` |
+  | Metric | Type | Attributes | Module |
+  | --- | --- | --- | --- |
+  | `http.server.request.duration` | histogram, **seconds** | `http.request.method`, `http.response.status_code` | `src/server/metrics.ts` |
+  | `health.probe.result` | counter | `probe`, `outcome` | `src/server/health.ts` |
 
 - **Logs** — `OtelLogger` turns every `Effect.log*` into an OTLP record, with `traceId`, `spanId` and every `Effect.annotateLogs` annotation attached. So `requestId` and the trace id land on one record; correlation needs no code.
 

@@ -16,25 +16,34 @@ import { HealthReport, Unhealthy } from "#domain/health.ts";
  * that is answering, so a failure they could report is a failure that would
  * stop them answering at all.
  *
- * `.prefix` rather than three literal `/health/...` paths: the prefix is a
- * property of the group, and stating it once is what keeps the three from
- * drifting apart.
+ * `PREFIX` and the three segments are the one statement of the paths. The group
+ * and the exports below both read them, so `quietProbes` and the router cannot
+ * drift.
  */
+export const PREFIX = "/health";
+const STARTUP = "/startup";
+const LIVE = "/live";
+const READY = "/ready";
+
+export const STARTUP_PATH = `${PREFIX}${STARTUP}`;
+export const LIVE_PATH = `${PREFIX}${LIVE}`;
+export const READY_PATH = `${PREFIX}${READY}`;
+
 export class HealthApiGroup extends HttpApiGroup.make("health")
   .add(
-    HttpApiEndpoint.get("startup", "/startup", {
+    HttpApiEndpoint.get("startup", STARTUP, {
       success: HealthReport,
     })
   )
   .add(
-    HttpApiEndpoint.get("live", "/live", {
+    HttpApiEndpoint.get("live", LIVE, {
       success: HealthReport,
     })
   )
   .add(
-    HttpApiEndpoint.get("ready", "/ready", {
+    HttpApiEndpoint.get("ready", READY, {
       success: HealthReport,
       error: Unhealthy,
     })
   )
-  .prefix("/health") {}
+  .prefix(PREFIX) {}

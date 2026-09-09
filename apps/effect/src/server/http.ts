@@ -6,7 +6,7 @@ import { Api } from "#api/api.ts";
 import { cors } from "./cors.ts";
 import { csrf } from "./csrf.ts";
 import { onError } from "./error.ts";
-import { healthHandlers } from "./health/http.ts";
+import { Health } from "./health.ts";
 import { language } from "./language.ts";
 import { metrics } from "./metrics.ts";
 import { notFound } from "./not-found.ts";
@@ -81,7 +81,7 @@ const middleware = requestId.pipe(
  */
 export const app = Layer.mergeAll(
   HttpApiBuilder.layer(Api, { openapiPath: "/openapi" }).pipe(
-    Layer.provide(healthHandlers)
+    Layer.provide(Health.handlers.pipe(Layer.provide(Health.layer)))
   ),
   HttpApiScalar.layer(Api, { path: "/openapi/docs" }),
   middleware

@@ -44,25 +44,6 @@ export const requestDuration = Metric.histogram(
   }
 );
 
-/** Which probe answered, and how — the two attributes its series is keyed by. */
-export interface ProbeOptions {
-  readonly probe: "live" | "ready" | "startup";
-  readonly outcome: "ok" | "unhealthy";
-}
-
-/**
- * How many times each health probe was called, and how it answered.
- *
- * This is what the probes get *instead* of a span and a log line each. A
- * deployment polls them about once a second apiece, so tracing and logging them
- * would be a quarter of a million near-identical events a day; a counter is the
- * instrument shaped for exactly that. See `server/probes.ts`, which does the
- * excluding.
- */
-export const probeResult = Metric.counter("health.probe.result", {
-  description: "Health probe calls, by probe and outcome",
-});
-
 /**
  * The attributes one request's series is keyed by.
  *
@@ -85,15 +66,6 @@ export const requestAttributes = (options: {
 });
 
 /**
- * The attributes one probe's series is keyed by. One helper, for the ordering
- * reason given above.
- */
-export const probeAttributes = (options: ProbeOptions) => ({
-  probe: options.probe,
-  outcome: options.outcome,
-});
-
-/**
  * Records how long a request took.
  *
  * Exported, and the middleware below is a thin caller of it, so the recording
@@ -113,13 +85,6 @@ export const recordRequest = (options: {
   Metric.update(
     Metric.withAttributes(requestDuration, requestAttributes(options)),
     options.duration / MILLISECONDS_PER_SECOND
-  );
-
-/** Records that one probe answered, and how. */
-export const recordProbe = (options: ProbeOptions): Effect.Effect<void> =>
-  Metric.update(
-    Metric.withAttributes(probeResult, probeAttributes(options)),
-    1
   );
 
 /**

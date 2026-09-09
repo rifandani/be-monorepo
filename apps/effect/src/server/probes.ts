@@ -5,17 +5,7 @@ import {
   HttpServerRequest,
 } from "effect/unstable/http";
 
-/**
- * The paths the three probes answer on.
- *
- * Stated here rather than derived from the api description, because the two
- * consumers below are both outside `HttpApiBuilder` and see a raw url, not a
- * matched route. `tests/app.test.ts` asserts each path against the mounted
- * group, which is what keeps this list and `api/health.ts` in step.
- */
-export const STARTUP_PATH = "/health/startup";
-export const LIVE_PATH = "/health/live";
-export const READY_PATH = "/health/ready";
+import { LIVE_PATH, READY_PATH, STARTUP_PATH } from "#api/health.ts";
 
 const PROBE_PATHS = new Set([STARTUP_PATH, LIVE_PATH, READY_PATH]);
 
@@ -71,7 +61,7 @@ export const isUntracedProbe = (url: string): boolean =>
  * A deployment polls each probe about once a second, so left alone the three
  * would be roughly a quarter of a million log lines a day, all of them saying
  * that the process is fine. They are counted instead — see `health.probe.result`
- * in `metrics.ts`. Nothing is lost: a counter answers "how many readiness
+ * in `health.ts`. Nothing is lost: a counter answers "how many readiness
  * failures in the last hour" better than a quarter million events do.
  *
  * The log line this suppresses is Effect's own, applied by `HttpRouter.serve`

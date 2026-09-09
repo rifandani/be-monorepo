@@ -3,8 +3,12 @@ import { Effect, Metric } from "effect";
 
 import { Unhealthy } from "#domain/health.ts";
 
-import { Health, READINESS_CHECKS } from "./health.ts";
-import { probeAttributes, probeResult } from "./metrics.ts";
+import {
+  Health,
+  READINESS_CHECKS,
+  probeAttributes,
+  probeResult,
+} from "./health.ts";
 
 // The endpoints are covered in `tests/health.test.ts` and their mount points in
 // `tests/app.test.ts`. What is left is what the three probes claim — and, for
@@ -113,6 +117,20 @@ describe("readiness probe", () => {
     );
 
     assert.deepStrictEqual(error.checks, [{ name: "db", status: "fail" }]);
+  });
+});
+
+// A series is keyed by `JSON.stringify(Object.entries(attributes))`, so this
+// helper is the contract that a reader and a writer name the same series.
+describe(probeAttributes, () => {
+  it("states the probe before the outcome", () => {
+    assert.deepStrictEqual(
+      Object.entries(probeAttributes({ outcome: "ok", probe: "ready" })),
+      [
+        ["probe", "ready"],
+        ["outcome", "ok"],
+      ]
+    );
   });
 });
 

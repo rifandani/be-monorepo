@@ -2,9 +2,6 @@ import { assert, describe, it } from "@effect/vitest";
 import { Effect, Metric } from "effect";
 
 import {
-  probeAttributes,
-  probeResult,
-  recordProbe,
   recordRequest,
   requestAttributes,
   requestDuration,
@@ -24,8 +21,8 @@ const run = <A>(effect: Effect.Effect<A>): A =>
     Effect.provideService(effect, Metric.MetricRegistry, new Map())
   );
 
-// A series is keyed by `JSON.stringify(Object.entries(attributes))`, so these
-// two helpers are the contract that a reader and a writer name the same series.
+// A series is keyed by `JSON.stringify(Object.entries(attributes))`, so this
+// helper is the contract that a reader and a writer name the same series.
 describe(requestAttributes, () => {
   it("states the method before the status", () => {
     assert.deepStrictEqual(
@@ -33,18 +30,6 @@ describe(requestAttributes, () => {
       [
         ["http.request.method", "GET"],
         ["http.response.status_code", "200"],
-      ]
-    );
-  });
-});
-
-describe(probeAttributes, () => {
-  it("states the probe before the outcome", () => {
-    assert.deepStrictEqual(
-      Object.entries(probeAttributes({ outcome: "ok", probe: "ready" })),
-      [
-        ["probe", "ready"],
-        ["outcome", "ok"],
       ]
     );
   });
@@ -118,55 +103,5 @@ describe(recordRequest, () => {
     const bucket = state.buckets.find(([boundary]) => boundary === 0.25);
 
     assert.deepStrictEqual(bucket, [0.25, 1]);
-  });
-});
-
-describe(recordProbe, () => {
-  it("counts a probe by name and outcome", () => {
-    const [live, ready] = run(
-      Effect.gen(function* record() {
-        yield* recordProbe({ outcome: "ok", probe: "live" });
-        yield* recordProbe({ outcome: "ok", probe: "live" });
-        yield* recordProbe({ outcome: "unhealthy", probe: "ready" });
-
-        return [
-          yield* Metric.value(
-            Metric.withAttributes(
-              probeResult,
-              probeAttributes({ outcome: "ok", probe: "live" })
-            )
-          ),
-          yield* Metric.value(
-            Metric.withAttributes(
-              probeResult,
-              probeAttributes({ outcome: "unhealthy", probe: "ready" })
-            )
-          ),
-        ] as const;
-      })
-    );
-
-    assert.strictEqual(live.count, 2);
-    assert.strictEqual(ready.count, 1);
-  });
-
-  // A readiness failure and a readiness success are the two series a dashboard
-  // divides to get an error rate, so they must not collapse into one.
-  it("keeps the outcomes of one probe apart", () => {
-    const state = run(
-      Effect.gen(function* record() {
-        yield* recordProbe({ outcome: "ok", probe: "ready" });
-        yield* recordProbe({ outcome: "unhealthy", probe: "ready" });
-
-        return yield* Metric.value(
-          Metric.withAttributes(
-            probeResult,
-            probeAttributes({ outcome: "ok", probe: "ready" })
-          )
-        );
-      })
-    );
-
-    assert.strictEqual(state.count, 1);
   });
 });
