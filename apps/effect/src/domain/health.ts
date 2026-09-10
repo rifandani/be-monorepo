@@ -23,7 +23,7 @@ export const Check = Schema.Struct({
   identifier: "Check",
 });
 
-export interface Check extends Schema.Schema.Type<typeof Check> {}
+interface Check extends Schema.Schema.Type<typeof Check> {}
 
 /**
  * The checks a report lists, stated once because two schemas carry them: the

@@ -21,7 +21,7 @@ export const PREFIX = "/health";
  * not a property of a Probe. The day one probe wants its own line is the day
  * the field earns a place.
  */
-export interface Probe<Segment extends `/${string}` = `/${string}`> {
+interface Probe<Segment extends `/${string}` = `/${string}`> {
   /** The path under `PREFIX`, as the endpoint declares it. */
   readonly segment: Segment;
   /** Where the probe is actually served. Derived; never written twice. */
