@@ -27,10 +27,14 @@ import { timing } from "./timing.ts";
  * chain makes it the order they actually nest in.
  *
  * Which is worth having because the nesting decides what a short-circuited
- * request keeps. A csrf 403 never reaches the router, so it carries only what
- * the middleware outside csrf adds: the request id, the security headers, the
- * cors headers and the timings — but no language cookie. Move an entry and that
- * changes.
+ * request keeps. Csrf is the innermost of the ten, so its 403 carries what all
+ * of them add — the request id, the security headers, the cors headers, the
+ * timings, and the language cookie when the request asked for a language. The
+ * cors preflight is the sparse one: cors answers it before timing runs, so it
+ * leaves with no timings and no cookie. The timeout 504 keeps the timings and
+ * loses the cookie, because timing is outside timeout and language is inside
+ * it. Move an entry and that table changes; it is asserted, row by row, in
+ * `tests/nesting.test.ts`.
  *
  * Timing sits outside timeout on purpose: a request given up on is one worth
  * having a `Server-Timing` header for.
@@ -50,6 +54,14 @@ import { timing } from "./timing.ts";
  * and the cors preflight all carry `nosniff` and the rest. It reads nothing and
  * answers nothing, so nothing else in the chain is affected by where it sits.
  *
+ * The chain takes its timeout layer rather than closing over `timeout`, and
+ * that is the one concession this composition makes to a test. No route here
+ * answers slowly enough to exceed 15 seconds, so a 504 over this chain is
+ * unreachable — and the 504 is the only response that can show that timing sits
+ * outside timeout. `tests/nesting.test.ts` builds the same chain with a short
+ * timeout and a slow route of its own. The layer and not the duration, so
+ * `TIMEOUT` stays private to `timeout.ts`.
+ *
  * `metrics` and `quietProbes` are the two entries `apps/hono` has no
  * counterpart for, and they sit as far out as they can. `metrics` records the
  * status of the response that actually leaves, so it has to be outside `onError`
@@ -58,18 +70,19 @@ import { timing } from "./timing.ts";
  * writes a response, so like secure headers they change nothing else by sitting
  * here.
  */
-const middleware = requestId.pipe(
-  Layer.flatMap(() => metrics),
-  Layer.flatMap(() => quietProbes),
-  Layer.flatMap(() => secureHeaders),
-  Layer.flatMap(() => cors),
-  Layer.flatMap(() => timing),
-  Layer.flatMap(() => timeout),
-  Layer.flatMap(() => language),
-  Layer.flatMap(() => csrf),
-  Layer.flatMap(() => onError),
-  Layer.flatMap(() => notFound)
-);
+const middlewareWith = (timeoutLayer: typeof timeout) =>
+  requestId.pipe(
+    Layer.flatMap(() => metrics),
+    Layer.flatMap(() => quietProbes),
+    Layer.flatMap(() => secureHeaders),
+    Layer.flatMap(() => cors),
+    Layer.flatMap(() => timing),
+    Layer.flatMap(() => timeoutLayer),
+    Layer.flatMap(() => language),
+    Layer.flatMap(() => csrf),
+    Layer.flatMap(() => onError),
+    Layer.flatMap(() => notFound)
+  );
 
 /**
  * The routes, composed but not served. Both entrypoints hand this to
@@ -78,11 +91,18 @@ const middleware = requestId.pipe(
  *
  * Every new group needs its handler layer in the `Layer.provide` below. To
  * forget it is a runtime defect, not a type error.
+ *
+ * What a short-circuited response carries out of this chain is asserted in
+ * `tests/nesting.test.ts`, one row per middleware that answers on its own.
  */
-export const app = Layer.mergeAll(
-  HttpApiBuilder.layer(Api, { openapiPath: "/openapi" }).pipe(
-    Layer.provide(Health.handlers.pipe(Layer.provide(Health.layer)))
-  ),
-  HttpApiScalar.layer(Api, { path: "/openapi/docs" }),
-  middleware
-);
+export const appWith = (timeoutLayer: typeof timeout) =>
+  Layer.mergeAll(
+    HttpApiBuilder.layer(Api, { openapiPath: "/openapi" }).pipe(
+      Layer.provide(Health.handlers.pipe(Layer.provide(Health.layer)))
+    ),
+    HttpApiScalar.layer(Api, { path: "/openapi/docs" }),
+    middlewareWith(timeoutLayer)
+  );
+
+/** The app as it is served, with the timeout `timeout.ts` states. */
+export const app = appWith(timeout);

@@ -28,6 +28,10 @@ const { dispose, handler } = HttpRouter.toWebHandler(
   { disableLogger: true }
 );
 
+// What a short-circuited response carries — the 404's headers, and the csrf
+// 403's — moved to `tests/nesting.test.ts`, where every such response is one
+// row of one table. This suite keeps the mount points and each middleware's
+// own behaviour.
 describe("app routes", () => {
   afterAll(() => dispose());
 
@@ -101,24 +105,6 @@ describe("app routes", () => {
 
     assert.strictEqual(response.status, 404);
     assert.strictEqual(await response.text(), NOT_FOUND_MESSAGE);
-  });
-
-  // Effect answers an unknown path on its own, but as a failure and with an
-  // empty body, so it would leave without any of these. `src/server/error.ts`
-  // and `not-found.ts` are innermost to make it a response instead. See the
-  // chain in `src/server/http.ts`.
-  it("gives the 404 the headers a 200 gets", async () => {
-    const response = await handler(new Request("http://localhost/nope"));
-
-    assert.match(
-      response.headers.get("x-request-id") ?? "",
-      /^[0-9a-f-]{36}$/u
-    );
-    assert.include(response.headers.get("server-timing") ?? "", "total;dur=");
-    assert.strictEqual(
-      response.headers.get("x-content-type-options"),
-      "nosniff"
-    );
   });
 
   it("answers a CORS preflight from the allowed origin", async () => {
@@ -271,17 +257,6 @@ describe("app routes", () => {
     );
   });
 
-  // The nesting `src/server/http.ts` fixes puts timing outside csrf, so a
-  // rejected request is timed too. Nothing else here depends on the order.
-  it("times a request csrf rejected", async () => {
-    const response = await handler(
-      new Request("http://localhost/", { method: "POST" })
-    );
-
-    assert.strictEqual(response.status, 403);
-    assert.include(response.headers.get("server-timing") ?? "", "total;dur=");
-  });
-
   // The record is the contract, so the test reads it rather than repeating it:
   // an entry added there is asserted here without an edit.
   it("sends the security headers", async () => {
@@ -298,20 +273,6 @@ describe("app routes", () => {
     const response = await handler(new Request("http://localhost/"));
 
     assert.isNull(response.headers.get("cross-origin-embedder-policy"));
-  });
-
-  // `src/server/http.ts` puts secure headers outside csrf, which is where it
-  // parts with `apps/hono`. This is the assertion that keeps it there.
-  it("sends the security headers on a request csrf rejected", async () => {
-    const response = await handler(
-      new Request("http://localhost/", { method: "POST" })
-    );
-
-    assert.strictEqual(response.status, 403);
-    assert.strictEqual(
-      response.headers.get("x-content-type-options"),
-      "nosniff"
-    );
   });
 
   it("detects the language from the query and caches it", async () => {
