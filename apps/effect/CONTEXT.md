@@ -27,3 +27,7 @@ The Effect v4 HTTP API app. It answers three health probes, serves its own OpenA
 **Probe Outcome**: Whether one probe call passed or failed, counted as a Metric rather than traced or logged. Probes are called too often, and say the same thing too reliably, to be worth one event each. _Avoid_: probe result event, health event
 
 **Probe Silence**: The rule that a probe call makes no event of its own — no per-request log line for any of the three, and no spans for the Startup Probe and the Liveness Probe. A deployment calls each one about once a second, and they answer the same thing, so an event each says nothing a Probe Outcome does not say better. The Readiness Probe keeps its span: it runs the Checks, so its span describes work. Which of the three that is, is declared on the Probe and not in the module that applies the rule. _Avoid_: probe filtering, log suppression
+
+### Security
+
+**Allowed Origin**: The one origin this app trusts, derived from `APP_URL` by taking its origin — scheme, host and port, with no trailing slash, because that is what a browser puts in `Origin`. Two policies read it and neither owns it: CORS decides who may read a response, CSRF decides whose state-changing request is honoured. See ADR-0004 for why those two stay separate. _Avoid_: allowed host, app url, base url

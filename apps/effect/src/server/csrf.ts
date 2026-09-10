@@ -5,7 +5,7 @@ import {
   HttpServerResponse,
 } from "effect/unstable/http";
 
-import { APP_URL } from "#config.ts";
+import { ALLOWED_ORIGIN } from "#server/origin.ts";
 
 // The same tests `hono/csrf` applies, in the same order. A request is rejected
 // only when every one of them agrees it looks like a cross-site form post.
@@ -29,6 +29,10 @@ const FORBIDDEN = HttpServerResponse.text("Forbidden", { status: 403 });
  * `Sec-Fetch-Site: same-origin` or an `Origin` matching `APP_URL`, and neither
  * header can be forged by a page from another site.
  *
+ * The Allowed Origin comes from `origin.ts`, which `cors.ts` also reads. The
+ * two policies share that premise and nothing else, and they stay six apart in
+ * the chain — see ADR-0004.
+ *
  * `OPTIONS` counts as safe here, so a CORS preflight is never rejected — which
  * matters because `cors.ts` answers those before any handler runs.
  *
@@ -37,11 +41,9 @@ const FORBIDDEN = HttpServerResponse.text("Forbidden", { status: 403 });
  * the outcome the client sees is identical.
  */
 export const csrf = Layer.unwrap(
-  // See `cors.ts` for why this is `pipe` and not `Effect.map(APP_URL, ...)`.
-  APP_URL.pipe(
-    Effect.map((url) => {
-      const allowedOrigin = url.origin;
-
+  // See `cors.ts` for why this is `pipe` and not the two-argument `Effect.map`.
+  ALLOWED_ORIGIN.pipe(
+    Effect.map((allowedOrigin) => {
       const isCrossSiteFormPost = (
         request: HttpServerRequest.HttpServerRequest
       ) => {
