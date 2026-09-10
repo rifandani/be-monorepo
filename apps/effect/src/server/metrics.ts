@@ -53,6 +53,11 @@ export const requestDuration = Metric.histogram(
  * holding half the traffic each. One helper is what makes the insertion order
  * a single fact rather than a convention every call site has to remember.
  *
+ * This and `requestDuration` stay exported where `recordRequest` does not,
+ * because a test crosses them to *read* a series back — naming the same series
+ * a writer named is the whole contract. That is the interface being the test
+ * surface, not a way behind it.
+ *
  * The status is stringified because Effect's metric attributes are string to
  * string. The semantic convention types `http.response.status_code` as an
  * integer, so a backend that enforces that reads this as a string label.
@@ -68,16 +73,20 @@ export const requestAttributes = (options: {
 /**
  * Records how long a request took.
  *
- * Exported, and the middleware below is a thin caller of it, so the recording
- * can be asserted from a test that never builds a request — `Metric.value` and
+ * Not exported, and it used to be. The reason given was that `Metric.value` and
  * the update have to run under one registry to be readable, which a request
- * through the composed app cannot offer.
+ * through the composed app cannot offer. It can: a fresh `Metric.MetricRegistry`
+ * merged into the layer `HttpRouter.toWebHandler` drives reaches every request
+ * fiber, so what one request recorded is readable after it. `Layer.provideMerge`
+ * and not `Layer.provide` — the reference has to sit in the layer's *output*
+ * context, which is what each request fiber starts from. So the middleware below
+ * is asserted where it runs; see `tests/middleware.test.ts`.
  *
  * `duration` is in milliseconds because that is what a clock difference is
  * here; the conversion to the metric's unit belongs in one place, and this is
  * it.
  */
-export const recordRequest = (options: {
+const recordRequest = (options: {
   readonly method: string;
   readonly status: number;
   readonly duration: number;

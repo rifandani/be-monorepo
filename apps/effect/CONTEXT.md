@@ -23,3 +23,5 @@ The Effect v4 HTTP API app. It answers three health probes, serves its own OpenA
 **Server Timing**: The total time a response took, reported to its own caller in the `Server-Timing` response header. Client-facing and per-request, where a Metric is aggregate and exported — which is why it does not share the word. The total is the only entry: no handler in this app records a duration of its own. _Avoid_: metrics, timings
 
 **Probe Outcome**: Whether one probe call passed or failed, counted as a Metric rather than traced or logged. Probes are called too often, and say the same thing too reliably, to be worth one event each. _Avoid_: probe result event, health event
+
+**Probe Silence**: The rule that a probe call makes no event of its own — no per-request log line for any of the three, and no spans for the Startup Probe and the Liveness Probe. A deployment calls each one about once a second, and they answer the same thing, so an event each says nothing a Probe Outcome does not say better. The Readiness Probe keeps its span: it runs the Checks, so its span describes work. _Avoid_: probe filtering, log suppression

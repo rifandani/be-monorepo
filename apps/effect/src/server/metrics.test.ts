@@ -1,14 +1,12 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Effect, Metric } from "effect";
 
-import {
-  recordRequest,
-  requestAttributes,
-  requestDuration,
-} from "./metrics.ts";
+import { requestAttributes, requestDuration } from "./metrics.ts";
 
-// The middleware is covered through the composed app in `tests/app.test.ts`.
-// What is left is the recording, which needs a registry rather than a request.
+// The middleware is asserted where it runs, in `tests/middleware.test.ts`: a
+// request through the composed app, against a registry of its own. What is left
+// here is what a request cannot state, because it cannot choose its own
+// duration — the series key, and the unit the buckets are written in.
 //
 // The registry is supplied explicitly and not left to its default. It is a
 // `Context.Reference`, and a `Context.Reference` caches what `defaultValue`
@@ -35,68 +33,23 @@ describe(requestAttributes, () => {
   });
 });
 
-describe(recordRequest, () => {
-  it("records the duration in seconds, not milliseconds", () => {
-    const state = run(
-      Effect.gen(function* record() {
-        yield* recordRequest({ duration: 250, method: "GET", status: 200 });
-
-        return yield* Metric.value(
-          Metric.withAttributes(
-            requestDuration,
-            requestAttributes({ method: "GET", status: 200 })
-          )
-        );
-      })
+describe("the request duration histogram", () => {
+  // The boundaries are the semantic convention's, and the convention states
+  // them in seconds. A boundary set written in milliseconds has no 0.25 in it
+  // at all, so this is what fails then. That the recording converts *to* those
+  // seconds is a separate claim, and a real request asserts it — see
+  // `tests/middleware.test.ts`.
+  it("buckets a duration by seconds", () => {
+    const series = Metric.withAttributes(
+      requestDuration,
+      requestAttributes({ method: "GET", status: 200 })
     );
 
-    assert.strictEqual(state.count, 1);
-    assert.strictEqual(state.sum, 0.25);
-  });
-
-  it("keeps each method and status on its own series", () => {
-    const [get, post] = run(
-      Effect.gen(function* record() {
-        yield* recordRequest({ duration: 1000, method: "GET", status: 200 });
-        yield* recordRequest({ duration: 2000, method: "POST", status: 403 });
-
-        return [
-          yield* Metric.value(
-            Metric.withAttributes(
-              requestDuration,
-              requestAttributes({ method: "GET", status: 200 })
-            )
-          ),
-          yield* Metric.value(
-            Metric.withAttributes(
-              requestDuration,
-              requestAttributes({ method: "POST", status: 403 })
-            )
-          ),
-        ] as const;
-      })
-    );
-
-    assert.strictEqual(get.count, 1);
-    assert.strictEqual(get.sum, 1);
-    assert.strictEqual(post.count, 1);
-    assert.strictEqual(post.sum, 2);
-  });
-
-  // 250ms lands in the `[0, 0.25]` bucket and not the one below it, which is
-  // the assertion that the boundaries are read as seconds. A millisecond-valued
-  // histogram would put every request this app serves in the last bucket.
-  it("falls in the bucket its duration belongs to", () => {
     const state = run(
       Effect.gen(function* record() {
-        yield* recordRequest({ duration: 250, method: "GET", status: 200 });
+        yield* Metric.update(series, 0.25);
 
-        return yield* Metric.value(
-          Metric.withAttributes(
-            requestDuration,
-            requestAttributes({ method: "GET", status: 200 })
-          )
-        );
+        return yield* Metric.value(series);
       })
     );
 

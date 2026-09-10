@@ -46,6 +46,20 @@ export const withTimeout =
     );
 
 /**
+ * The timeout middleware, built from a duration.
+ *
+ * Separate from `timeout` below, and taking its duration, for the reason
+ * `withTimeout` is separate from both: no route in this app answers slowly
+ * enough to time out, so the only way to see a real 504 leave is a test that
+ * builds this layer with a short duration over a router of its own. That is
+ * what asserts the wrapping. `withTimeout` alone cannot — a combinator test
+ * says the effect times out, not that the chain applies it.
+ * See `tests/middleware.test.ts`.
+ */
+export const timeoutFor = (duration: Duration.Duration) =>
+  HttpRouter.middleware(withTimeout(duration), { global: true });
+
+/**
  * Timeout, with the same behaviour as `apps/hono` (`src/app.ts`): 15 seconds,
  * then a 504.
  *
@@ -60,6 +74,4 @@ export const withTimeout =
  * carries the request id because `request-id.ts` sits outside this middleware.
  * See the chain in `http.ts`.
  */
-export const timeout = HttpRouter.middleware(withTimeout(TIMEOUT), {
-  global: true,
-});
+export const timeout = timeoutFor(TIMEOUT);

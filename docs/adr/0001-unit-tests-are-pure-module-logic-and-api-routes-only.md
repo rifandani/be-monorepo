@@ -79,6 +79,18 @@ Both expire, so the exclusion list stays a record of what infrastructure is miss
 
 Branches that are unreachable by construction are not papered over with `/* v8 ignore */` — with a per-file threshold there is no global slack to absorb them either, so the code is written not to have them. `xForwardedFor.split(",")[0]?.trim() ?? null` becomes a `replace`, and `codePointAt(i) ?? 0` over an `atob` string becomes `charCodeAt(i)`: in both cases the fallback existed only to satisfy `noUncheckedIndexedAccess`, and removing the optional access removes the branch. What remains uncovered is genuinely runtime-dependent — `getRuntimeKey()` returning `bun` under a node test run — and stays comfortably inside the 90% each file has to clear.
 
+### What the gate does not ask
+
+Coverage measures execution, never assertion. A test on the function a wrapper calls executes the wrapper too, through whatever request the other suites make, so the wrapper reads 100% while nothing checks that it runs. `apps/effect` proved it: `server/metrics.ts`, `server/timeout.ts` and `server/probes.ts` each cleared the gate on every metric with no assertion at all on the global middleware they export — 490 lines of colocated test on the pure functions beside them, and none on the layers.
+
+So a global middleware — an `HttpRouter.middleware(…, { global: true })` — needs an assertion through a request, and `apps/effect/tests/middleware.test.ts` is where they live. The three mechanisms are not obvious, and each was measured against the vendored source:
+
+- A metric recorded inside a request is readable after it when a fresh `Metric.MetricRegistry` is merged into the layer `HttpRouter.toWebHandler` drives. `Layer.provideMerge` and not `Layer.provide`: `HttpEffect.toWebHandlerWith` uses the built layer's *output* context as the base context of each request fiber.
+- The framework's per-request log line is applied outside the router, and `disableLogger: true` switches it off — so a suite that asserts a *missing* line must leave it on and replace the default logger with a collecting one.
+- The server span needs no wiring: `HttpEffect.toHandled` applies `HttpMiddleware.tracer` unconditionally, so `toWebHandler` opens it already. Passing `middleware: HttpMiddleware.tracer` as well opens two. A collecting `Tracer.make` is enough to read the spans back, and `HttpMiddleware.TracerDisabledWhen` is a layer a test can provide for itself.
+
+A middleware that cannot be made to answer over the composed app — `timeout`, whose duration is 15 seconds — takes its duration by parameter and is built again in the test over a router of its own. That is the same split `withTimeout` already had, one level out.
+
 One v8 quirk is worth knowing before chasing a phantom gap: a ternary between two `await import()` expressions makes v8 lose coverage for every statement after it in the same function, reported as untested lines that demonstrably ran. `net.ts` keeps the conditional import in its own `importGetConnInfo` function for exactly this reason.
 
 ## Consequences
