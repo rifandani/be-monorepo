@@ -2,7 +2,7 @@ import { afterAll, assert, describe, it } from "@effect/vitest";
 import { ConfigProvider, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 
-import { LIVE_PATH, PREFIX, READY_PATH, STARTUP_PATH } from "#api/health.ts";
+import { LIVE_PATH, PREFIX, PROBES } from "#api/health.ts";
 import { app } from "#server/http.ts";
 import { NOT_FOUND_MESSAGE } from "#server/not-found.ts";
 import { SECURE_HEADERS } from "#server/secure-headers.ts";
@@ -35,13 +35,14 @@ const { dispose, handler } = HttpRouter.toWebHandler(
 describe("app routes", () => {
   afterAll(() => dispose());
 
-  // The three probes are asserted here and not only in `tests/health.test.ts`,
-  // which rebuilds the routes from the api description and so cannot see a
-  // mount point move. These are the paths `quietProbes` excludes from the
-  // traces and the log line, so this is what keeps the mount and the silence
-  // policy on the same list.
-  it("serves the three health probes where the probe policy expects them", async () => {
-    const paths = [STARTUP_PATH, LIVE_PATH, READY_PATH];
+  // The probes are asserted here and not only in `tests/health.test.ts`, which
+  // rebuilds the routes from the api description and so cannot see a mount
+  // point move. The list comes from `PROBES` rather than being written out,
+  // which is what makes this the guard on the one literal `api/health.ts` still
+  // holds: the group's three `.add` calls cannot be folded over the record, so
+  // a Probe declared with no endpoint compiles clean. Here it 404s.
+  it("serves every declared probe where the probe policy expects it", async () => {
+    const paths = Object.values(PROBES).map((probe) => probe.path);
 
     const answers = await Promise.all(
       paths.map(async (path) => {
@@ -84,8 +85,8 @@ describe("app routes", () => {
 
     assert.strictEqual(response.status, 200);
     assert.strictEqual(document.info.title, "@workspace/effect");
-    for (const path of [STARTUP_PATH, LIVE_PATH, READY_PATH]) {
-      assert.isTrue(Object.hasOwn(document.paths, path), path);
+    for (const probe of Object.values(PROBES)) {
+      assert.isTrue(Object.hasOwn(document.paths, probe.path), probe.path);
     }
   });
 

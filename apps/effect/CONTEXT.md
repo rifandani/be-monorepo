@@ -6,6 +6,8 @@ The Effect v4 HTTP API app. It answers three health probes, serves its own OpenA
 
 ### Health
 
+**Probe**: One of the three health routes, taken together as a kind. Declared once — its path segment, its endpoint id, and whether it is traced — because those three facts are read by three different modules and used to be written in five places. What a Probe answers is a Health Report; whether one call passed is a Probe Outcome. _Avoid_: healthcheck, endpoint
+
 **Startup Probe**: The claim that the process has finished booting. Distinct from a Liveness Probe because a caller that reads it suspends the liveness clock until it passes, so a slow boot is not a wedged process. _Avoid_: boot check, warmup
 
 **Liveness Probe**: The claim that the process is not wedged. Its failure means "restart me". _Avoid_: healthcheck, ping, heartbeat
@@ -24,4 +26,4 @@ The Effect v4 HTTP API app. It answers three health probes, serves its own OpenA
 
 **Probe Outcome**: Whether one probe call passed or failed, counted as a Metric rather than traced or logged. Probes are called too often, and say the same thing too reliably, to be worth one event each. _Avoid_: probe result event, health event
 
-**Probe Silence**: The rule that a probe call makes no event of its own — no per-request log line for any of the three, and no spans for the Startup Probe and the Liveness Probe. A deployment calls each one about once a second, and they answer the same thing, so an event each says nothing a Probe Outcome does not say better. The Readiness Probe keeps its span: it runs the Checks, so its span describes work. _Avoid_: probe filtering, log suppression
+**Probe Silence**: The rule that a probe call makes no event of its own — no per-request log line for any of the three, and no spans for the Startup Probe and the Liveness Probe. A deployment calls each one about once a second, and they answer the same thing, so an event each says nothing a Probe Outcome does not say better. The Readiness Probe keeps its span: it runs the Checks, so its span describes work. Which of the three that is, is declared on the Probe and not in the module that applies the rule. _Avoid_: probe filtering, log suppression

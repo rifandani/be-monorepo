@@ -5,19 +5,29 @@ import {
   HttpServerRequest,
 } from "effect/unstable/http";
 
-import { LIVE_PATH, READY_PATH, STARTUP_PATH } from "#api/health.ts";
-
-const PROBE_PATHS = new Set([STARTUP_PATH, LIVE_PATH, READY_PATH]);
+import { PROBES } from "#api/health.ts";
 
 /**
- * The probes that are not traced.
+ * Which urls are probes, and which of them are traced — both read off `PROBES`
+ * rather than restated here.
  *
- * The readiness probe is missing from this set on purpose: it is the only one
- * of the three that does work — it runs the readiness checks — so it is the
- * only one whose span would describe anything. The other two answer for the
- * process that is answering, which a span cannot add to.
+ * Neither set is a policy this module owns. Whether a probe's span says
+ * anything is a fact about what that probe does, so it is declared beside the
+ * probe in `api/health.ts` and explained under **Probe Silence** in
+ * `CONTEXT.md`. This module only applies it. A set written out here would be a
+ * second, unchecked account of the same thing, and a fourth probe would need
+ * an edit in both.
  */
-const UNTRACED_PROBE_PATHS = new Set([STARTUP_PATH, LIVE_PATH]);
+// `Set<string>` and not the inferred set of the three literal paths: what is
+// checked against these is a path derived from a request url, which is any
+// string at all.
+const probes = Object.values(PROBES);
+const PROBE_PATHS: ReadonlySet<string> = new Set(
+  probes.map((probe) => probe.path)
+);
+const UNTRACED_PROBE_PATHS: ReadonlySet<string> = new Set(
+  probes.filter((probe) => !probe.traced).map((probe) => probe.path)
+);
 
 /**
  * The path part of a server request url.

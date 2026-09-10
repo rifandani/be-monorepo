@@ -2,6 +2,7 @@ import { Context, Effect, Layer, Metric } from "effect";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
 
 import { Api } from "#api/api.ts";
+import type { PROBES } from "#api/health.ts";
 import { Check, HealthReport, Unhealthy } from "#domain/health.ts";
 
 /**
@@ -30,9 +31,20 @@ export const READINESS_CHECKS: readonly ReadinessCheck[] = [];
 // their report never varies.
 const NO_CHECKS = HealthReport.make({ checks: [], status: "ok" });
 
+/**
+ * Which probe answered, and how.
+ *
+ * Neither field is written out. `probe` is `keyof typeof PROBES`, so a fourth
+ * entry in `api/health.ts` widens what `recordProbe` accepts and the
+ * `handleAll` map below stops compiling until the handler is there — which is
+ * the whole of what makes a probe one declaration. `outcome` is the report's
+ * own `status`, because a Probe Outcome says how the probe answered and the
+ * answer is a Health Report; a union restated here could drift from the one
+ * the client is given.
+ */
 interface ProbeOptions {
-  readonly probe: "live" | "ready" | "startup";
-  readonly outcome: "ok" | "unhealthy";
+  readonly probe: keyof typeof PROBES;
+  readonly outcome: HealthReport["status"];
 }
 
 /**
