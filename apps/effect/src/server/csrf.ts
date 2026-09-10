@@ -31,7 +31,7 @@ const FORBIDDEN = HttpServerResponse.text("Forbidden", { status: 403 });
  *
  * The Allowed Origin comes from `origin.ts`, which `cors.ts` also reads. The
  * two policies share that premise and nothing else, and they stay six apart in
- * the chain — see ADR-0004.
+ * the chain — see `apps/effect/docs/adr/0003`.
  *
  * `OPTIONS` counts as safe here, so a CORS preflight is never rejected — which
  * matters because `cors.ts` answers those before any handler runs.

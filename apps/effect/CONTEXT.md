@@ -30,4 +30,4 @@ The Effect v4 HTTP API app. It answers three health probes, serves its own OpenA
 
 ### Security
 
-**Allowed Origin**: The one origin this app trusts, derived from `APP_URL` by taking its origin — scheme, host and port, with no trailing slash, because that is what a browser puts in `Origin`. Two policies read it and neither owns it: CORS decides who may read a response, CSRF decides whose state-changing request is honoured. See ADR-0004 for why those two stay separate. _Avoid_: allowed host, app url, base url
+**Allowed Origin**: The one origin this app trusts, derived from `APP_URL` by taking its origin — scheme, host and port, with no trailing slash, because that is what a browser puts in `Origin`. Two policies read it and neither owns it: CORS decides who may read a response, CSRF decides whose state-changing request is honoured. See [`apps/effect/docs/adr/0003`](./docs/adr/0003-cors-and-csrf-stay-separate-layers.md) for why those two stay separate. _Avoid_: allowed host, app url, base url

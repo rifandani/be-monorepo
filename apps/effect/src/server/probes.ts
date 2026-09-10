@@ -36,6 +36,10 @@ const UNTRACED_PROBE_PATHS: ReadonlySet<string> = new Set(
  * so a bare `includes` over the paths above would let `/health/live?x=1` out of
  * every exclusion here. Effect's own `layerTracerDisabledForUrls` compares the
  * whole url for that reason and is not used below.
+ *
+ * Hand-written rather than reaching for a platform parser, for the reasons
+ * `apps/effect/docs/adr/0004` records: this runs outside any matched route,
+ * where the framework's parsed query does not exist.
  */
 export const pathOf = (url: string): string => {
   const query = url.indexOf("?");

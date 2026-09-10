@@ -156,6 +156,11 @@ export const detectLanguage = (sources: {
  * the node side, so it is a path with a query in both, and `URLSearchParams`
  * over the part after the `?` needs no host at all. A fragment is never sent to
  * a server, but it is stripped anyway so the value cannot pick one up.
+ *
+ * `apps/effect/docs/adr/0004` holds the whole account, including why the
+ * framework's own `ParsedSearchParams` and `HttpMiddleware.searchParamsParser`
+ * cannot serve a global middleware either — the second one carries this same
+ * defect.
  */
 export const queryLanguage = (url: string): string | undefined => {
   const start = url.indexOf("?");
