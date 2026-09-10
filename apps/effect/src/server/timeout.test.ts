@@ -3,22 +3,25 @@ import { Duration, Effect, Fiber } from "effect";
 import { TestClock } from "effect/testing";
 import { HttpServerResponse } from "effect/unstable/http";
 
-import { TIMEOUT, withTimeout } from "./timeout.ts";
+import { withTimeout } from "./timeout.ts";
 
-// The middleware wires `withTimeout` to `TIMEOUT`, which is 15 seconds — too
-// long to wait out, and not the part worth testing. What is worth testing is
-// the combinator: that it lets a response through, that it answers 504 rather
-// than hanging, and that it stops the work it gave up on.
+// The middleware wires `withTimeout` to the app's own 15 seconds, and that
+// wiring is not the part worth testing — a constant asserted against itself
+// proves nothing. What is worth testing is the combinator: that it lets a
+// response through, that it answers 504 rather than hanging, and that it stops
+// the work it gave up on. So these drive it with a duration of their own, which
+// is also what keeps `TIMEOUT` private to the module.
 //
-// `it.effect` supplies a `TestClock`, so these run at the real duration and
-// take no time at all: `TestClock.adjust` moves the clock, and the warning the
-// timeout branch logs goes to the test console rather than the terminal.
+// `it.effect` supplies a `TestClock`, so these take no time at all whatever the
+// duration is: `TestClock.adjust` moves the clock, and the warning the timeout
+// branch logs goes to the test console rather than the terminal.
+const DURATION = Duration.seconds(1);
 const OK = HttpServerResponse.text("Hello");
 
 describe(withTimeout, () => {
   it.effect("lets a response through", () =>
     Effect.gen(function* through() {
-      const response = yield* withTimeout(TIMEOUT)(Effect.succeed(OK));
+      const response = yield* withTimeout(DURATION)(Effect.succeed(OK));
 
       assert.strictEqual(response.status, 200);
     })
@@ -26,9 +29,11 @@ describe(withTimeout, () => {
 
   it.effect("answers 504 once the duration is up", () =>
     Effect.gen(function* timedOut() {
-      const fiber = yield* Effect.forkChild(withTimeout(TIMEOUT)(Effect.never));
+      const fiber = yield* Effect.forkChild(
+        withTimeout(DURATION)(Effect.never)
+      );
 
-      yield* TestClock.adjust(TIMEOUT);
+      yield* TestClock.adjust(DURATION);
 
       const response = yield* Fiber.join(fiber);
 
@@ -53,16 +58,12 @@ describe(withTimeout, () => {
           })
         )
       );
-      const fiber = yield* Effect.forkChild(withTimeout(TIMEOUT)(held));
+      const fiber = yield* Effect.forkChild(withTimeout(DURATION)(held));
 
-      yield* TestClock.adjust(TIMEOUT);
+      yield* TestClock.adjust(DURATION);
       yield* Fiber.join(fiber);
 
       assert.isTrue(released);
     })
   );
-
-  it("waits the 15 seconds apps/hono waits", () => {
-    assert.strictEqual(Duration.toMillis(TIMEOUT), 15_000);
-  });
 });

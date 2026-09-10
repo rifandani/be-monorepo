@@ -5,12 +5,7 @@ import { HttpMiddleware } from "effect/unstable/http";
 
 import { LIVE_PATH, READY_PATH, STARTUP_PATH } from "#api/health.ts";
 
-import {
-  isProbe,
-  isUntracedProbe,
-  pathOf,
-  tracerDisabledForProbes,
-} from "./probes.ts";
+import { isUntracedProbe, pathOf, tracerDisabledForProbes } from "./probes.ts";
 
 // The middleware is covered through the composed app in `tests/app.test.ts`.
 // What is left is the policy: which url is a probe, and which probe is traced.
@@ -34,34 +29,6 @@ describe(pathOf, () => {
 
   it("returns an empty path for a url that is only a query", () => {
     assert.strictEqual(pathOf("?lang=id"), "");
-  });
-});
-
-describe(isProbe, () => {
-  it("recognises all three probes", () => {
-    for (const path of [STARTUP_PATH, LIVE_PATH, READY_PATH]) {
-      assert.isTrue(isProbe(path));
-    }
-  });
-
-  // The exclusion is what keeps a probe out of the logs, so a query string
-  // getting past it would put the traffic straight back in.
-  it("recognises a probe with a query string", () => {
-    assert.isTrue(isProbe(`${LIVE_PATH}?x=1`));
-  });
-
-  it("does not recognise another path", () => {
-    assert.isFalse(isProbe("/openapi"));
-    assert.isFalse(isProbe("/"));
-  });
-
-  // There is no bare `/health` endpoint, so it is not a probe either.
-  it("does not recognise the prefix on its own", () => {
-    assert.isFalse(isProbe("/health"));
-  });
-
-  it("does not recognise a path that merely starts with a probe path", () => {
-    assert.isFalse(isProbe("/health/liveness"));
   });
 });
 

@@ -20,6 +20,6 @@ The Effect v4 HTTP API app. It answers three health probes, serves its own OpenA
 
 **Metric**: An aggregate this app records about itself and exports over OTLP — a counter or a histogram. Effect's `Metric` module, never the `Server-Timing` header. _Avoid_: metrics (plural, as a name), measurement, telemetry
 
-**Server Timing**: The per-request durations this app reports to its own caller in the `Server-Timing` response header. Client-facing and per-request, where a Metric is aggregate and exported — which is why it does not share the word. _Avoid_: metrics, timings
+**Server Timing**: The total time a response took, reported to its own caller in the `Server-Timing` response header. Client-facing and per-request, where a Metric is aggregate and exported — which is why it does not share the word. The total is the only entry: no handler in this app records a duration of its own. _Avoid_: metrics, timings
 
 **Probe Outcome**: Whether one probe call passed or failed, counted as a Metric rather than traced or logged. Probes are called too often, and say the same thing too reliably, to be worth one event each. _Avoid_: probe result event, health event

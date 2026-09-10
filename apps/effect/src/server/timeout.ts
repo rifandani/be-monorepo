@@ -8,7 +8,7 @@ import { HttpRouter, HttpServerResponse } from "effect/unstable/http";
  * rather than the bare `15_000` that middleware takes, because a unit that is
  * written down cannot be misread.
  */
-export const TIMEOUT = Duration.seconds(15);
+const TIMEOUT = Duration.seconds(15);
 
 // The status and the body `hono/timeout` answers with by default. Built once:
 // an `HttpServerResponse` is a value, and this one never varies.

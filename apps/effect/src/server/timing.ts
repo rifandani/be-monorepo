@@ -1,90 +1,16 @@
-import { Context, Duration, Effect } from "effect";
+import { Effect } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/unstable/http";
-
-// `ServerTiming` names both the state a request collects and the reference that
-// carries it, which is the same deliberate pair as `Language` in `language.ts`.
-// This rule reads it as a mistake.
-// oxlint-disable no-redeclare
 
 // Lowercase because that is how Effect keys a header. Header names are case
 // insensitive, so the response carries the same name `apps/hono` sends.
 const HEADER = "server-timing";
-// The name and the description `hono/timing` gives the metric it measures
-// itself, with the options `apps/hono` leaves at their defaults.
+// The name, the description and the precision `hono/timing` gives the metric it
+// measures itself, with the options `apps/hono` leaves at their defaults
+// (`src/app.ts` mounts `timing()` and passes none). These four values are the
+// parity that matters — see the note on the middleware below.
 const TOTAL = "total";
 const TOTAL_DESCRIPTION = "Total Response Time";
-// The number of fractional digits `hono/timing` prints a duration with when a
-// caller names none.
-const DEFAULT_PRECISION = 1;
-
-interface Timer {
-  readonly description: string | undefined;
-  readonly start: number;
-}
-
-/**
- * The Server-Timing state of the request being served: the metrics already
- * finished, in the order they finished, and the timers still running.
- *
- * Mutable, and deliberately so. A metric is recorded from wherever the work
- * happens — a handler, a service below it — and the middleware reads the lot
- * once, on the way out.
- */
-export interface ServerTiming {
-  readonly entries: string[];
-  readonly timers: Map<string, Timer>;
-}
-
-/**
- * The Server-Timing state of the request being served, for a handler or a
- * service to record into.
- *
- * Named `ServerTiming` and not `Metrics`, which it was until observability
- * landed. `Metric` now means an aggregate this app exports over OTLP
- * (`server/metrics.ts`), and two unrelated things called "metrics" under
- * `src/server/` is one ambiguity too many. `CONTEXT.md` keeps the two words
- * apart: what this holds is per-request and client-facing, where a Metric is
- * aggregate and exported.
- *
- * A `Context.Reference` for the same reason as `RequestId` in `request-id.ts`:
- * its default keeps it readable anywhere without becoming a requirement that
- * every caller — and every test — has to satisfy.
- *
- * The default is `undefined` rather than an empty `ServerTiming`, which is the one
- * place this differs from the references next to it. `Context.Reference` caches
- * what `defaultValue` returns, so a default `ServerTiming` would be one collector
- * shared by every caller outside a request and nothing would ever drain it —
- * an unbounded array. `undefined` says what is true instead: no request is
- * being served, so there is nothing to record into. The helpers below then do
- * nothing, where `hono/timing` warns.
- */
-export const ServerTiming = Context.Reference<ServerTiming | undefined>(
-  "@workspace/effect/ServerTiming",
-  { defaultValue: (): ServerTiming | undefined => undefined }
-);
-
-/**
- * One Server-Timing metric, in the format the header states them in.
- *
- * Pure, and exported, so the format can be tested without building a request.
- * The four shapes are the ones `hono/timing` emits: a duration with and without
- * a description, and a marker with and without one.
- */
-export const formatMetric = (options: {
-  readonly name: string;
-  readonly duration?: number | undefined;
-  readonly description?: string | undefined;
-  readonly precision?: number | undefined;
-}): string => {
-  const described =
-    options.description === undefined ? "" : `;desc="${options.description}"`;
-
-  return options.duration === undefined
-    ? `${options.name}${described}`
-    : `${options.name};dur=${options.duration.toFixed(
-        options.precision ?? DEFAULT_PRECISION
-      )}${described}`;
-};
+const PRECISION = 1;
 
 // `performance.now` and not the `Clock` service, for the reason `request-id.ts`
 // reaches for `globalThis.crypto`: a duration is not a value that needs a
@@ -95,142 +21,21 @@ export const formatMetric = (options: {
 // Exported so `metrics.ts`, which times the same interval, reads one clock.
 export const now = (): number => globalThis.performance.now();
 
-// Every helper below is a no-op outside a request. See `ServerTiming` for why.
-const update = (f: (timings: ServerTiming) => void): Effect.Effect<void> =>
-  ServerTiming.pipe(
-    Effect.flatMap((timings) =>
-      timings === undefined ? Effect.void : Effect.sync(() => f(timings))
-    )
-  );
-
-// What a timer has measured so far, as a metric. It does not touch the timer,
-// so the caller decides whether the timer is done with.
-const measure = (
-  name: string,
-  timer: Timer,
-  precision?: number | undefined
-): string =>
-  formatMetric({
-    description: timer.description,
-    duration: now() - timer.start,
-    name,
-    precision,
-  });
-
 /**
- * Records a metric on the request being served.
+ * Server-Timing: the total time the response took, reported to the caller.
  *
- * Both shapes `hono/timing`'s `setMetric` takes, as one function: name a
- * `duration` for a measurement, leave it out for a marker.
+ * Effect has no timing middleware, so this is a port of `hono/timing` with the
+ * options `apps/hono` uses, which are its defaults: measure the total and
+ * describe it as `Total Response Time`.
  *
- * @example
- * ```ts
- * yield* setMetric({ description: "europe-west3", name: "region" });
- * yield* setMetric({ duration: Duration.millis(23.8), name: "custom" });
- * ```
- */
-export const setMetric = (options: {
-  readonly name: string;
-  readonly duration?: Duration.Input | undefined;
-  readonly description?: string | undefined;
-  readonly precision?: number | undefined;
-}): Effect.Effect<void> =>
-  update((timings) => {
-    timings.entries.push(
-      formatMetric({
-        description: options.description,
-        duration:
-          options.duration === undefined
-            ? undefined
-            : Duration.toMillis(options.duration),
-        name: options.name,
-        precision: options.precision,
-      })
-    );
-  });
-
-/**
- * Starts a timer on the request being served.
- *
- * Prefer {@link timed} where the work is one effect. This pair is for a
- * measurement that does not bracket one — a span opened in one step and closed
- * in another.
- */
-export const startTime = (options: {
-  readonly name: string;
-  readonly description?: string | undefined;
-}): Effect.Effect<void> =>
-  update((timings) => {
-    timings.timers.set(options.name, {
-      description: options.description,
-      start: now(),
-    });
-  });
-
-/**
- * Ends a timer {@link startTime} began and records what it measured.
- *
- * A name that is not running is ignored. `hono/timing` warns; there is nothing
- * to record either way, and the middleware closes whatever is left running when
- * the response leaves.
- */
-export const endTime = (options: {
-  readonly name: string;
-  readonly precision?: number | undefined;
-}): Effect.Effect<void> =>
-  update((timings) => {
-    const timer = timings.timers.get(options.name);
-
-    if (timer !== undefined) {
-      timings.timers.delete(options.name);
-      timings.entries.push(measure(options.name, timer, options.precision));
-    }
-  });
-
-/**
- * Times an effect and records how long it took.
- *
- * The `wrapTime` of `hono/timing`, and the one to reach for by default. It
- * records on every outcome — failure and interruption as well as success —
- * which is what makes the header describe the request that actually happened.
- *
- * @example
- * ```ts
- * const rows = yield* findMany.pipe(timed({ name: "query" }));
- * ```
- */
-export const timed =
-  (options: {
-    readonly name: string;
-    readonly description?: string | undefined;
-    readonly precision?: number | undefined;
-  }) =>
-  <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
-    Effect.suspend(() => {
-      const start = now();
-
-      return self.pipe(
-        Effect.ensuring(
-          update((timings) => {
-            timings.entries.push(
-              measure(
-                options.name,
-                { description: options.description, start },
-                options.precision
-              )
-            );
-          })
-        )
-      );
-    });
-
-/**
- * Server-Timing, with the same behaviour as `apps/hono` (`src/app.ts`).
- *
- * Effect has no timing middleware, so this is a port of `hono/timing` with that
- * app's options, which are its defaults: measure the total, describe it as
- * `Total Response Time`, always send the header, and close any timer a handler
- * left running.
+ * Only the total. `hono/timing` also lets a handler record its own metrics —
+ * `setMetric`, `startTime`/`endTime`, `wrapTime` — and that half was ported and
+ * then removed: the app's three handlers recorded nothing, `apps/hono` calls
+ * none of it either, and 120 lines of it were reachable only from their own
+ * test. Re-port it from `hono/timing` if a handler ever has a duration of its
+ * own worth sending — a query, an upstream call. What it needs is a mutable
+ * collector provided per request; note that a `Context.Reference` cannot hold
+ * one by default, for the reason `request-id.ts` records.
  *
  * `crossOrigin` is the one option not ported. It is off in `apps/hono`, and
  * turning it on means sending `Timing-Allow-Origin` — which is a cors decision,
@@ -238,45 +43,31 @@ export const timed =
  *
  * `Effect.suspend` is not decoration. A global middleware function wraps the
  * router once, at layer build, and the effect it returns serves every request
- * after that, so state created outside the `suspend` would be state shared by
- * every request at once.
+ * after that, so the clock read outside the `suspend` would be one start time
+ * shared by every request at once.
  *
- * The header is set with `Effect.map`, which runs only on success — like the
- * response header in `request-id.ts`, and with the same consequence: a failed
- * request, the 404 from an unknown path for one, carries no timings.
+ * The header is set with `Effect.map`, which runs only on success — and nothing
+ * that reaches here is a failure. `onError` and `notFound` are innermost and
+ * turn one into a response before this middleware sees it, which is what makes
+ * a 404 and a 500 carry the header a 200 does; `tests/app.test.ts` asserts the
+ * 404 case. A failure that got past those two would leave without timings. See
+ * the chain in `http.ts`, which also states why this sits outside `timeout`.
  */
 export const timing = HttpRouter.middleware(
   (httpEffect) =>
     Effect.suspend(() => {
-      const timings: ServerTiming = { entries: [], timers: new Map() };
       const start = now();
 
       return httpEffect.pipe(
-        Effect.provideService(ServerTiming, timings),
-        Effect.map((response) => {
-          // `total` lands after the metrics the request recorded itself, and
-          // the timers it left running land after that — the order
-          // `hono/timing` appends them in.
-          timings.entries.push(
-            formatMetric({
-              description: TOTAL_DESCRIPTION,
-              duration: now() - start,
-              name: TOTAL,
-            })
-          );
-
-          for (const [name, timer] of timings.timers) {
-            timings.entries.push(measure(name, timer));
-          }
-
-          timings.timers.clear();
-
-          return HttpServerResponse.setHeader(
+        Effect.map((response) =>
+          HttpServerResponse.setHeader(
             response,
             HEADER,
-            timings.entries.join(",")
-          );
-        })
+            `${TOTAL};dur=${(now() - start).toFixed(
+              PRECISION
+            )};desc="${TOTAL_DESCRIPTION}"`
+          )
+        )
       );
     }),
   { global: true }

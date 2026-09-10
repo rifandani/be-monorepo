@@ -21,6 +21,15 @@ const VALID_ID = /^[\w\-=]+$/u;
  * readable anywhere without becoming a requirement that every caller — and
  * every test — has to satisfy. The default is empty: reading it outside a
  * request is not an error, it is just not a request.
+ *
+ * The default is a value, and it has to be. `Context.Reference` caches what
+ * `defaultValue` returns, so a default that is mutable state — a collector a
+ * handler pushes into, say — would be one instance shared by every caller
+ * outside a request, and nothing would ever drain it. That is an unbounded
+ * array, not a default. `Language` in `language.ts` is safe for the same
+ * reason: what it holds is a value too. A reference that has to carry mutable
+ * per-request state needs `undefined` as its default and a caller that reads
+ * for it.
  */
 export const RequestId = Context.Reference<string>(
   "@workspace/effect/RequestId",

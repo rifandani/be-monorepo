@@ -38,9 +38,6 @@ export const pathOf = (url: string): string => {
   return url.slice(0, fragment === -1 ? query : Math.min(query, fragment));
 };
 
-/** True when the request is one of the three probes. */
-export const isProbe = (url: string): boolean => PROBE_PATHS.has(pathOf(url));
-
 /** True when the request is a probe whose span would say nothing. */
 export const isUntracedProbe = (url: string): boolean =>
   UNTRACED_PROBE_PATHS.has(pathOf(url));
