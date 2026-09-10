@@ -86,7 +86,8 @@ this app has no reason to install — so the barrel import fails at startup with
   honest fix if a route breakdown is ever needed.
 - **Telemetry stays out of `app`.** The entrypoints provide it; `app` is
   transport- and exporter-free. So `vitest`, which runs with no env file and drives `app`
-  through `toWebHandler`, gets Effect's default no-op tracer and reaches no collector.
+  through `toWebHandler` and, in `tests/platform.test.ts`, over a real socket, gets
+  Effect's default no-op tracer either way and reaches no collector.
 - **`Layer.provide(server, observability)`, not `Layer.merge`.** Telemetry builds first
   and releases last, so spans and log records emitted while the process is shutting down
   are still flushed.
