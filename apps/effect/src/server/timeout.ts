@@ -72,6 +72,6 @@ export const timeoutFor = (duration: Duration.Duration) =>
  *
  * The warning is logged where `apps/hono` logs one from `app.onError`, and it
  * carries the request id because `request-id.ts` sits outside this middleware.
- * See the chain in `http.ts`.
+ * See the chain in `chain.ts`.
  */
 export const timeout = timeoutFor(TIMEOUT);

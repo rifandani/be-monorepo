@@ -159,7 +159,7 @@ describe("app routes", () => {
     assert.strictEqual(response.status, 403);
     assert.strictEqual(await response.text(), "Forbidden");
     // csrf is the innermost middleware, so a rejection still carries what the
-    // ones outside it add. See the nesting in `src/server/http.ts`.
+    // ones outside it add. See the nesting in `src/server/chain.ts`.
     assert.isNotNull(response.headers.get("x-request-id"));
   });
 

@@ -31,3 +31,7 @@ The Effect v4 HTTP API app. It answers three health probes, serves its own OpenA
 ### Security
 
 **Allowed Origin**: The one origin this app trusts, derived from `APP_URL` by taking its origin — scheme, host and port, with no trailing slash, because that is what a browser puts in `Origin`. Two policies read it and neither owns it: CORS decides who may read a response, CSRF decides whose state-changing request is honoured. See [`apps/effect/docs/adr/0003`](./docs/adr/0003-cors-and-csrf-stay-separate-layers.md) for why those two stay separate. _Avoid_: allowed host, app url, base url
+
+### Server
+
+**Middleware Chain**: The eleven global middleware this app wraps its router in, declared as one ordered tuple in `src/server/chain.ts` and folded once. The order is the whole of what it is: registration order is nesting order, and nesting decides what a response that never reaches the router carries out — a cors preflight leaves with no timings, a csrf 403 leaves with everything. Stated once because the count in prose drifted when it was not. _Avoid_: middleware stack, pipeline, the middlewares

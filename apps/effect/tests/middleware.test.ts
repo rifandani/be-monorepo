@@ -16,6 +16,7 @@ import {
 } from "effect/unstable/http";
 
 import { LIVE_PATH, READY_PATH, STARTUP_PATH } from "#api/health.ts";
+import { CHAIN } from "#server/chain.ts";
 import { probeAttributes, probeResult } from "#server/health.ts";
 import { app } from "#server/http.ts";
 import { requestAttributes, requestDuration } from "#server/metrics.ts";
@@ -27,7 +28,7 @@ import { timeoutFor } from "#server/timeout.ts";
  *
  * `tests/app.test.ts` asks what this app serves and what a response carries.
  * This suite asks a different question — does each entry in the chain in
- * `src/server/http.ts` actually run — and it exists because coverage cannot
+ * `src/server/chain.ts` actually run — and it exists because coverage cannot
  * ask it. The `metrics`, `timeout` and `quietProbes` layers all read 100% on
  * the per-file gate while nothing asserted them: the requests in the other
  * suites execute them, and a test on the function each one calls says only
@@ -261,6 +262,58 @@ describe("the global middleware", () => {
       );
 
       assert.strictEqual(state.count, 1);
+    });
+  });
+
+  // Every entry of the Middleware Chain reaches the router.
+  //
+  // `CHAIN` is the declaration and the count below is observed behaviour, so
+  // the two are independent accounts and a fold that drops an entry makes them
+  // disagree. That is the failure this catches: a `slice`, a filter, or a
+  // second copy of a layer already in the chain — `Layer` memoizes on the layer
+  // instance, so a duplicated entry registers once and comes up short here.
+  //
+  // It does not assert the *order*. `tests/nesting.test.ts` does, from its own
+  // hand-written table, and `docs/adr/0005` says why that table must not be
+  // generated from `CHAIN`.
+  //
+  // The registrations are counted by substituting the router: `HttpRouter.make`
+  // is exported and the service is an ordinary `Context.Service`, so a spread
+  // of the real one with a counting `addGlobalMiddleware` is a drop-in. The
+  // identities are anonymous closures, which is why this counts rather than
+  // naming them.
+  describe("the Middleware Chain", () => {
+    it("registers one global middleware per declared entry", async () => {
+      const registrations: unknown[] = [];
+
+      const counting = Layer.effect(HttpRouter.HttpRouter)(
+        // See `cors.ts` for why this is `pipe` and not the two-argument form.
+        HttpRouter.make.pipe(
+          Effect.map((router) =>
+            HttpRouter.HttpRouter.of({
+              ...router,
+              addGlobalMiddleware: (fn) => {
+                registrations.push(fn);
+
+                return router.addGlobalMiddleware(fn);
+              },
+            })
+          )
+        )
+      );
+
+      await Effect.runPromise(
+        Effect.scoped(
+          Layer.build(
+            app.pipe(
+              Layer.provideMerge(counting),
+              Layer.provide([HttpServer.layerServices, configProvider])
+            )
+          )
+        )
+      );
+
+      assert.strictEqual(registrations.length, CHAIN.length);
     });
   });
 

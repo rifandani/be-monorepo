@@ -51,7 +51,7 @@ export const now = (): number => globalThis.performance.now();
  * turn one into a response before this middleware sees it, which is what makes
  * a 404 and a 500 carry the header a 200 does; `tests/app.test.ts` asserts the
  * 404 case. A failure that got past those two would leave without timings. See
- * the chain in `http.ts`, which also states why this sits outside `timeout`.
+ * the chain in `chain.ts`, which also states why this sits outside `timeout`.
  */
 export const timing = HttpRouter.middleware(
   (httpEffect) =>

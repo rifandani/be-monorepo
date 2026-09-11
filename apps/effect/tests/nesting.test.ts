@@ -13,12 +13,17 @@ import { timeoutFor } from "#server/timeout.ts";
 /*
  * What a short-circuited response carries.
  *
- * The chain in `src/server/http.ts` decides this, and until now it was decided
- * in a comment. Four middleware answer without ever reaching the router — the
- * cors preflight, the csrf 403, the timeout 504 and the 404 — and each one
- * carries exactly what the middleware *outside* it adds on the way back. So a
- * reorder in that chain changes the table below, and a reorder that nothing in
- * the table covers is a reorder that changes nothing.
+ * `CHAIN` in `src/server/chain.ts` decides this. Four middleware answer without
+ * ever reaching the router — the cors preflight, the csrf 403, the timeout 504
+ * and the 404 — and each one carries exactly what the middleware *outside* it
+ * adds on the way back. So a reorder in that chain changes the table below, and
+ * a reorder that nothing in the table covers is a reorder that changes nothing.
+ *
+ * The table is written out by hand and must stay that way. It is a second,
+ * independent account of the order, and that is the only reason it catches a
+ * reorder at all: generated from `CHAIN`, it would move whenever `CHAIN` moved
+ * and agree with itself forever. `docs/adr/0005` records that decision, because
+ * from outside it looks like an obvious improvement.
  *
  * There is no 500 row. `onError` sits outside `notFound` and nothing else, so
  * the only thing its position decides is that a 404 passes through it, which
@@ -58,7 +63,7 @@ const slow = HttpRouter.add(
 );
 
 const { dispose, handler } = HttpRouter.toWebHandler(
-  Layer.mergeAll(appWith(timeoutFor(TIMEOUT)), slow).pipe(
+  Layer.mergeAll(appWith({ timeout: timeoutFor(TIMEOUT) }), slow).pipe(
     Layer.provide([HttpServer.layerServices, configProvider])
   ),
   { disableLogger: true }
@@ -104,8 +109,9 @@ const ROWS: readonly Row[] = [
     why: "answered by cors, the fifth entry",
   },
   {
-    // `csrf` is the innermost middleware, so a 403 carries everything the ten
-    // outside it add — the language cookie included, and the allowed origin
+    // `csrf` is the innermost middleware that answers on its own — the two
+    // inside it act only on failures — so a 403 carries everything the eight
+    // outside it add, the language cookie included, and the allowed origin
     // too. Worth knowing why the origin is there: with exactly one entry in
     // `allowedOrigins`, Effect's cors sends that origin to every caller and
     // never compares the request's own (`HttpMiddleware.ts:349`), which is

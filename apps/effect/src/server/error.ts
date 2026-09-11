@@ -81,7 +81,8 @@ export const toErrorResponse = Effect.fn("toErrorResponse")(
  * — the channel is covariant, and there was never a value in it — and it says
  * what is true: nothing reaches the router's own handling any more.
  *
- * This is the innermost middleware, which is deliberate. See `http.ts`.
+ * This is the second-innermost middleware, with only `notFound` inside it, and
+ * that is deliberate. See the chain in `chain.ts`.
  */
 export const onError = HttpRouter.middleware(
   (
