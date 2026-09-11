@@ -28,7 +28,6 @@ stryker-setup-*.js
 **/.env.*
 **/.cache.json
 !**/.env.example
-!**/.env.*.example
 .repos
 node_modules
 build
@@ -152,3 +151,6 @@ prisma/_sqlite/migrations
 
 # containers
 container
+
+# PR Lens writes its previews here. They are rebuilt on demand.
+.pr-lens/

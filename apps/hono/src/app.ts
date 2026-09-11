@@ -19,15 +19,15 @@ import { shake } from "radashi";
 import { match, P } from "ts-pattern";
 import { prettifyError, ZodError } from "zod";
 
-import { ENV } from "@/core/constants/env.js";
-import { SERVICE_NAME, SERVICE_VERSION } from "@/core/constants/global.js";
-import { HTTP_STATUS_CODES } from "@/core/constants/http.js";
-import { languageDetectorOptions } from "@/core/constants/language.js";
-import type { Variables } from "@/core/types/hono.js";
-import { evlogMiddlewareOptions } from "@/core/utils/evlog.js";
-import { routes } from "@/routes/index.js";
-import { authContextMiddleware } from "@/routes/middlewares/auth.js";
-import { identifyMiddleware } from "@/routes/middlewares/identify.js";
+import { ENV } from "#core/constants/env.ts";
+import { SERVICE_NAME, SERVICE_VERSION } from "#core/constants/global.ts";
+import { HTTP_STATUS_CODES } from "#core/constants/http.ts";
+import { languageDetectorOptions } from "#core/constants/language.ts";
+import type { Variables } from "#core/types/hono.ts";
+import { evlogMiddlewareOptions } from "#core/utils/evlog.ts";
+import { routes } from "#routes/index.ts";
+import { authContextMiddleware } from "#routes/middlewares/auth.ts";
+import { identifyMiddleware } from "#routes/middlewares/identify.ts";
 
 const TIMEOUT = 15_000; // 15 seconds
 const NOT_FOUND_MESSAGE = "404 Not found";

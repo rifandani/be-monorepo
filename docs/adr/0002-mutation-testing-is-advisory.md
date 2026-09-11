@@ -75,7 +75,7 @@ A survivor is a candidate until reproduced on its own. Two things in this repo c
 Stryker's `mutate` accepts a position range, so confirming one survivor costs seconds rather than the minutes a full run takes:
 
 ```sh
-bunx stryker run --mutate "packages/core/src/utils/core.ts:42:11-42:19"
+bunx stryker run --mutate "apps/hono/src/core/utils/net.ts:36:12-36:35"
 ```
 
 - **Still survives** → kill it with a test, or suppress it with a reason.
@@ -96,7 +96,7 @@ rm coverage/stryker/incremental.json
 
 Incremental is **off by default** and opted into per invocation, so the flag appears in the shell history of the run that used it. Stryker keys its cache on source and test file content and does **not** watch `stryker.config.mjs`, so a scope change leaves cached results for a scope that no longer exists — silently. Delete the file.
 
-`apps/hono/.env.dev` is a hard precondition. `apps/hono/vitest.config.ts` loads it at config-eval time, so without it every hono test fails, the dry run aborts, and the run dies — including the `packages/core` mutants that have nothing to do with it. `cp apps/hono/.env.dev.example apps/hono/.env.dev` first.
+`apps/hono/.env.dev` is a hard precondition. `apps/hono/vitest.config.ts` loads it at config-eval time, so without it every hono test fails, the dry run aborts, and the run dies — including the `packages/core` mutants that have nothing to do with it. `cp apps/hono/.env.example apps/hono/.env.dev` first.
 
 Reports go to `coverage/stryker/`, sibling to `coverage/vitest` and for the same reason ADR-0001 gives: the `coverage` gitignore entry already covers it, and bare `coverage/` stays reserved for fallow's runtime sidecar traces.
 
@@ -108,4 +108,4 @@ Reports go to `coverage/stryker/`, sibling to `coverage/vitest` and for the same
 - **`tsconfigFile` points at nothing on purpose.** Stryker's sandbox preprocessor rewrites `extends`/`references` paths that escape the sandbox by calling `ts.parseConfigFileTextToJson`, which TypeScript 7's native port removed. There is nothing here to rewrite — the root tsconfig extends the bare specifier `@workspace/typescript-config/base.json`, resolved through symlinked `node_modules` — so the preprocessor is disabled rather than worked around. Revisit if a tsconfig ever gains a relative `extends`.
 - **fallow:** `stryker.config.mjs` is discovered by name by the CLI, so no import edge reaches it and it needs `unused-files: "off"` in `.fallowrc.json`, exactly like `vitest.msw-setup.ts`. `@stryker-mutator/core` and `@stryker-mutator/vitest-runner` need `ignoreDependencies` entries for the same reason — nothing imports them, the CLI and the plugin loader find them by name. The config carries no `@type` JSDoc annotation: it would only be worth a third devDependency (`@stryker-mutator/api`) for editor hints, and `$schema` already covers the same ground. `fallow` is a blocking CI job, so getting any of this wrong turns it red.
 - **The vitest runner overrides parts of the test config, and that is fine.** It forces `coverageAnalysis: "perTest"` and disables vitest coverage, so ADR-0001's `thresholds.perFile` gate never fires during a mutation run and mutants no test reaches are reported `NoCoverage` without invoking vitest.
-- **`related: true` was validated, not assumed.** Vitest's module graph resolves `apps/hono`'s `@workspace/core` alias, so a mutant in `packages/core/src` is still offered to hono tests that reach it. Verified on `packages/core/src/utils/logger.ts`: identical verdicts with `related` true and false, 4 seconds against 1 minute 16.
+- **`related: true` was validated, not assumed.** It was originally validated for a case that no longer exists: Vitest's module graph resolved `apps/hono`'s `@workspace/core` alias, so a mutant in `packages/core/src` was still offered to hono tests reaching it across the project boundary. Verified then on `packages/core/src/utils/logger.ts` — identical verdicts with `related` true and false, 4 seconds against 1 minute 16. That package was dissolved into `apps/hono/src/core/` (see [ADR-0001's amendments](./0001-unit-tests-are-pure-module-logic-and-api-routes-only.md#amendments)), so no mutant now has to cross a project boundary to reach its tests and the measurement above no longer speaks to anything. `related: true` is **re-affirmed on the narrower ground it started from**: it restricts each mutant's test set to the files that import it, and the earlier run showed that costs no verdicts while saving most of the wall clock. The failure mode to watch for is unchanged — a false survivor, not an error.

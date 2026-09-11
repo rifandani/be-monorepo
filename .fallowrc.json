@@ -4,18 +4,12 @@
   "workspaces": {
     "patterns": ["apps/*", "packages/*"]
   },
-  "ignoreExports": [
-    {
-      "file": "vitest.msw.ts",
-      "exports": ["*"]
-    }
-  ],
+  "ignorePatterns": ["repos/**"],
   "overrides": [
     {
       "files": [
         "oxfmt.config.ts",
         "stryker.config.mjs",
-        "vitest.msw-setup.ts",
         "apps/hono/src/routes/middlewares/rate-limit/*.ts",
         "scripts/security/sarif-severity-gate.ts"
       ],

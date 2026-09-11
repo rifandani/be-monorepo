@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { app } from "@/app.js";
-import { ENV } from "@/core/constants/env.js";
+import { app } from "#app.ts";
+import { ENV } from "#core/constants/env.ts";
 
-import { parseServerTimingHeader } from "./util.js";
+import { parseServerTimingHeader } from "./util.ts";
 
 describe("/llms.txt endpoint", () => {
   it("should return the OpenAPI docs and have Server-Timing with total duration under 1s", async () => {

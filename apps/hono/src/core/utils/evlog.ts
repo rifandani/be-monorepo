@@ -8,8 +8,8 @@ import type { EvlogHonoOptions } from "evlog/hono";
 import { createOTLPDrain } from "evlog/otlp";
 import { createDrainPipeline } from "evlog/pipeline";
 
-import { ENV } from "@/core/constants/env.js";
-import { SERVICE_NAME, SERVICE_VERSION } from "@/core/constants/global.js";
+import { ENV } from "#core/constants/env.ts";
+import { SERVICE_NAME, SERVICE_VERSION } from "#core/constants/global.ts";
 
 const enrichers = [
   createUserAgentEnricher(),

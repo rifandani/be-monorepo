@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { app } from "@/app.js";
+import { app } from "#app.ts";
 
-import { parseServerTimingHeader } from "./util.js";
+import { parseServerTimingHeader } from "./util.ts";
 
 describe("/llms-auth.txt endpoint", () => {
   it("should return the auth schema and have Server-Timing with total duration under 1s", async () => {

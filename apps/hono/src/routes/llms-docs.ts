@@ -5,10 +5,10 @@ import { createRoute, z } from "@hono/zod-openapi";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createMarkdownFromOpenApi } from "@scalar/openapi-to-markdown";
 
-import { auth } from "@/auth/utils/index.js";
-import { ENV } from "@/core/constants/env.js";
-import { SERVICE_VERSION } from "@/core/constants/global.js";
-import type { Variables } from "@/core/types/hono.js";
+import { auth } from "#auth/utils/index.ts";
+import { ENV } from "#core/constants/env.ts";
+import { SERVICE_VERSION } from "#core/constants/global.ts";
+import type { Variables } from "#core/types/hono.ts";
 
 const TOKENS_PER_CHARACTER = 4;
 
@@ -46,7 +46,14 @@ type DocsApp = OpenAPIHono<{
 }>;
 
 /**
- * `GET /llms-docs` — the concatenated contents of the repo's `docs` folder.
+ * `GET /llms-docs` — the concatenated contents of the `docs` folder resolved
+ * against `process.cwd()`.
+ *
+ * That is `apps/hono/docs` for every way the server is actually started (each
+ * script runs inside the package), and the repo-root `docs` only when a process
+ * is launched from the repo root — a root `vitest` run, or Stryker's sandbox,
+ * whose cwd is the sandbox root. The tests rebuild their expectation from the
+ * same directory rather than assuming either one.
  */
 const registerDocsFolderRoute = (app: DocsApp) => {
   app.openapi(

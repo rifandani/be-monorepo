@@ -6,7 +6,8 @@
 
 ## 🎯 Todo
 
-- [ ] add new apps for Effect v4 (`apps/effect`) when it's stable. full use of effect ecosystem.
+- [ ] bump deps first, then add drizzle as git subtree into repos folder
+- [ ] optional DAST owasp zap
 
 ## 📝 Environment Variables
 
@@ -15,6 +16,8 @@ For first timer, you need to create the 2 environments in your github repo. Firs
 The value for `HONO_ENV_FILE` in `dev` environment is `.env.dev`, and the value for `HONO_ENV_FILE` in `prod` environment is `.env.prod` for `@workspace/hono`.
 
 Source of truth is local env files. When changing them, update deployment/CI project env too.
+
+`@workspace/effect` needs no secret. Its variables are not sensitive, so the committed `apps/effect/.env.example` holds the whole file. Copy it to `apps/effect/.env.dev` before you run `bun effect dev`. CI needs no step for it, because the tests read no environment.
 
 <!-- For first timer, you need to create 2 environments in your github repo.
 Go to your Github repo -> `Settings` tabs -> `Environments` -> `New environment` -> `dev` and `prod` (that's why in `.github/workflows/ci.yml` we stated `environment: dev` and `environment: prod`).
@@ -35,11 +38,11 @@ Source of truth is local env files. When changing them, update deployment/CI pro
 
 [See here](./apps/hono/README.md)
 
+### @workspace/effect
+
+[See here](./apps/effect/README.md)
+
 ## 📦 Packages
-
-### @workspace/core
-
-[See here](./packages/core/README.md)
 
 ### @workspace/typescript-config
 

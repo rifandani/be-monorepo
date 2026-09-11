@@ -1,13 +1,20 @@
-import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { app } from "@/app.js";
-import { getAllFiles } from "@/routes/llms-docs.js";
+import { app } from "#app.ts";
+import { getAllFiles } from "#routes/llms-docs.ts";
 
-import { parseServerTimingHeader } from "./util.js";
+import { parseServerTimingHeader } from "./util.ts";
 
 describe("/llms-docs endpoint", () => {
   it("returns docs content with length, tokens, and separators", async () => {
@@ -23,10 +30,21 @@ describe("/llms-docs endpoint", () => {
     // TOKENS_PER_CHARACTER is 4 — pin the ratio so a mutant flipping the
     // division cannot hide behind `expect.any(Number)`.
     expect(json.tokens).toBe(json.length / 4);
-    // Each file is joined with a trailing `\n\n`, so ADR prose shows up and the
-    // separator is not an empty string or a Stryker placeholder.
-    expect(json.text).toContain("Mutation testing is advisory");
-    expect(json.text).toContain("\n\n");
+    // The route resolves its docs folder against `process.cwd()`, which is the
+    // repo root under a root `vitest` run but `apps/hono` under `bun hono test`.
+    // Asserting on the prose of one of those trees passes in one runner and
+    // fails in the other, so rebuild the expectation from whichever directory
+    // the route actually read. Reproducing the join here is what pins the
+    // separator: an empty string or a Stryker placeholder no longer matches.
+    const files = await getAllFiles(path.join(process.cwd(), "./docs"));
+    const contents = await Promise.all(
+      files.map((file) => readFile(file, "utf-8"))
+    );
+
+    expect(files.length).toBeGreaterThan(0);
+    expect(json.text).toBe(
+      contents.map((content) => `${content}\n\n`).join("")
+    );
   });
 
   it("includes Server-Timing under 1s", async () => {

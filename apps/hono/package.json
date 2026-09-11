@@ -6,13 +6,17 @@
   "license": "MIT",
   "author": "Tri Rizeki Rifandani",
   "type": "module",
+  "imports": {
+    "#*": "./src/*"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "typerange": "fr",
     "db:pull": "dotenvx run --env-file=.env.dev -- drizzle-kit pull",
     "db:push": "dotenvx run --env-file=.env.dev -- drizzle-kit push --verbose --strict",
     "db:gen": "dotenvx run --env-file=.env.dev -- drizzle-kit generate",
     "db:migrate": "dotenvx run --env-file=.env.dev -- drizzle-kit migrate",
-    "db:seed": "dotenvx run --env-file=.env.dev -- bun ./src/db/seed.ts",
+    "db:seed": "dotenvx run --env-file=.env.dev -- bun ./src/db/seeds/seed-user.ts",
     "db:studio": "dotenvx run --env-file=.env.dev -- drizzle-kit studio --port 3334 --verbose",
     "auth:gen": "dotenvx run --env-file=.env.dev -- bunx @better-auth/cli@latest generate --config ./src/auth/utils/index.ts --output ./src/db/auth-schema.ts --yes",
     "test": "vitest",
@@ -21,17 +25,15 @@
     "dev": "portless run --name hono.be-monorepo --script dev:server",
     "dev:prod:server": "bun run --env-file=.env.prod --hot --preload src/instrumentation.ts src/bun.ts",
     "dev:prod": "portless run --name hono.be-monorepo --script dev:prod:server",
-    "node:dev:server": "dotenvx run --env-file=.env.dev -- tsx watch --import src/instrumentation.ts src/node.ts",
+    "node:dev:server": "dotenvx run --env-file=.env.dev -- node --watch --import ./src/instrumentation.ts src/node.ts",
     "node:dev": "portless run --name hono.be-monorepo --script node:dev:server",
-    "node:dev:prod:server": "dotenvx run --env-file=.env.prod -- tsx watch --import src/instrumentation.ts src/node.ts",
+    "node:dev:prod:server": "dotenvx run --env-file=.env.prod -- node --watch --import ./src/instrumentation.ts src/node.ts",
     "node:dev:prod": "portless run --name hono.be-monorepo --script node:dev:prod:server",
-    "node:build": "dotenvx run --env-file=.env.dev -- tsc -p .",
-    "node:build:prod": "dotenvx run --env-file=.env.prod -- tsc -p .",
-    "node:start": "dotenvx run --env-file=.env.dev -- node ./dist/node.js",
-    "node:start:prod": "dotenvx run --env-file=.env.prod -- node ./dist/node.js"
+    "node:start": "dotenvx run --env-file=.env.dev -- node ./src/node.ts",
+    "node:start:prod": "dotenvx run --env-file=.env.prod -- node ./src/node.ts"
   },
   "dependencies": {
-    "@dotenvx/dotenvx": "2.21.0",
+    "@dotenvx/dotenvx": "2.22.0",
     "@hono/node-server": "2.1.1",
     "@hono/otel": "1.1.2",
     "@hono/zod-openapi": "1.6.1",
@@ -43,33 +45,34 @@
     "@opentelemetry/sdk-metrics": "2.10.0",
     "@opentelemetry/sdk-node": "0.221.0",
     "@opentelemetry/semantic-conventions": "1.43.0",
-    "@scalar/hono-api-reference": "0.11.16",
-    "@scalar/openapi-to-markdown": "0.5.42",
+    "@scalar/hono-api-reference": "0.12.0",
+    "@scalar/openapi-to-markdown": "0.5.43",
     "@t3-oss/env-core": "0.13.11",
-    "@workspace/core": "workspace:*",
-    "better-auth": "1.7.1",
+    "better-auth": "1.7.2",
     "drizzle-orm": "0.45.2",
     "drizzle-seed": "0.3.1",
     "drizzle-zod": "0.8.3",
-    "evlog": "2.27.0",
-    "hono": "4.13.3",
+    "evlog": "2.27.1",
+    "hono": "4.13.5",
     "hono-rate-limiter": "0.5.3",
-    "ky": "2.0.2",
+    "ky": "2.1.0",
     "pg": "8.23.0",
     "radashi": "12.9.1",
     "ts-pattern": "5.9.0",
     "type-fest": "5.8.0",
-    "zod": "4.4.3"
+    "zod": "4.5.4"
   },
   "devDependencies": {
     "@types/bun": "1.4.0",
-    "@types/node": "26.2.0",
+    "@types/node": "26.4.0",
     "@types/pg": "8.23.1",
     "@workspace/typescript-config": "workspace:*",
     "drizzle-kit": "0.31.10",
-    "portless": "0.15.5",
-    "tsx": "4.23.12",
+    "portless": "0.15.6",
     "typescript": "7.0.2",
     "vitest": "4.1.11"
+  },
+  "engines": {
+    "node": ">=26.0.0"
   }
 }
