@@ -48,13 +48,22 @@ describe("app routes", () => {
       paths.map(async (path) => {
         const response = await handler(new Request(`http://localhost${path}`));
 
-        return { body: await response.json(), path, status: response.status };
+        return {
+          body: await response.json(),
+          path,
+          response,
+          status: response.status,
+        };
       })
     );
 
     for (const answer of answers) {
       assert.strictEqual(answer.status, 200, answer.path);
       assert.deepStrictEqual(answer.body, { checks: [], status: "ok" });
+      assert.strictEqual(
+        answer.response.headers.get("cache-control"),
+        SECURE_HEADERS["cache-control"]
+      );
     }
   });
 

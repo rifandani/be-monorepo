@@ -16,6 +16,10 @@ import { HttpRouter, HttpServerResponse } from "effect/unstable/http";
  * makes, not an api.
  */
 export const SECURE_HEADERS = {
+  // Dynamic api responses, not static assets. ZAP rule 10015 expects this
+  // trio for content that must not be cached; `apps/hono` sets a different
+  // policy on its llms routes because that content is cacheable.
+  "cache-control": "no-cache, no-store, must-revalidate",
   // Only this origin may embed a response of ours in its documents.
   "cross-origin-opener-policy": "same-origin",
   "cross-origin-resource-policy": "same-origin",

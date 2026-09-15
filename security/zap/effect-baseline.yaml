@@ -1,0 +1,66 @@
+# DAST — passive baseline for @workspace/effect.
+#
+# The app serves `/health` and two probes. Nothing else. So this plan tests one
+# thing: the response headers that src/server/secure-headers.ts sets. The unit
+# tests next to that file already cover them, which means this plan finds
+# nothing today.
+#
+# It exists so the wiring is in place. When the app grows an API, this file
+# grows a spider scope and an `openapi` job, and the workflow needs no change.
+#
+# Active counterpart: `effect-active.yaml`. It attacks the same three probes.
+# Grow both when the app gains an API.
+env:
+  contexts:
+    - name: effect
+      urls:
+        # The spider cannot discover these: there is no `/`, no html links, and
+        # no OpenAPI document yet. Seed the three probes directly, as hono does
+        # for `/llms-docs` and `/llms.txt`.
+        - ${ZAP_TARGET}/health/startup
+        - ${ZAP_TARGET}/health/live
+        - ${ZAP_TARGET}/health/ready
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  - type: passiveScan-config
+    parameters:
+      maxAlertsPerRule: 10
+      scanOnlyInScope: true
+
+  - type: spider
+    parameters:
+      context: effect
+      maxDuration: 2
+      postForm: false
+      processForm: false
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 2
+
+  - type: report
+    parameters:
+      template: sarif-json
+      reportDir: /zap/wrk/.zap-reports
+      reportFile: effect-baseline.sarif
+      reportTitle: "effect — DAST baseline"
+
+  - type: report
+    parameters:
+      template: traditional-html
+      reportDir: /zap/wrk/.zap-reports
+      reportFile: effect-baseline.html
+      reportTitle: "effect — DAST baseline"
+
+  - type: exitStatus
+    parameters:
+      errorLevel: High
+      warnLevel: Medium
+      okExitValue: 0
+      errorExitValue: 1
+      warnExitValue: 0
+    alwaysRun: true

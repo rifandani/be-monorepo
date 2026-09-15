@@ -6,8 +6,11 @@
 #
 # Secret detection (gitleaks) lives in ci.yml so it stays on every PR/push.
 #
+# DAST lives in its own workflow, `.github/workflows/dast.yml`, because it
+# needs a running target rather than a checkout. Active plans are local-only.
+#
 # Explicitly out of scope here (align with item 10):
-#   - DAST / web app assessment / platform assessment / penetration testing
+#   - Web app assessment / platform assessment / penetration testing
 #   - Container / IaC scanning (no production images or Terraform in this repo)
 #
 # Exception: apply PR label `security-exception` (Application lead only).

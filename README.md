@@ -7,7 +7,6 @@
 ## 🎯 Todo
 
 - [ ] bump deps first, then add drizzle as git subtree into repos folder
-- [ ] optional DAST owasp zap
 
 ## 📝 Environment Variables
 
@@ -47,6 +46,31 @@ Source of truth is local env files. When changing them, update deployment/CI pro
 ### @workspace/typescript-config
 
 [See here](./packages/typescript-config/README.md)
+
+## 🛡️ Security
+
+| Control | What it does | Runs in | Docs |
+| --- | --- | --- | --- |
+| SCA | Scans dependencies for known advisories (osv-scanner). | `.github/workflows/security.yml` | `scripts/security/sca-gate.ts` header |
+| SAST | Scans the source for vulnerable patterns (CodeQL). | `.github/workflows/security.yml` | `scripts/security/sarif-severity-gate.ts` header |
+| Secret detection | Scans the git history for credentials (gitleaks). | `.github/workflows/ci.yml` | `.gitleaks.toml` |
+| DAST | Attacks the running app (OWASP ZAP). | `.github/workflows/dast.yml` | [Tutorial](./docs/security/dast-tutorial.md) · [How-to](./docs/security/dast-how-to.md) |
+
+### DAST (OWASP ZAP)
+
+Docker must be running. Start the app first, then:
+
+```bash
+# passive, safe against anything
+ZAP_TARGET=https://hono.be-monorepo.localhost bun zap:hono:baseline
+ZAP_TARGET=https://effect.be-monorepo.localhost bun zap:effect:baseline
+
+# active. It attacks. Point it at a database you are happy to lose.
+ZAP_TARGET=https://hono.be-monorepo.localhost bun zap:hono:active
+ZAP_TARGET=https://effect.be-monorepo.localhost bun zap:effect:active
+```
+
+Reports land in `.zap-reports/`, which is gitignored.
 
 ## 📚 References
 

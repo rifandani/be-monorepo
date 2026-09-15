@@ -4,6 +4,7 @@ import path from "node:path";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createMarkdownFromOpenApi } from "@scalar/openapi-to-markdown";
+import type { MiddlewareHandler } from "hono";
 
 import { auth } from "#auth/utils/index.ts";
 import { ENV } from "#core/constants/env.ts";
@@ -11,6 +12,15 @@ import { SERVICE_VERSION } from "#core/constants/global.ts";
 import type { Variables } from "#core/types/hono.ts";
 
 const TOKENS_PER_CHARACTER = 4;
+const LLMS_CACHE_MAX_AGE_SECONDS = 3600;
+
+const llmsCacheControl: MiddlewareHandler = (c, next) => {
+  c.header(
+    "Cache-Control",
+    `public, max-age=${LLMS_CACHE_MAX_AGE_SECONDS}, immutable`
+  );
+  return next();
+};
 
 /**
  * Get all files in a directory
@@ -199,6 +209,10 @@ const registerOpenApiMarkdownRoute = async (app: DocsApp) => {
  * at registration time, so they go last.
  */
 export const llmsDocsRoutes = async (app: DocsApp) => {
+  app.use("/llms-docs", llmsCacheControl);
+  app.use("/llms.txt", llmsCacheControl);
+  app.use("/llms-auth.txt", llmsCacheControl);
+
   registerDocsFolderRoute(app);
   await registerAuthMarkdownRoute(app);
   await registerOpenApiMarkdownRoute(app);

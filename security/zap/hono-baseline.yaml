@@ -1,0 +1,75 @@
+# DAST — passive baseline for @workspace/hono.
+#
+# Safe against a live target. No active scan runs. The spider only reads:
+# `postForm` and `processForm` are off. Scope is limited to our own routes —
+# OpenAPI viewers, the spec JSON, and better-auth are out of scope. Those are
+# third-party or generated surfaces, not code we own. Custom routes are seeded
+# directly because a bare `/` returns 404 with no HTML links.
+#
+# This is the only plan that may point at production.
+#
+# Target comes from the ZAP_TARGET environment variable. There is no default on
+# purpose — a plan that silently scans localhost is worse than one that fails.
+#
+# Local:  bun zap:hono:baseline
+# CI:     .github/workflows/dast.yml, job `prod-baseline`
+env:
+  contexts:
+    - name: hono
+      urls:
+        - ${ZAP_TARGET}/llms-docs
+        - ${ZAP_TARGET}/llms.txt
+      excludePaths:
+        - ".*/openapi/?$"
+        - ".*/openapi/docs.*"
+        - ".*/api/auth/.*"
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  - type: passiveScan-config
+    parameters:
+      maxAlertsPerRule: 10
+      scanOnlyInScope: true
+
+  - type: spider
+    parameters:
+      context: hono
+      maxDuration: 5
+      # Read-only. A form submit against production would write real rows
+      # through better-auth. These two defaults are `true`, so both are stated.
+      postForm: false
+      processForm: false
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 10
+
+  # SARIF feeds GitHub code scanning, the same path `sast` in security.yml uses.
+  - type: report
+    parameters:
+      template: sarif-json
+      reportDir: /zap/wrk/.zap-reports
+      reportFile: hono-baseline.sarif
+      reportTitle: "hono — DAST baseline"
+
+  # HTML is for a human reading the CI artifact.
+  - type: report
+    parameters:
+      template: traditional-html
+      reportDir: /zap/wrk/.zap-reports
+      reportFile: hono-baseline.html
+      reportTitle: "hono — DAST baseline"
+
+  # High fails the job. Medium and below are reported, not blocking:
+  # `warnExitValue: 0` is what makes a warning non-blocking.
+  - type: exitStatus
+    parameters:
+      errorLevel: High
+      warnLevel: Medium
+      okExitValue: 0
+      errorExitValue: 1
+      warnExitValue: 0
+    alwaysRun: true

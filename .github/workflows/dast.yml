@@ -1,0 +1,101 @@
+# Dynamic application security testing (DAST) with OWASP ZAP.
+#
+# The plans live in `security/zap/` and are the same files `bun zap:*` runs
+# locally. `zaproxy/action-af` issues the same `docker run` this script does —
+# repository root at `/zap/wrk`, `--network host` — so a plan that passes on a
+# laptop behaves the same here.
+#
+# One job: passive baseline only. The spider submits no forms and no active
+# scanner runs, so it is safe against a live service. Active plans (`hono-active`)
+# are local-only — see docs/security/dast-tutorial.md.
+#
+# The production URLs come from repository variables, not secrets — a URL is
+# not a credential, and this keeps the whole prod env file off the runner.
+# Set them under Settings → Secrets and variables → Actions → Variables:
+#   PROD_HONO_URL, PROD_EFFECT_URL
+# Neither exists yet. An app whose variable is empty is skipped, so this
+# workflow is green today and lights up per app as each is deployed.
+#
+# There is no PR trigger and so no `security-exception` escape hatch: nothing
+# here can block a merge. A High finding fails a scheduled or manual run only.
+name: DAST
+
+on:
+  schedule:
+    # Weekly, offset from the Security workflow so the two do not collide.
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+env:
+  FORCE_COLOR: "1"
+
+permissions:
+  contents: read
+
+jobs:
+  prod-baseline:
+    name: Baseline (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: hono
+            url: ${{ vars.PROD_HONO_URL }}
+          - app: effect
+            url: ${{ vars.PROD_EFFECT_URL }}
+    steps:
+      - name: Check the target is configured
+        id: target
+        env:
+          TARGET: ${{ matrix.url }}
+        run: |
+          if [ -z "$TARGET" ]; then
+            echo "No PROD_*_URL variable set for ${{ matrix.app }}; nothing to scan." \
+              >> "$GITHUB_STEP_SUMMARY"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.target.outputs.skip == 'false'
+        uses: actions/checkout@v7
+
+      - name: Baseline scan
+        if: steps.target.outputs.skip == 'false'
+        uses: zaproxy/action-af@v0.3.0
+        env:
+          ZAP_TARGET: ${{ matrix.url }}
+        with:
+          plan: security/zap/${{ matrix.app }}-baseline.yaml
+          # A list of variable NAMES, not assignments. The action turns each
+          # into a `-e NAME` and Docker copies the value from the step env.
+          docker_env_vars: |
+            ZAP_TARGET
+
+      - name: Locate the SARIF report
+        id: sarif
+        if: always() && steps.target.outputs.skip == 'false'
+        run: |
+          FILE=$(find .zap-reports -name '${{ matrix.app }}-baseline.sarif*' 2>/dev/null | head -1)
+          echo "file=${FILE}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload SARIF to code scanning
+        if: always() && steps.sarif.outputs.file != ''
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: ${{ steps.sarif.outputs.file }}
+          category: "/dast:${{ matrix.app }}-baseline"
+
+      - name: Save reports as artifact
+        if: always() && steps.target.outputs.skip == 'false'
+        uses: actions/upload-artifact@v7
+        with:
+          name: dast-${{ matrix.app }}-baseline
+          path: .zap-reports
+          retention-days: 7

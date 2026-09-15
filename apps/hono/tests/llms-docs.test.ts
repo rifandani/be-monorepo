@@ -26,10 +26,9 @@ describe("/llms-docs endpoint", () => {
     };
 
     expect(res.status).toBe(200);
-    expect(json.text).toHaveLength(json.length);
-    // TOKENS_PER_CHARACTER is 4 — pin the ratio so a mutant flipping the
-    // division cannot hide behind `expect.any(Number)`.
-    expect(json.tokens).toBe(json.length / 4);
+    expect(res.headers.get("Cache-Control")).toBe(
+      "public, max-age=3600, immutable"
+    );
     // The route resolves its docs folder against `process.cwd()`, which is the
     // repo root under a root `vitest` run but `apps/hono` under `bun hono test`.
     // Asserting on the prose of one of those trees passes in one runner and
@@ -40,11 +39,16 @@ describe("/llms-docs endpoint", () => {
     const contents = await Promise.all(
       files.map((file) => readFile(file, "utf-8"))
     );
+    const expectedText = contents.map((content) => `${content}\n\n`).join("");
 
     expect(files.length).toBeGreaterThan(0);
-    expect(json.text).toBe(
-      contents.map((content) => `${content}\n\n`).join("")
-    );
+    // TOKENS_PER_CHARACTER is 4 — pin the ratio so a mutant flipping the
+    // division cannot hide behind `expect.any(Number)`.
+    expect(json).toStrictEqual({
+      length: expectedText.length,
+      text: expectedText,
+      tokens: expectedText.length / 4,
+    });
   });
 
   it("includes Server-Timing under 1s", async () => {

@@ -1,0 +1,93 @@
+# DAST — active scan for @workspace/effect.
+#
+# THIS ATTACKS THE TARGET. Local disposable stacks only. Never production.
+# CI runs baseline plans only; this plan is invoked via `bun zap:effect:active`.
+#
+# The app serves three health probes and nothing else. The spider cannot
+# discover them — no `/`, no html links, no OpenAPI — so they are seeded
+# directly, as in `effect-baseline.yaml`.
+#
+# `csrf.ts` rejects a cross-site form post whose Origin does not match
+# `APP_URL`. The `replacer` job sends the app's own origin, the same fix as
+# `hono-active.yaml`.
+#
+# `threadPerHost: 1` with `delayInMs: 200` keeps the scan from overwhelming a
+# local dev server.
+env:
+  contexts:
+    - name: effect
+      urls:
+        - ${ZAP_TARGET}/health/startup
+        - ${ZAP_TARGET}/health/live
+        - ${ZAP_TARGET}/health/ready
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  # Must precede every job that sends a request.
+  - type: replacer
+    parameters:
+      deleteAllRules: true
+    rules:
+      - description: "Origin the csrf middleware accepts"
+        matchType: req_header
+        matchString: Origin
+        matchRegex: false
+        replacementString: ${ZAP_TARGET}
+        tokenProcessing: false
+      - description: "Referer, for the same reason"
+        matchType: req_header
+        matchString: Referer
+        matchRegex: false
+        replacementString: ${ZAP_TARGET}
+        tokenProcessing: false
+
+  - type: passiveScan-config
+    parameters:
+      maxAlertsPerRule: 10
+      scanOnlyInScope: true
+
+  - type: spider
+    parameters:
+      context: effect
+      maxDuration: 2
+      postForm: false
+      processForm: false
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 2
+
+  - type: activeScan
+    parameters:
+      context: effect
+      threadPerHost: 1
+      delayInMs: 200
+      maxScanDurationInMins: 10
+      maxRuleDurationInMins: 5
+      handleAntiCSRFTokens: true
+
+  - type: report
+    parameters:
+      template: sarif-json
+      reportDir: /zap/wrk/.zap-reports
+      reportFile: effect-active.sarif
+      reportTitle: "effect — DAST active scan"
+
+  - type: report
+    parameters:
+      template: traditional-html
+      reportDir: /zap/wrk/.zap-reports
+      reportFile: effect-active.html
+      reportTitle: "effect — DAST active scan"
+
+  - type: exitStatus
+    parameters:
+      errorLevel: High
+      warnLevel: Medium
+      okExitValue: 0
+      errorExitValue: 1
+      warnExitValue: 0
+    alwaysRun: true

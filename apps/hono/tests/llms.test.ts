@@ -14,6 +14,9 @@ describe("/llms.txt endpoint", () => {
     const regex = new RegExp(ENV.APP_TITLE, "u");
 
     expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toBe(
+      "public, max-age=3600, immutable"
+    );
     expect(text).toMatch(regex);
     expect(dur).not.toBeNull();
     expect(dur).toBeLessThan(1000);
