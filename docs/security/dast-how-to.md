@@ -9,10 +9,10 @@ If you have not run a scan before, read the [tutorial](./dast-tutorial.md) first
 
 | Command | Plan | Attacks? |
 | --- | --- | --- |
-| `bun zap:hono:baseline` | `security/zap/hono-baseline.yaml` | No |
-| `bun zap:hono:active` | `security/zap/hono-active.yaml` | Yes |
-| `bun zap:effect:baseline` | `security/zap/effect-baseline.yaml` | No |
-| `bun zap:effect:active` | `security/zap/effect-active.yaml` | Yes |
+| `bun zap:hono:baseline` | `.github/security/zap/hono-baseline.yaml` | No |
+| `bun zap:hono:active` | `.github/security/zap/hono-active.yaml` | Yes |
+| `bun zap:effect:baseline` | `.github/security/zap/effect-baseline.yaml` | No |
+| `bun zap:effect:active` | `.github/security/zap/effect-active.yaml` | Yes |
 
 Every command needs `ZAP_TARGET`. It has no default.
 
@@ -29,7 +29,7 @@ Every command needs `ZAP_TARGET`. It has no default.
 
 | Path | What it is |
 | --- | --- |
-| `security/zap/*.yaml` | the scan plans |
+| `.github/security/zap/*.yaml` | the scan plans |
 | `scripts/security/zap.ts` | the local runner |
 | `.github/workflows/dast.yml` | the CI workflow |
 | `.zap-reports/` | output, gitignored |
@@ -73,7 +73,7 @@ Rules:
   A global filter hides the same class of finding everywhere, including where it matters.
 - Always write a reason in a comment above the entry, with a date.
 
-This mirrors `security/sca-allowlist.json`, where dependency findings get timed exceptions with reasons.
+This mirrors `.github/security/sca-allowlist.json`, where dependency findings get timed exceptions with reasons.
 Rule ids are at <https://www.zaproxy.org/docs/alerts/>.
 
 ## Fix a failing sign-in
@@ -150,7 +150,7 @@ Go to Actions → DAST → Run workflow. It runs the production baselines only. 
 
 ## Add a scan for a new app
 
-1. Copy `security/zap/effect-baseline.yaml` to `<app>-baseline.yaml`. Change the context `name`.
+1. Copy `.github/security/zap/effect-baseline.yaml` to `<app>-baseline.yaml`. Change the context `name`.
 2. Add a script to the root `package.json`:
 
    ```json
@@ -175,7 +175,7 @@ Active scan rules work by mutating inputs, so with no inputs there is nothing to
 Write one when `apps/effect` has a route that accepts input and changes state.
 At that point:
 
-1. Copy `security/zap/hono-active.yaml`.
+1. Copy `.github/security/zap/hono-active.yaml`.
 2. Keep the `replacer` job unchanged. `apps/effect/src/server/csrf.ts` and `origin.ts` do the same origin check `apps/hono` does.
 3. Replace the `authentication` block with whatever the effect app uses.
 4. Point the `openapi` job at the effect app's own document.

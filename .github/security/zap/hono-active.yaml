@@ -74,7 +74,7 @@ jobs:
         tokenProcessing: false
 
   # Triaged findings go here, with a reason and a date, the same idea as the
-  # timed entries in security/sca-allowlist.json.
+  # timed entries in .github/security/sca-allowlist.json.
   - type: alertFilter
     parameters:
       deleteGlobalAlerts: true

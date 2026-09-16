@@ -5,11 +5,11 @@
  * This is the local half of the pair. CI runs the same plan files through
  * `zaproxy/action-af`, which issues an equivalent `docker run` with the
  * repository root mounted at `/zap/wrk`. Keeping the two in step is why this
- * script mounts the root and not `security/zap` — `reportDir` in the plans is
+ * script mounts the root and not `.github/security/zap` — `reportDir` in the plans is
  * then one path for both.
  *
  * Usage: bun scripts/security/zap.ts <plan>   (or bun zap:hono:baseline)
- *   plan   one of the basenames in security/zap (e.g. hono-baseline)
+ *   plan   one of the basenames in .github/security/zap (e.g. hono-baseline)
  *
  * Env:
  *   ZAP_TARGET          required, no default. The base URL to scan.
@@ -29,7 +29,7 @@ import path from "node:path";
 import { SEED_USER } from "../../apps/hono/src/db/seeds/seed-user-data.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
-const PLAN_DIR = path.join(REPO_ROOT, "security/zap");
+const PLAN_DIR = path.join(REPO_ROOT, ".github/security/zap");
 const REPORT_DIR = path.join(REPO_ROOT, ".zap-reports");
 const DEFAULT_IMAGE = "ghcr.io/zaproxy/zaproxy:stable";
 
@@ -138,7 +138,7 @@ const args = [
   "zap.sh",
   "-cmd",
   "-autorun",
-  `/zap/wrk/security/zap/${plan}.yaml`,
+  `/zap/wrk/.github/security/zap/${plan}.yaml`,
 ];
 
 console.log(`zap: ${plan} against ${target}`);

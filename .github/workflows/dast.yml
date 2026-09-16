@@ -1,6 +1,6 @@
 # Dynamic application security testing (DAST) with OWASP ZAP.
 #
-# The plans live in `security/zap/` and are the same files `bun zap:*` runs
+# The plans live in `.github/security/zap/` and are the same files `bun zap:*` runs
 # locally. `zaproxy/action-af` issues the same `docker run` this script does —
 # repository root at `/zap/wrk`, `--network host` — so a plan that passes on a
 # laptop behaves the same here.
@@ -71,7 +71,7 @@ jobs:
         env:
           ZAP_TARGET: ${{ matrix.url }}
         with:
-          plan: security/zap/${{ matrix.app }}-baseline.yaml
+          plan: .github/security/zap/${{ matrix.app }}-baseline.yaml
           # A list of variable NAMES, not assignments. The action turns each
           # into a `-e NAME` and Docker copies the value from the step env.
           docker_env_vars: |
