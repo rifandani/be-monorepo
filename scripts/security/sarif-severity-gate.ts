@@ -102,11 +102,16 @@ for (const file of files) {
 
       const loc =
         result.locations?.[0]?.physicalLocation?.artifactLocation?.uri;
+      // Vendored reference trees are not product code; ignore even if a scan
+      // config missed them.
+      if (loc && /(?:^|\/)repos\//u.test(loc)) {
+        continue;
+      }
       blockers.push({
         ruleId: result.ruleId ?? "unknown",
         severity: Number.isNaN(securitySeverity) ? -1 : securitySeverity,
-        message: result.message?.text ?? "",
         file: loc,
+        message: result.message?.text ?? "",
       });
     }
   }

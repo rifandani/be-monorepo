@@ -8,3 +8,7 @@ useDefault = true
 [[allowlists]]
 description = "Example env templates"
 paths = ['''(.*?)\\.env\\..*\\.example$''', '''(.*?)\\.env\\.example$''']
+
+[[allowlists]]
+description = "Vendored reference repositories"
+paths = ['''^repos/''']

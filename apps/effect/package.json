@@ -1,0 +1,56 @@
+{
+  "name": "@workspace/effect",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Effect v4 HTTP API template",
+  "license": "MIT",
+  "author": "Tri Rizeki Rifandani",
+  "type": "module",
+  "imports": {
+    "#*": "./src/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "typerange": "fr",
+    "test": "vitest",
+    "portless": "portless proxy start --https",
+    "dev:server": "bun run --env-file=.env.dev --hot src/bun.ts",
+    "dev": "portless run --name effect.be-monorepo --script dev:server",
+    "dev:prod:server": "bun run --env-file=.env.prod --hot src/bun.ts",
+    "dev:prod": "portless run --name effect.be-monorepo --script dev:prod:server",
+    "node:dev:server": "dotenvx run --env-file=.env.dev -- node --watch src/node.ts",
+    "node:dev": "portless run --name effect.be-monorepo --script node:dev:server",
+    "node:dev:prod:server": "dotenvx run --env-file=.env.prod -- node --watch src/node.ts",
+    "node:dev:prod": "portless run --name effect.be-monorepo --script node:dev:prod:server",
+    "node:start": "dotenvx run --env-file=.env.dev -- node ./src/node.ts",
+    "node:start:prod": "dotenvx run --env-file=.env.prod -- node ./src/node.ts"
+  },
+  "dependencies": {
+    "@dotenvx/dotenvx": "2.22.0",
+    "@effect/opentelemetry": "4.0.0-rc.112",
+    "@effect/platform-bun": "4.0.0-rc.112",
+    "@effect/platform-node": "4.0.0-rc.112",
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/exporter-logs-otlp-http": "0.221.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "0.221.0",
+    "@opentelemetry/exporter-trace-otlp-http": "0.221.0",
+    "@opentelemetry/sdk-logs": "0.221.0",
+    "@opentelemetry/sdk-metrics": "2.10.0",
+    "@opentelemetry/sdk-trace-base": "2.10.0",
+    "@opentelemetry/semantic-conventions": "1.43.0",
+    "effect": "4.0.0-rc.112"
+  },
+  "devDependencies": {
+    "@effect/language-service": "0.87.2",
+    "@effect/vitest": "4.0.0-rc.112",
+    "@types/bun": "1.4.0",
+    "@types/node": "26.4.0",
+    "@workspace/typescript-config": "workspace:*",
+    "portless": "0.15.6",
+    "typescript": "7.0.2",
+    "vitest": "4.1.11"
+  },
+  "engines": {
+    "node": ">=26.0.0"
+  }
+}

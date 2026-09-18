@@ -1,11 +1,11 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
 
-import { ENV } from "@/core/constants/env.js";
-import { SERVICE_VERSION } from "@/core/constants/global.js";
-import type { Variables } from "@/core/types/hono.js";
-import { authRoutes } from "@/routes/auth.js";
-import { llmsDocsRoutes } from "@/routes/llms-docs.js";
+import { ENV } from "#core/constants/env.ts";
+import { SERVICE_VERSION } from "#core/constants/global.ts";
+import type { Variables } from "#core/types/hono.ts";
+import { authRoutes } from "#routes/auth.ts";
+import { llmsDocsRoutes } from "#routes/llms-docs.ts";
 
 export const routes = async (
   app: OpenAPIHono<{

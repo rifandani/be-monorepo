@@ -2,10 +2,10 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, openAPI } from "better-auth/plugins";
 
-import { ENV } from "@/core/constants/env.js";
-import { ipAddressHeaders } from "@/core/utils/net.js";
-import { db } from "@/db/index.js";
-import * as schema from "@/db/schema.js";
+import { ENV } from "#core/constants/env.ts";
+import { ipAddressHeaders } from "#core/utils/net.ts";
+import { db } from "#db/index.ts";
+import * as schema from "#db/schema.ts";
 
 const RATE_LIMIT_WINDOW_SECONDS = 15; // 15 seconds
 const RATE_LIMIT_MAX_REQUESTS = 10 * RATE_LIMIT_WINDOW_SECONDS; // 10 req/s

@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 
-import type { Variables } from "@/core/types/hono.js";
+import type { Variables } from "#core/types/hono.ts";
 
-import { identifyMiddleware } from "./identify.js";
+import { identifyMiddleware } from "./identify.ts";
 
 interface FakeLog {
   set: ReturnType<typeof vi.fn<(value: unknown) => void>>;

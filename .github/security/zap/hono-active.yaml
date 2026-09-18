@@ -1,0 +1,141 @@
+# DAST — authenticated active scan for @workspace/hono.
+#
+# THIS ATTACKS THE TARGET. Local disposable stacks only. Never production.
+# CI runs baseline plans only; this plan is invoked via `bun zap:hono:active`.
+#
+# Two things in the app shape this plan, and neither is switched off to make the
+# scan pass. The scanner is configured to satisfy them instead:
+#
+#   1. `csrf({ origin: [ENV.APP_URL] })` in app.ts, plus better-auth's own
+#      `trustedOrigins`. Both reject a write whose Origin does not match. The
+#      `replacer` job sends the app's own origin, which is what a browser on
+#      the allowed origin sends. Without it the active scan dies at the
+#      middleware and reports nothing.
+#   2. OpenAPI specs and better-auth routes are out of scope — same
+#      `excludePaths` as `hono-baseline.yaml`. They are third-party or generated
+#      surfaces, not code we own. The scan still signs in through
+#      `/api/auth/sign-in/email` via the `authentication` block; that request is
+#      not an active-scan target.
+#
+# `threadPerHost: 1` with `delayInMs: 200` keeps the scan from overwhelming a
+# local dev server. In-scope routes have no rate limit today.
+#
+# Credentials are the committed seed user. The database is a disposable
+# container, so they are not a secret. See apps/hono/src/db/seeds/seed-user-data.ts.
+env:
+  contexts:
+    - name: hono
+      urls:
+        - ${ZAP_TARGET}/llms-docs
+        - ${ZAP_TARGET}/llms.txt
+      excludePaths:
+        - ".*/openapi/?$"
+        - ".*/openapi/docs.*"
+        - ".*/api/auth/.*"
+      authentication:
+        method: json
+        parameters:
+          loginRequestUrl: ${ZAP_TARGET}/api/auth/sign-in/email
+          loginRequestBody: '{"email":"{%username%}","password":"{%password%}"}'
+      sessionManagement:
+        method: cookie
+      verification:
+        method: response
+        # A successful sign-in returns `{ redirect, token, user }`.
+        loggedInRegex: '"token"'
+        loggedOutRegex: '"INVALID_EMAIL_OR_PASSWORD"'
+      users:
+        - name: seed
+          credentials:
+            username: ${ZAP_USER_EMAIL}
+            password: ${ZAP_USER_PASSWORD}
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  # Must precede every job that sends a request, the login request included.
+  - type: replacer
+    parameters:
+      deleteAllRules: true
+    rules:
+      - description: "Origin the csrf() middleware and better-auth trustedOrigins accept"
+        matchType: req_header
+        matchString: Origin
+        matchRegex: false
+        replacementString: ${ZAP_TARGET}
+        tokenProcessing: false
+      - description: "Referer, for the same reason"
+        matchType: req_header
+        matchString: Referer
+        matchRegex: false
+        replacementString: ${ZAP_TARGET}
+        tokenProcessing: false
+
+  # Triaged findings go here, with a reason and a date, the same idea as the
+  # timed entries in .github/security/sca-allowlist.json.
+  - type: alertFilter
+    parameters:
+      deleteGlobalAlerts: true
+    alertFilters:
+      # 2026-09-15 — `/llms-auth.txt` markdown describes `errorCallbackURL`; ZAP
+      # reads the word "error" as a stack trace disclosure.
+      - ruleId: 90022
+        ruleName: "Application Error Disclosure"
+        newRisk: "False Positive"
+        url: ".*/llms-auth\\.txt.*"
+        urlRegex: true
+      - ruleId: 10023
+        ruleName: "Information Disclosure - Debug Error Messages"
+        newRisk: "False Positive"
+        url: ".*/llms-auth\\.txt.*"
+        urlRegex: true
+
+  - type: passiveScan-config
+    parameters:
+      maxAlertsPerRule: 10
+      scanOnlyInScope: true
+
+  - type: spider
+    parameters:
+      context: hono
+      user: seed
+      maxDuration: 5
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 10
+
+  - type: activeScan
+    parameters:
+      context: hono
+      user: seed
+      threadPerHost: 1
+      delayInMs: 200
+      maxScanDurationInMins: 30
+      maxRuleDurationInMins: 5
+      handleAntiCSRFTokens: true
+
+  - type: report
+    parameters:
+      template: sarif-json
+      reportDir: /zap/wrk/.zap-reports
+      reportFile: hono-active.sarif
+      reportTitle: "hono — DAST active scan"
+
+  - type: report
+    parameters:
+      template: traditional-html
+      reportDir: /zap/wrk/.zap-reports
+      reportFile: hono-active.html
+      reportTitle: "hono — DAST active scan"
+
+  - type: exitStatus
+    parameters:
+      errorLevel: High
+      warnLevel: Medium
+      okExitValue: 0
+      errorExitValue: 1
+      warnExitValue: 0
+    alwaysRun: true

@@ -19,8 +19,8 @@ import {
 } from "@opentelemetry/semantic-conventions";
 import { initLogger, log } from "evlog";
 
-import { SERVICE_NAME, SERVICE_VERSION } from "@/core/constants/global.js";
-import { flushEvlogDrain } from "@/core/utils/evlog.js";
+import { SERVICE_NAME, SERVICE_VERSION } from "#core/constants/global.ts";
+import { flushEvlogDrain } from "#core/utils/evlog.ts";
 
 initLogger({
   env: { service: SERVICE_NAME, version: SERVICE_VERSION },

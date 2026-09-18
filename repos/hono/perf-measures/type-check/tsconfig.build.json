@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "exclude": ["dist", "scripts"],
+  "references": [
+    { "path": "../../tsconfig.build.json" }
+  ]
+}
