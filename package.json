@@ -38,7 +38,7 @@
     "test:mutate:inc": "stryker run --incremental",
     "typecheck": "bun run --parallel hono:typecheck effect:typecheck",
     "typerange": "bun run --parallel hono:typerange effect:typerange",
-    "lint-typecheck": "bun run --parallel lint hono:typecheck effect:typecheck hono:typerange effect:typerange",
+    "lint-typecheck": "bun run --parallel lint hono:typecheck effect:typecheck",
     "hono": "bun --elide-lines=0 --filter @workspace/hono",
     "hono:typecheck": "bun hono typecheck",
     "hono:typerange": "bun hono typerange",
