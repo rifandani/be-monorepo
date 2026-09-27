@@ -1,10 +1,10 @@
 import { serve } from "@hono/node-server";
 import { log } from "evlog";
 
-import { PORT } from "@/core/constants/global.js";
+import { PORT } from "#core/constants/global.ts";
 
-import { app } from "./app.js";
-import { shutdownObservability } from "./instrumentation.js";
+import { app } from "./app.ts";
+import { shutdownObservability } from "./instrumentation.ts";
 
 const server = serve({ ...app, port: PORT }, (info) => {
   log.info(

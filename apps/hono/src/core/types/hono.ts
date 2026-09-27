@@ -4,7 +4,7 @@ import type { RequestIdVariables } from "hono/request-id";
 import type { TimingVariables } from "hono/timing";
 import type { Simplify } from "type-fest";
 
-import type { auth } from "@/auth/utils/index.js";
+import type { auth } from "#auth/utils/index.ts";
 
 interface AuthVariables {
   session: typeof auth.$Infer.Session.session | null;

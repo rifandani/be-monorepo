@@ -1,0 +1,27 @@
+{
+  "extends": "@workspace/typescript-config/node.json",
+  "compilerOptions": {
+    "declaration": false,
+    "declarationMap": false,
+    "resolveJsonModule": true,
+    // The shared `node.json` preset relaxes both of these for the Hono app.
+    // Effect's types assume the strict readings: without
+    // `exactOptionalPropertyTypes` an `{ port?: number | undefined }` option
+    // bag silently accepts a missing key where the library distinguishes the
+    // two, and `noImplicitAny` is what makes an under-inferred `Effect.gen`
+    // yield fail loudly instead of degrading to `any`.
+    "exactOptionalPropertyTypes": true,
+    "noImplicitAny": true,
+    // Effect's own language-service plugin. It rewrites the library's type
+    // errors into readable ones and reports missing layer dependencies, which
+    // plain `tsc` can only express as an unsatisfiable type parameter.
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "namespaceImportPackages": ["effect", "@effect/*"]
+      }
+    ]
+  },
+  "include": ["**/*.ts", "**/*.json"],
+  "exclude": ["node_modules", "dist"]
+}

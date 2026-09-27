@@ -21,14 +21,6 @@ const { parsed } = config({
 });
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      "@": fileURLToPath(new URL("src", import.meta.url)),
-      "@workspace/core": fileURLToPath(
-        new URL("../../packages/core/src", import.meta.url)
-      ),
-    },
-  },
   test: {
     env: parsed,
     environment: "node",

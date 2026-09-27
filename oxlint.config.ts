@@ -29,6 +29,7 @@ export default defineConfig({
     "**/.claude",
     "**/.cursor",
     "**/.repos",
+    "**/repos",
     "**/docs",
     "apps/hono/src/db/migrations/**",
   ],

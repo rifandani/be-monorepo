@@ -5,7 +5,7 @@ import {
   getClientIpAddress,
   getClientIpAddressFromContext,
   ipAddressHeaders,
-} from "./net.js";
+} from "./net.ts";
 
 describe(getClientIpAddress, () => {
   it("returns null when no address header is present", () => {

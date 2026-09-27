@@ -1,7 +1,7 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 
-import { auth } from "@/auth/utils/index.js";
-import type { Variables } from "@/core/types/hono.js";
+import { auth } from "#auth/utils/index.ts";
+import type { Variables } from "#core/types/hono.ts";
 
 export const authRoutes = (
   app: OpenAPIHono<{

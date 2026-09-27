@@ -7,7 +7,7 @@ import {
   getTracer,
   noopTracer,
   recordSpan,
-} from "./telemetry.js";
+} from "./telemetry.ts";
 
 describe(getTracer, () => {
   it("returns the noop tracer when tracing is disabled", () => {

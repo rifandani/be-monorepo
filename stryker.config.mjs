@@ -37,11 +37,12 @@ export default {
 
   vitest: {
     configFile: "vitest.config.ts",
-    // Vitest's module graph resolves `apps/hono`'s `@workspace/core` alias, so
-    // a mutant in `packages/core/src` is still offered to the hono route tests
-    // that reach it through the alias. Explicit because that cross-project
-    // reach is the one thing this option could silently get wrong, and the
-    // symptom would be a false survivor.
+    // Restricts each mutant's test set to the files that actually import it.
+    // This used to carry a second job — reaching mutants in `packages/core/src`
+    // from the hono route tests through the `@workspace/core` alias — but that
+    // package was dissolved into `apps/hono/src/core`, so every mutant now sits
+    // inside the project whose tests cover it. Kept explicit because the
+    // symptom of getting it wrong is a false survivor, not an error.
     related: true,
   },
 
@@ -121,5 +122,6 @@ export default {
     "**/.evlog/**",
     "**/.vercel/**",
     "**/.repos/**",
+    "**/repos/**",
   ],
 };

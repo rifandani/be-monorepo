@@ -2,7 +2,7 @@ import type { BetterAuthInstance } from "evlog/better-auth";
 import { createAuthMiddleware } from "evlog/better-auth";
 import type { MiddlewareHandler } from "hono";
 
-import { auth } from "@/auth/utils/index.js";
+import { auth } from "#auth/utils/index.ts";
 
 // SAFETY: `auth` is a Better Auth instance; the assertion only erases the plugin-specific generics that `BetterAuthInstance` leaves open, so the middleware sees the same runtime object.
 const identify = createAuthMiddleware(auth as BetterAuthInstance, {

@@ -12,7 +12,7 @@ import type {
 } from "@opentelemetry/api";
 import { match, P } from "ts-pattern";
 
-import { SERVICE_NAME } from "@/core/constants/global.js";
+import { SERVICE_NAME } from "#core/constants/global.ts";
 
 const SMALL_ARRAY_LENGTH = 5;
 const PREVIEW_LENGTH = 3;

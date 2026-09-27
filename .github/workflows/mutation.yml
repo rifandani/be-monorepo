@@ -31,7 +31,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 26
+          node-version-file: .node-version
 
       - name: Install bun
         uses: oven-sh/setup-bun@v2
@@ -46,7 +46,7 @@ jobs:
           if [ -n "$HONO_ENV_FILE" ]; then
             echo "$HONO_ENV_FILE" > apps/hono/.env.dev
           else
-            cp apps/hono/.env.dev.example apps/hono/.env.dev
+            cp apps/hono/.env.example apps/hono/.env.dev
           fi
 
       - name: Run mutation testing

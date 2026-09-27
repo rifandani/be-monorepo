@@ -8,14 +8,14 @@ disable-model-invocation: true
 
 Cut a **release** on `main`: consume pending changesets, bump the fixed workspace group in lockstep, mirror the root version, commit, annotated-tag, push, confirm the GitHub Release.
 
-Changeset *authoring* is out of scope — the human already ran `bun cs` (always selecting all three `@workspace/*` packages). This skill owns the mechanical cut only.
+Changeset *authoring* is out of scope — the human already ran `bun cs` (always selecting every `@workspace/*` package). This skill owns the mechanical cut only.
 
 ## Fixed group (hard gate)
 
 `.changeset/config.json` must list exactly this `fixed` group (order irrelevant):
 
 - `@workspace/hono`
-- `@workspace/core`
+- `@workspace/effect`
 - `@workspace/typescript-config`
 
 Abort if missing or incomplete. Do not rewrite the config.
