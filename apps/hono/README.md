@@ -1,10 +1,5 @@
 # Hono
 
-## 🎯 Todo
-
-- [ ] upgrade drizzle to v1.0 when it's stable
-- [ ] consider load testing with `k6`
-
 ## 🚀 Getting Started
 
 Do the [root Getting Started](../../README.md#-getting-started) steps first. The commands below run from the repository root.

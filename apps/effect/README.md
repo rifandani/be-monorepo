@@ -1,11 +1,5 @@
 # Effect
 
-## 🎯 Todo
-
-- [ ] change the version to `effect@4.0.0` when the release candidate completes
-- [ ] add more of the ecosystem: `@effect/sql`, cluster
-- [ ] drizzle/effect
-
 ## 🚀 Getting Started
 
 Do the [root Getting Started](../../README.md#-getting-started) steps first. The commands below run from the repository root.

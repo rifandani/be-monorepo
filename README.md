@@ -2,12 +2,7 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rifandani/be-monorepo)
 
-[![Mintlify Docs]](https://rifandani-be-monorepo.mintlify.app)
-
-## 🎯 Todo
-
-- [ ] bump deps first, then add drizzle as git subtree into repos folder
-- [ ] remove all "dev:prod", "start:prod", etc
+[![Mintlify Docs](https://img.shields.io/badge/mintlify-docs-green?logo=mintlify)](https://rifandani-be-monorepo.mintlify.app)
 
 ## 🚀 Getting Started
 
