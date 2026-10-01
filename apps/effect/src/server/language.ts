@@ -1,9 +1,5 @@
 import { Context, Duration, Effect } from "effect";
-import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-} from "effect/unstable/http";
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 
 // `Language` names both the union of supported languages and the reference that
 // carries one, which is the same deliberate pair as `HealthReport` in

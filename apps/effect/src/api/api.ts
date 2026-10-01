@@ -1,4 +1,4 @@
-import { HttpApi, OpenApi } from "effect/unstable/httpapi";
+import { HttpApi, OpenApi } from "effect/http-api";
 
 import { SERVICE_NAME, SERVICE_VERSION } from "#metadata.ts";
 

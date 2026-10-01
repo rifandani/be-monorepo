@@ -1,10 +1,6 @@
 import { afterAll, assert, describe, it } from "@effect/vitest";
 import { Effect, Layer } from "effect";
-import {
-  HttpRouter,
-  HttpServer,
-  HttpServerResponse,
-} from "effect/unstable/http";
+import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 
 import { onError, SERVER_ERROR_MESSAGE } from "#server/error.ts";
 import { requestId } from "#server/request-id.ts";

@@ -9,11 +9,7 @@ import {
   References,
   Tracer,
 } from "effect";
-import {
-  HttpRouter,
-  HttpServer,
-  HttpServerResponse,
-} from "effect/unstable/http";
+import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 
 import { LIVE_PATH, READY_PATH, STARTUP_PATH } from "#api/health.ts";
 import { CHAIN } from "#server/chain.ts";

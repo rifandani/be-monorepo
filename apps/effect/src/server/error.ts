@@ -5,7 +5,7 @@ import {
   HttpRouter,
   HttpServerError,
   HttpServerResponse,
-} from "effect/unstable/http";
+} from "effect/http";
 
 /**
  * The body every 5xx answers with.

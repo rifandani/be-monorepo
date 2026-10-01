@@ -1,5 +1,5 @@
 import { Duration, Effect } from "effect";
-import { HttpRouter, HttpServerResponse } from "effect/unstable/http";
+import { HttpRouter, HttpServerResponse } from "effect/http";
 
 /**
  * How long a request may take before it is given up on.

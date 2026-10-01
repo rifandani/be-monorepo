@@ -1,6 +1,6 @@
 import type { Layer as LayerType } from "effect";
 import { Effect, Layer } from "effect";
-import { HttpRouter } from "effect/unstable/http";
+import { HttpRouter } from "effect/http";
 
 import { APP_TITLE, APP_URL } from "./config.ts";
 import { observability } from "./observability.ts";

@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Metric } from "effect";
-import { HttpApiBuilder } from "effect/unstable/httpapi";
+import { HttpApiBuilder } from "effect/http-api";
 
 import { Api } from "#api/api.ts";
 import type { PROBES } from "#api/health.ts";

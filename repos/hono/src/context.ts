@@ -21,9 +21,9 @@ type HeaderRecord =
   | Record<string, string | string[]>
 
 /**
- * Data type can be a string, ArrayBuffer, Uint8Array (buffer), or ReadableStream.
+ * Data type can be a string, ArrayBuffer, Blob, Uint8Array (buffer), or ReadableStream.
  */
-export type Data = string | ArrayBuffer | ReadableStream | Uint8Array<ArrayBuffer>
+export type Data = string | ArrayBuffer | Blob | ReadableStream | Uint8Array<ArrayBuffer>
 
 /**
  * Interface for the execution context in a web worker or similar environment.
@@ -771,7 +771,7 @@ export class Context<
     const locationString = String(location)
     this.header(
       'Location',
-      // Multibyes should be encoded
+      // Multibytes should be encoded
       // eslint-disable-next-line no-control-regex
       !/[^\x00-\xFF]/.test(locationString) ? locationString : encodeURI(locationString)
     )

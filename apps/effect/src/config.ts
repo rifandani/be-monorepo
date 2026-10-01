@@ -8,15 +8,15 @@ import { Config } from "effect";
  * the server's startup with a typed error instead of throwing during an import,
  * which is what keeps the tests free of any environment at all.
  */
-export const APP_TITLE = Config.nonEmptyString("APP_TITLE");
+export const APP_TITLE = Config.NonEmptyString("APP_TITLE");
 
 /**
  * `portless` injects `PORTLESS_URL` (including the subdomain prefix it gives a
  * worktree), which is more accurate than anything the env file can state, so it
  * wins when present.
  */
-export const APP_URL = Config.url("PORTLESS_URL").pipe(
-  Config.orElse(() => Config.url("APP_URL"))
+export const APP_URL = Config.URL("PORTLESS_URL").pipe(
+  Config.orElse(() => Config.URL("APP_URL"))
 );
 
 /**
@@ -27,7 +27,7 @@ export const APP_URL = Config.url("PORTLESS_URL").pipe(
  * `PORT`, but they are ordinary scripts and a developer will run one directly.
  * Without a default that is a startup `ConfigError`, not a server.
  */
-export const PORT = Config.port("PORT").pipe(Config.withDefault(3000));
+export const PORT = Config.Port("PORT").pipe(Config.withDefault(3000));
 
 /**
  * Where the OTLP exporters send traces, metrics and log records.
@@ -45,7 +45,7 @@ export const PORT = Config.port("PORT").pipe(Config.withDefault(3000));
  * `metadata.ts` — that is, from `package.json` — rather than being restated as
  * environment.
  */
-export const OTEL_EXPORTER_OTLP_ENDPOINT = Config.url(
+export const OTEL_EXPORTER_OTLP_ENDPOINT = Config.URL(
   "OTEL_EXPORTER_OTLP_ENDPOINT"
 );
 
@@ -65,7 +65,7 @@ export const OTEL_EXPORTER_OTLP_ENDPOINT = Config.url(
  * diag logger by hand and a misspelled level fails startup rather than being
  * ignored.
  */
-export const OTEL_LOG_LEVEL = Config.literals(
+export const OTEL_LOG_LEVEL = Config.Literals(
   ["ALL", "VERBOSE", "DEBUG", "INFO", "WARN", "ERROR", "NONE"],
   "OTEL_LOG_LEVEL"
 );

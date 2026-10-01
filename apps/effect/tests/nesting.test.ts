@@ -1,10 +1,6 @@
 import { afterAll, assert, describe, it } from "@effect/vitest";
 import { ConfigProvider, Duration, Effect, Layer } from "effect";
-import {
-  HttpRouter,
-  HttpServer,
-  HttpServerResponse,
-} from "effect/unstable/http";
+import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 
 import { appWith } from "#server/http.ts";
 import { SECURE_HEADERS } from "#server/secure-headers.ts";

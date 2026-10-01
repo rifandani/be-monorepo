@@ -1,9 +1,5 @@
 import { Effect, Layer } from "effect";
-import {
-  HttpMiddleware,
-  HttpRouter,
-  HttpServerRequest,
-} from "effect/unstable/http";
+import { HttpMiddleware, HttpRouter, HttpServerRequest } from "effect/http";
 
 import { PROBES } from "#api/health.ts";
 
