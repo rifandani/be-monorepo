@@ -1,6 +1,6 @@
 import { Layer } from "effect";
 import type { Config } from "effect";
-import type { HttpRouter } from "effect/unstable/http";
+import type { HttpRouter } from "effect/http";
 
 import { cors } from "./cors.ts";
 import { csrf } from "./csrf.ts";

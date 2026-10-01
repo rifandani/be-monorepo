@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Duration, Effect, Fiber } from "effect";
+import { HttpServerResponse } from "effect/http";
 import { TestClock } from "effect/testing";
-import { HttpServerResponse } from "effect/unstable/http";
 
 import { withTimeout } from "./timeout.ts";
 

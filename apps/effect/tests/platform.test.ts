@@ -1,7 +1,7 @@
 import { NodeHttpServer } from "@effect/platform-node";
 import { assert, layer } from "@effect/vitest";
 import { ConfigProvider, Duration, Effect, Layer } from "effect";
-import { HttpBody, HttpClient, HttpRouter } from "effect/unstable/http";
+import { HttpBody, HttpClient, HttpRouter } from "effect/http";
 
 import { LIVE_PATH } from "#api/health.ts";
 import { app } from "#server/http.ts";

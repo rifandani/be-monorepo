@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { HttpRouter, HttpServerResponse } from "effect/unstable/http";
+import { HttpRouter, HttpServerResponse } from "effect/http";
 
 // Lowercase because that is how Effect keys a header. Header names are case
 // insensitive, so the response carries the same name `apps/hono` sends.

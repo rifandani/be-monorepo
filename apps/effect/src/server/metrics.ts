@@ -4,7 +4,7 @@ import {
   METRIC_HTTP_SERVER_REQUEST_DURATION,
 } from "@opentelemetry/semantic-conventions";
 import { Effect, Metric } from "effect";
-import { HttpRouter, HttpServerRequest } from "effect/unstable/http";
+import { HttpRouter, HttpServerRequest } from "effect/http";
 
 // One clock for the app: see the note on `now` in `timing.ts`.
 import { now } from "./timing.ts";

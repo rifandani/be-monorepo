@@ -1,5 +1,5 @@
 import { Layer } from "effect";
-import { HttpApiBuilder, HttpApiScalar } from "effect/unstable/httpapi";
+import { HttpApiBuilder, HttpApiScalar } from "effect/http-api";
 
 import { Api } from "#api/api.ts";
 

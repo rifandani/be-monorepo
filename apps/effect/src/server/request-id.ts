@@ -1,9 +1,5 @@
 import { Context, Effect } from "effect";
-import {
-  HttpRouter,
-  HttpServerRequest,
-  HttpServerResponse,
-} from "effect/unstable/http";
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 
 // Lowercase because that is how Effect keys an incoming header. Header names are
 // case insensitive, so the response carries the same name `apps/hono` sends.

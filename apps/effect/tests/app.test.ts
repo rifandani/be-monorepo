@@ -1,6 +1,6 @@
 import { afterAll, assert, describe, it } from "@effect/vitest";
 import { ConfigProvider, Layer } from "effect";
-import { HttpRouter, HttpServer } from "effect/unstable/http";
+import { HttpRouter, HttpServer } from "effect/http";
 
 import { LIVE_PATH, PREFIX, PROBES } from "#api/health.ts";
 import { app } from "#server/http.ts";

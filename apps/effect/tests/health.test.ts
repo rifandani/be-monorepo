@@ -1,7 +1,7 @@
 import { assert, layer } from "@effect/vitest";
 import { Effect, Layer } from "effect";
-import { HttpServer } from "effect/unstable/http";
-import { HttpApiTest } from "effect/unstable/httpapi";
+import { HttpServer } from "effect/http";
+import { HttpApiTest } from "effect/http-api";
 
 import { Api } from "#api/api.ts";
 import { Unhealthy } from "#domain/health.ts";

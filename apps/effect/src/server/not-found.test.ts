@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import { HttpServerError, HttpServerRequest } from "effect/unstable/http";
+import { HttpServerError, HttpServerRequest } from "effect/http";
 
 import { isRouteNotFound } from "./not-found.ts";
 

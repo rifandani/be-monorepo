@@ -1,9 +1,5 @@
 import { Effect } from "effect";
-import {
-  HttpRouter,
-  HttpServerError,
-  HttpServerResponse,
-} from "effect/unstable/http";
+import { HttpRouter, HttpServerError, HttpServerResponse } from "effect/http";
 
 /**
  * The body an unknown path is answered with.

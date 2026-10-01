@@ -14,12 +14,6 @@ import { SEED_BULK_PASSWORD, SEED_USER } from "./seed-user-data.ts";
 
 const RANDOM_USER_COUNT = 10;
 
-/**
- * Better Auth's synthetic issuer for credential accounts — `createLocalAccountIssuer("credential")`.
- * Since 1.7 an account is keyed by (issuer, accountId), so seeded rows must carry it.
- */
-const CREDENTIAL_ISSUER = "local:credential";
-
 const authTables = {
   accountTable,
   sessionTable,
@@ -58,7 +52,6 @@ const linkCredentialAccounts = async (db: Db) => {
     users.map((user) => ({
       accountId: user.id,
       id: crypto.randomUUID(),
-      issuer: CREDENTIAL_ISSUER,
       password: bulkPasswordHash,
       providerId: "credential",
       userId: user.id,
@@ -79,7 +72,6 @@ const seedDemoUser = async (db: Db) => {
   await db.insert(accountTable).values({
     accountId: demoUserId,
     id: crypto.randomUUID(),
-    issuer: CREDENTIAL_ISSUER,
     password: demoPasswordHash,
     providerId: "credential",
     userId: demoUserId,

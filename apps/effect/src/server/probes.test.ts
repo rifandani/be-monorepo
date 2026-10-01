@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { Effect } from "effect";
-import type { HttpServerRequest } from "effect/unstable/http";
-import { HttpMiddleware } from "effect/unstable/http";
+import type { HttpServerRequest } from "effect/http";
+import { HttpMiddleware } from "effect/http";
 
 import { LIVE_PATH, READY_PATH, STARTUP_PATH } from "#api/health.ts";
 
