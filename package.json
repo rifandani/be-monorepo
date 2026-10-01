@@ -15,8 +15,6 @@
     "clean": "rimraf --glob \"**/node_modules\" \"**/dev-dist\" \"**/dist\" \"**/dev-build\" \"**/build\" \"**/bun.lock\" && bun pm cache rm && bun install",
     "repos:update": "bun scripts/update-vendored-repos.ts",
     "bump:deps": "bunx npm-check-updates --workspaces -u --peer --dep prod,dev,optional,packageManager,peer -x @babel*,tamagui",
-    "repos:update:effect": "git subtree pull --prefix=repos/effect https://github.com/Effect-TS/effect.git main --squash",
-    "repos:update:hono": "git subtree pull --prefix=repos/hono https://github.com/honojs/hono.git main --squash",
     "cs": "changeset",
     "cs:v": "changeset version",
     "lint": "ultracite check --disable-nested-config",
