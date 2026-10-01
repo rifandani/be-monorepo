@@ -13,6 +13,7 @@
     "prepare": "husky",
     "compose:up": "docker compose -f ./docker/docker-compose.yml up --build",
     "clean": "rimraf --glob \"**/node_modules\" \"**/dev-dist\" \"**/dist\" \"**/dev-build\" \"**/build\" \"**/bun.lock\" && bun pm cache rm && bun install",
+    "repos:update": "bun scripts/update-vendored-repos.ts",
     "bump:deps": "bunx npm-check-updates --workspaces -u --peer --dep prod,dev,optional,packageManager,peer -x @babel*,tamagui",
     "cs": "changeset",
     "cs:v": "changeset version",
