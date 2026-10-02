@@ -144,6 +144,46 @@ const PLANS: Record<Profile, Plan> = {
 const isProfile = (value: string | undefined): value is Profile =>
   PROFILES.some((profile) => profile === value);
 
+/** `__ENV` value, or the profile default when the variable is unset. */
+const envOr = (key: string, fallback: string): string => __ENV[key] || fallback;
+
+/** A threshold expression, or an aborting threshold when the plan says so. */
+const limit = (plan: Plan, expression: string) =>
+  plan.abortOnFail
+    ? { abortOnFail: true, delayAbortEval: "30s", threshold: expression }
+    : expression;
+
+const durationThresholds = (plan: Plan) => {
+  const { budget } = plan;
+  const duration = [limit(plan, `p(95)<${budget.p95}`)];
+  if (budget.p99 !== undefined) {
+    duration.push(limit(plan, `p(99)<${budget.p99}`));
+  }
+  return duration;
+};
+
+const thresholdsFor = (
+  plan: Plan,
+  routes: readonly string[]
+): NonNullable<Options["thresholds"]> => {
+  const { budget } = plan;
+  const thresholds: NonNullable<Options["thresholds"]> = {
+    http_req_duration: durationThresholds(plan),
+    http_req_failed: [limit(plan, `rate<=${budget.failed}`)],
+    rate_limited: ["count==0"],
+    ...Object.fromEntries(
+      routes.map((route) => [
+        `http_req_duration{name:${route}}`,
+        [`p(95)<${budget.p95}`],
+      ])
+    ),
+  };
+  if (budget.checks !== undefined) {
+    thresholds.checks = [`rate>=${budget.checks}`];
+  }
+  return thresholds;
+};
+
 /**
  * The k6 options for the profile named in `LOAD_PROFILE`, with one p95
  * threshold for each route name. A route's requests must carry the same
@@ -158,38 +198,12 @@ export const profileOptions = (routes: readonly string[]): Options => {
   }
 
   const plan = PLANS[profile];
-  const rate = Number(__ENV.LOAD_RATE || plan.defaultRate);
-  const hold = __ENV.LOAD_HOLD || plan.defaultHold;
-  const { budget } = plan;
-
-  const limit = (expression: string) =>
-    plan.abortOnFail
-      ? { abortOnFail: true, delayAbortEval: "30s", threshold: expression }
-      : expression;
-
-  const duration = [limit(`p(95)<${budget.p95}`)];
-  if (budget.p99 !== undefined) {
-    duration.push(limit(`p(99)<${budget.p99}`));
-  }
-
-  const perRoute = Object.fromEntries(
-    routes.map((route) => [
-      `http_req_duration{name:${route}}`,
-      [`p(95)<${budget.p95}`],
-    ])
-  );
-
-  const thresholds: NonNullable<Options["thresholds"]> = {
-    http_req_duration: duration,
-    http_req_failed: [limit(`rate<=${budget.failed}`)],
-    rate_limited: ["count==0"],
-    ...perRoute,
+  const rate = Number(envOr("LOAD_RATE", String(plan.defaultRate)));
+  const hold = envOr("LOAD_HOLD", plan.defaultHold);
+  return {
+    scenarios: { [profile]: plan.scenario(rate, hold) },
+    thresholds: thresholdsFor(plan, routes),
   };
-  if (budget.checks !== undefined) {
-    thresholds.checks = [`rate>=${budget.checks}`];
-  }
-
-  return { scenarios: { [profile]: plan.scenario(rate, hold) }, thresholds };
 };
 
 /**

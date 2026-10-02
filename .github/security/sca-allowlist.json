@@ -1,5 +1,13 @@
 {
   "$schema_comment": "Temporary SCA exceptions for high-severity advisories (fed to osv-scanner as IgnoredVulns). Critical must never be listed. Expired entries fail the gate.",
   "expires_format": "YYYY-MM-DD",
-  "entries": []
+  "entries": [
+    {
+      "id": "GHSA-86w9-cpqp-85rv",
+      "package": "node-forge",
+      "severity": "high",
+      "expires": "2026-11-01",
+      "reason": "node-forge 1.4.0 is the newest release. @dotenvx/dotenvx uses it only to sign a local proxy certificate, not to verify untrusted PKCS#1 signatures. Remove this entry when a patched release exists."
+    }
+  ]
 }
