@@ -93,6 +93,48 @@
       "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
       "computedHash": "ac2c94885f34ff8492dc12aa4543182f661f32ea1722b8d6b6c2c7045af33ae3"
     },
+    "k6": {
+      "source": "grafana/skills",
+      "sourceType": "github",
+      "skillPath": "skills/grafana-k6/k6/SKILL.md",
+      "computedHash": "8cf336115be1f86447a60693ea19e1ab21c133c07b1f8274f2d1331f2023b5d6"
+    },
+    "k6-cloud-investigate-test": {
+      "source": "grafana/skills",
+      "sourceType": "github",
+      "skillPath": "skills/grafana-k6/k6-cloud-investigate-test/SKILL.md",
+      "computedHash": "279f354e340a8ba33bd3116fece9e24f6351fe988183eb0acc5c2893271ef3d5"
+    },
+    "k6-docs": {
+      "source": "grafana/skills",
+      "sourceType": "github",
+      "skillPath": "skills/grafana-k6/k6-docs/SKILL.md",
+      "computedHash": "b529654e4c061c3e8a8f5c66dd13d45f708185e61f47d164d3c69b3ea6790154"
+    },
+    "k6-manage": {
+      "source": "grafana/skills",
+      "sourceType": "github",
+      "skillPath": "skills/grafana-k6/k6-manage/SKILL.md",
+      "computedHash": "629d7a04df420b5efe8899b5d6e22fdc5e60eaf4400de032262511f68309b7f9"
+    },
+    "k6-perf-test-website": {
+      "source": "grafana/skills",
+      "sourceType": "github",
+      "skillPath": "skills/grafana-k6/k6-perf-test-website/SKILL.md",
+      "computedHash": "0340675610f9c3c145027a6f1c3cee7457df8dae58e7acdbc84b65f5fde85456"
+    },
+    "k6-test-maintenance": {
+      "source": "grafana/skills",
+      "sourceType": "github",
+      "skillPath": "skills/grafana-k6/k6-test-maintenance/SKILL.md",
+      "computedHash": "b98ad8142af8c2db77b5a09bb476ce32cfe42355bdc1802ebe31cf80b6808780"
+    },
+    "k6-trend-analysis": {
+      "source": "grafana/skills",
+      "sourceType": "github",
+      "skillPath": "skills/grafana-k6/k6-trend-analysis/SKILL.md",
+      "computedHash": "866d558f57214ac665c4c14c9fb81b02608c8e23649e2d287d6eb2a7d5026021"
+    },
     "pr-lens": {
       "source": "coldteadotai/pr-lens",
       "sourceType": "github",
