@@ -83,6 +83,10 @@ Each app has its own env files. See the Getting Started section of each app:
 
 [See here](./packages/typescript-config/README.md)
 
+### @workspace/load
+
+[See here](./packages/load/README.md)
+
 ## 📚 References
 
 ### Observability

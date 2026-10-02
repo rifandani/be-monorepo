@@ -1,0 +1,13 @@
+{
+  "extends": "@workspace/typescript-config/base.json",
+  "compilerOptions": {
+    // k6 strips types with esbuild and resolves `./profiles.ts` as written,
+    // so the scenarios import with the extension and nothing is emitted.
+    "allowImportingTsExtensions": true,
+    "module": "nodenext",
+    "noEmit": true,
+    // The scenarios run in k6 and `run.ts` runs in Node; one config covers both.
+    "types": ["k6", "node"]
+  },
+  "include": ["src/**/*.ts"]
+}
