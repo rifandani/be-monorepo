@@ -36,7 +36,7 @@ The table below shows the root files. The app READMEs show the app files.
 | `.codex/environments/environment.toml` | `name` |
 | `.agents/skills/wt/scripts/setup-worktree-unix.sh` and `setup-worktree-windows.ps1` | The hono portless name (`hono.be-monorepo`). It must be the same as in `portless.json`. |
 | `.github/ISSUE_TEMPLATE/*.yml` | The issue links (`rifandani/be-monorepo`) |
-| `CLAUDE.md` | The issue tracker repository (`rifandani/be-monorepo`) |
+| `AGENTS.md` | The issue tracker repository (`rifandani/be-monorepo`) |
 | `.claude/settings.json` | The `Read(//Users/<user>/...)` paths. They are for one local user. |
 | `docs/security/*.md`, `scripts/security/zap.ts` | The local URLs (`https://<app>.be-monorepo.localhost`) in the examples |
 
