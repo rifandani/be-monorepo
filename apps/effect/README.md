@@ -9,7 +9,7 @@ Do the [root Getting Started](../../README.md#-getting-started) steps first. The
 | File | Value to replace |
 | --- | --- |
 | `package.json` | `description` ("Effect v4 HTTP API template"), `author`. The `name` is also the OpenAPI title and the service name (`src/metadata.ts`). |
-| `package.json` | The portless name `effect.be-monorepo` in the `dev`, `dev:prod`, `node:dev` and `node:dev:prod` scripts. It must be the same as in the root `portless.json`. |
+| `package.json` | The portless name `effect.be-monorepo` in the `dev` and `node:dev` scripts. It must be the same as in the root `portless.json`. |
 | `.env.example` | `APP_TITLE` and `APP_URL` (`https://effect.<project>.localhost`) |
 | `src/api/api.ts` | The API id (`"effect-api"`) and the OpenAPI `description` ("Effect v4 HTTP API template") |
 | `src/server/origin.test.ts`, `tests/app.test.ts`, `tests/middleware.test.ts`, `tests/nesting.test.ts`, `tests/platform.test.ts` | `https://effect.be-monorepo.localhost`. The tests do not read the environment, so this change is optional. It keeps the names the same. |

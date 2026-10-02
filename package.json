@@ -15,6 +15,7 @@
     "clean": "rimraf --glob \"**/node_modules\" \"**/dev-dist\" \"**/dist\" \"**/dev-build\" \"**/build\" \"**/bun.lock\" && bun pm cache rm && bun install",
     "repos:update": "bun scripts/update-vendored-repos.ts",
     "bump:deps": "bunx npm-check-updates --workspaces -u --peer --dep prod,dev,optional,packageManager,peer -x @babel*,tamagui",
+    "portless": "portless proxy start --https",
     "cs": "changeset",
     "cs:v": "changeset version",
     "lint": "ultracite check --disable-nested-config",

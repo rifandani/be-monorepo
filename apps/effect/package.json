@@ -13,17 +13,11 @@
     "typecheck": "tsc --noEmit",
     "typerange": "fr",
     "test": "vitest",
-    "portless": "portless proxy start --https",
     "dev:server": "bun run --env-file=.env.dev --hot src/bun.ts",
     "dev": "portless run --name effect.be-monorepo --script dev:server",
-    "dev:prod:server": "bun run --env-file=.env.prod --hot src/bun.ts",
-    "dev:prod": "portless run --name effect.be-monorepo --script dev:prod:server",
     "node:dev:server": "dotenvx run --env-file=.env.dev -- node --watch src/node.ts",
     "node:dev": "portless run --name effect.be-monorepo --script node:dev:server",
-    "node:dev:prod:server": "dotenvx run --env-file=.env.prod -- node --watch src/node.ts",
-    "node:dev:prod": "portless run --name effect.be-monorepo --script node:dev:prod:server",
-    "node:start": "dotenvx run --env-file=.env.dev -- node ./src/node.ts",
-    "node:start:prod": "dotenvx run --env-file=.env.prod -- node ./src/node.ts"
+    "node:start": "dotenvx run --env-file=.env.dev -- node ./src/node.ts"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "2.32.3",

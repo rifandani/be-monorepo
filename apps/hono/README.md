@@ -9,7 +9,7 @@ Do the [root Getting Started](../../README.md#-getting-started) steps first. The
 | File | Value to replace |
 | --- | --- |
 | `package.json` | `description` ("Bulletproof Hono 4 template"), `author`. The `name` is also the OpenTelemetry service name (`src/core/constants/global.ts`). |
-| `package.json` | The portless name `hono.be-monorepo` in the `dev`, `dev:prod`, `node:dev` and `node:dev:prod` scripts. It must be the same as in the root `portless.json`. |
+| `package.json` | The portless name `hono.be-monorepo` in the `dev` and `node:dev` scripts. It must be the same as in the root `portless.json`. |
 | `.env.example` | `APP_TITLE` and `APP_URL` (`https://hono.<project>.localhost`) |
 | `src/routes/index.ts` | The OpenAPI `description` ("API documentation for the Hono app") |
 | `src/db/seeds/seed-user-data.ts` | The demo user (`vaandani@email.com`) and `SEED_BULK_PASSWORD`. The DAST scripts also use this user. |
