@@ -157,3 +157,6 @@ container
 
 # OWASP ZAP writes DAST reports here. They are rebuilt on demand.
 .zap-reports/
+
+# k6 writes load test reports here. They are rebuilt on demand.
+.k6-reports/
