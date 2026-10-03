@@ -3,6 +3,7 @@
   "version": "1.1.0",
   "private": true,
   "description": "Hono, and Effect Monorepo Template",
+  "license": "MIT",
   "author": "Tri Rizeki Rifandani",
   "workspaces": [
     "apps/*",

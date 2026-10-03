@@ -40,6 +40,8 @@ The table below shows the root files. The app READMEs show the app files.
 | `.claude/settings.json` | The `Read(//Users/<user>/...)` paths. They are for one local user. |
 | `docs/security/*.md`, `scripts/security/zap.ts` | The local URLs (`https://<app>.be-monorepo.localhost`) in the examples |
 
+- [ ] Init husky
+
 ### 2. Set up the GitHub repository
 
 1. Labels: `.github/settings.yml` holds the labels. The [Probot Settings app](https://github.com/apps/settings) applies them. Install the app, or make the labels by hand. The triage labels are also in `docs/agents/triage-labels.md`.
