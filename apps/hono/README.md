@@ -21,7 +21,7 @@ Do the [root Getting Started](../../README.md#-getting-started) steps first. The
 
 - `src/routes/llms-docs.ts`: the `/llms.txt`, `/llms-auth.txt` and `/llms-docs` routes. `/llms-docs` sends the content of the `docs/` folder of this app, so put only public text there.
 - `src/auth/utils/index.ts`: the Better Auth options (email and password, rate limit, OpenAPI theme). Examine them for your project.
-- `CONTEXT.md` and `docs/`: add your own domain terms and rules.
+- `GLOSSARY.md` and `docs/`: add your own domain terms and rules.
 
 ## OpenAPI
 

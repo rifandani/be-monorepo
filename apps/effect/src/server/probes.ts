@@ -10,7 +10,7 @@ import { PROBES } from "#api/health.ts";
  * Neither set is a policy this module owns. Whether a probe's span says
  * anything is a fact about what that probe does, so it is declared beside the
  * probe in `api/health.ts` and explained under **Probe Silence** in
- * `CONTEXT.md`. This module only applies it. A set written out here would be a
+ * `GLOSSARY.md`. This module only applies it. A set written out here would be a
  * second, unchecked account of the same thing, and a fourth probe would need
  * an edit in both.
  */

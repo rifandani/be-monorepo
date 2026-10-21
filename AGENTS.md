@@ -25,4 +25,4 @@ Defaults: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `w
 
 ### Domain docs
 
-Multi-context — root `CONTEXT-MAP.md` pointing at per-package `CONTEXT.md` files. See `docs/agents/domain.md`.
+Multi-context — root `GLOSSARY-MAP.md` pointing at per-package `GLOSSARY.md` files. See `docs/agents/domain.md`.

@@ -5,7 +5,7 @@ import { APP_URL } from "#config.ts";
 /**
  * The one origin this app trusts.
  *
- * `CONTEXT.md` defines **Allowed Origin**. Two policies read it and neither
+ * `GLOSSARY.md` defines **Allowed Origin**. Two policies read it and neither
  * owns it: `cors.ts` decides who may read a response, `csrf.ts` decides whose
  * state-changing request is honoured. Both used to derive it from `APP_URL`
  * themselves, which made the rule below a thing stated in one of them and

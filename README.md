@@ -54,7 +54,7 @@ The table below shows the root files. The app READMEs show the app files.
 - `.github/SECURITY.md`: write your own contacts and owners in place of "Application lead" and "Infrastructure".
 - `.github/CONTRIBUTING.md` and `.github/CODE_OF_CONDUCT.md`: write your own contact. `CONTRIBUTING.md` refers to ESLint, but this repository uses oxlint and oxfmt (`bun lint`).
 - `.github/security/sca-allowlist.json`: each entry has an `expires` date. When the date is past, the SCA gate fails. Remove the entries that you do not need, or examine them again.
-- `CONTEXT-MAP.md`, `apps/*/CONTEXT.md` and the `docs/adr/` folders: they are about the template. Keep the decisions that you keep, and add the terms of your own domain.
+- `GLOSSARY-MAP.md`, `apps/*/GLOSSARY.md` and the `docs/adr/` folders: they are about the template. Keep the decisions that you keep, and add the terms of your own domain.
 
 ## 📝 Environment Variables
 

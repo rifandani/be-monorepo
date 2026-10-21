@@ -106,7 +106,7 @@ this app has no reason to install — so the barrel import fails at startup with
 
 The Startup / Liveness / Readiness Probe split, and the deliberate separation of
 **Metric** (aggregate, exported) from **Server Timing** (per-request, client-facing), are
-defined in [`CONTEXT.md`](../../CONTEXT.md). The second of those is why
+defined in [`GLOSSARY.md`](../../GLOSSARY.md). The second of those is why
 `src/server/timing.ts` renames its `Metrics` reference to `ServerTiming`: two unrelated
 things called `Metrics` under `src/server/` is the ambiguity this app is now large enough
 to have to avoid.

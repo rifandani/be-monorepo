@@ -7,7 +7,7 @@ export const PREFIX = "/health";
 /**
  * One Probe: where it is served, and whether it is traced.
  *
- * `CONTEXT.md` defines the term. `PROBES` below is the one statement of a
+ * `GLOSSARY.md` defines the term. `PROBES` below is the one statement of a
  * Probe — the group builds its endpoint from `segment`, `server/probes.ts`
  * builds both of its exclusion sets from `path` and `traced`, and
  * `server/health.ts` keys the Probe Outcome counter on the id. Adding a fourth
@@ -26,7 +26,7 @@ interface Probe<Segment extends `/${string}` = `/${string}`> {
   readonly segment: Segment;
   /** Where the probe is actually served. Derived; never written twice. */
   readonly path: `${typeof PREFIX}${Segment}`;
-  /** Whether the server span is kept. See **Probe Silence** in `CONTEXT.md`. */
+  /** Whether the server span is kept. See **Probe Silence** in `GLOSSARY.md`. */
   readonly traced: boolean;
 }
 
@@ -65,7 +65,7 @@ export const READY_PATH = PROBES.ready.path;
  * Three endpoints and not one, because the three answers mean different things
  * to whoever polls them — a startup probe suspends the liveness clock, a
  * liveness failure restarts the process, and a readiness failure only takes it
- * out of the pool. `CONTEXT.md` defines each. A single `/health` covering all
+ * out of the pool. `GLOSSARY.md` defines each. A single `/health` covering all
  * three would answer "whichever of them you assumed", which is the ambiguity
  * the split exists to remove, so there deliberately is no bare `/health`.
  *

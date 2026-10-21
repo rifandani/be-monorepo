@@ -30,7 +30,7 @@ type MiddlewareLayer = Layer.Layer<
 >;
 
 /**
- * The Middleware Chain, outermost first. `CONTEXT.md` defines the term.
+ * The Middleware Chain, outermost first. `GLOSSARY.md` defines the term.
  *
  * This is the one statement of the order. It used to be the shape of a
  * `Layer.flatMap` staircase, with the order restated in prose above it — and

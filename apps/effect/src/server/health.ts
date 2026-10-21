@@ -107,7 +107,7 @@ const runCheck = Effect.fn("Health.runCheck")(function* check(
  * What the app claims about its own health, apart from how it is asked.
  *
  * The three probes mean three different things to whoever polls them, and
- * `CONTEXT.md` is where that vocabulary lives. `handlers` only calls and
+ * `GLOSSARY.md` is where that vocabulary lives. `handlers` only calls and
  * encodes.
  */
 export class Health extends Context.Service<

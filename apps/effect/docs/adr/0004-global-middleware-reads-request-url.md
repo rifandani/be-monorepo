@@ -31,7 +31,7 @@ That middleware exists precisely to provide `ParsedSearchParams` outside a route
 
 ## Why not `layerTracerDisabledForUrls`
 
-Effect's own probe-exclusion helper compares the whole url, and `request.url` carries the query, so `/health/live?x=1` escapes every exclusion. `pathOf` cuts the query and the fragment first, which is what makes `probes.ts` compare paths to paths. See **Probe Silence** in `apps/effect/CONTEXT.md`.
+Effect's own probe-exclusion helper compares the whole url, and `request.url` carries the query, so `/health/live?x=1` escapes every exclusion. `pathOf` cuts the query and the fragment first, which is what makes `probes.ts` compare paths to paths. See **Probe Silence** in `apps/effect/GLOSSARY.md`.
 
 ## Consequences
 

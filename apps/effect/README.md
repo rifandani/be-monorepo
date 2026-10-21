@@ -19,7 +19,7 @@ Do the [root Getting Started](../../README.md#-getting-started) steps first. The
 
 - The health probes (`src/api/health.ts`, `src/server/health.ts`) are ready to use. `READINESS_CHECKS` in `src/server/health.ts` is empty. Add a check for each dependency (for example, the database) that the app needs before it can serve traffic.
 - Add your own endpoint groups to `src/api/api.ts`. Keep the folder order: `domain/` ← `api/` ← `server/` (see `docs/http-api.md`).
-- `CONTEXT.md` and `docs/`: add your own domain terms and rules.
+- `GLOSSARY.md` and `docs/`: add your own domain terms and rules.
 
 ## OpenAPI
 

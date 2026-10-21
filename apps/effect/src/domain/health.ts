@@ -38,7 +38,7 @@ const checksField = { checks: Schema.Array(Check) };
  *
  * `checks` is empty for the startup and liveness probes, which have none by
  * definition, and that is not a placeholder for missing work: those two probes
- * answer for the process itself. See `CONTEXT.md` for the three probes and what
+ * answer for the process itself. See `GLOSSARY.md` for the three probes and what
  * separates them.
  */
 export const HealthReport = Schema.Struct({
