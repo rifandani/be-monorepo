@@ -51,6 +51,7 @@ describe(withTimeout, () => {
   it.effect("interrupts the request it gave up on", () =>
     Effect.gen(function* interrupted() {
       let released = false;
+
       const held = Effect.never.pipe(
         Effect.ensuring(
           Effect.sync(() => {
@@ -58,6 +59,7 @@ describe(withTimeout, () => {
           })
         )
       );
+
       const fiber = yield* Effect.forkChild(withTimeout(DURATION)(held));
 
       yield* TestClock.adjust(DURATION);

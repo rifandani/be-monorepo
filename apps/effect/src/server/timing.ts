@@ -4,6 +4,7 @@ import { HttpRouter, HttpServerResponse } from "effect/http";
 // Lowercase because that is how Effect keys a header. Header names are case
 // insensitive, so the response carries the same name `apps/hono` sends.
 const HEADER = "server-timing";
+
 // The name, the description and the precision `hono/timing` gives the metric it
 // measures itself, with the options `apps/hono` leaves at their defaults
 // (`src/app.ts` mounts `timing()` and passes none). These four values are the

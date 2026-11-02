@@ -20,6 +20,7 @@ export const rateLimit = rateLimiter<{
   keyGenerator: async (c) => {
     // for authenticated users, use session id
     const session = c.get("session");
+
     if (session) {
       return `session:${session.id}`;
     }

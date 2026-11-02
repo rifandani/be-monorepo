@@ -86,6 +86,7 @@ describe(toErrorResponse, () => {
         { message: "over quota", retryAfter: 30 },
         { status: 429 }
       );
+
       const response = yield* toErrorResponse(Cause.die(chosenResponse));
 
       assert.strictEqual(response.status, 429);

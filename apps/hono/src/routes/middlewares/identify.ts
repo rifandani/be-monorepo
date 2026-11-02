@@ -16,8 +16,10 @@ const identify = createAuthMiddleware(auth as BetterAuthInstance, {
 
 export const identifyMiddleware = (): MiddlewareHandler => async (c, next) => {
   const log = c.get("log");
+
   if (log) {
     await identify(log, c.req.raw.headers, c.req.path);
   }
+
   return next();
 };

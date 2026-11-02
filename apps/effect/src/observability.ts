@@ -1,8 +1,7 @@
-// The subpath and not the package barrel. `@effect/opentelemetry`'s index
-// re-exports `WebSdk`, which imports `@opentelemetry/sdk-trace-web` — a peer
-// this app does not install, because it does not serve a browser. Importing the
-// barrel therefore fails at startup with `ERR_MODULE_NOT_FOUND` for a module
-// nothing here uses.
+// The subpath, because it is the only entry point. Since 4.1 the package root
+// no longer re-exports `NodeSdk` or `WebSdk`, so that importing the root does
+// not load the optional `@opentelemetry/sdk-trace-node` and
+// `@opentelemetry/sdk-trace-web` peers.
 import * as NodeSdk from "@effect/opentelemetry/NodeSdk";
 import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";

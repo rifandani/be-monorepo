@@ -18,9 +18,11 @@ import { PROBES } from "#api/health.ts";
 // checked against these is a path derived from a request url, which is any
 // string at all.
 const probes = Object.values(PROBES);
+
 const PROBE_PATHS: ReadonlySet<string> = new Set(
   probes.map((probe) => probe.path)
 );
+
 const UNTRACED_PROBE_PATHS: ReadonlySet<string> = new Set(
   probes.filter((probe) => !probe.traced).map((probe) => probe.path)
 );

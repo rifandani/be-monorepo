@@ -28,6 +28,7 @@ export type Language = (typeof SUPPORTED_LANGUAGES)[number];
 const QUERY_PARAM = "lang";
 const COOKIE = "language";
 const HEADER = "accept-language";
+
 // `hono/language` caches a detected language in a cookie with exactly these
 // options.
 const COOKIE_OPTIONS = {
@@ -101,10 +102,12 @@ export const parseAcceptLanguage = (header: string): readonly string[] =>
     .split(",")
     .map((entry) => {
       const [tag, ...parameters] = entry.split(";");
+
       const quality = parameters
         .map((parameter) => parameter.trim())
         .find((parameter) => parameter.startsWith("q="))
         ?.slice(2);
+
       const parsed = quality === undefined ? 1 : Number(quality);
 
       return {
@@ -202,7 +205,9 @@ export const language = HttpRouter.middleware(
           header: request.headers[HEADER],
           query: queryLanguage(request.url),
         });
+
         const resolved = detected ?? FALLBACK_LANGUAGE;
+
         const served = httpEffect.pipe(
           Effect.provideService(Language, resolved),
           Effect.annotateLogs("language", resolved)

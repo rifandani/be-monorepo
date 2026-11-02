@@ -29,8 +29,10 @@ export const options = profileOptions(Object.keys(ROUTES));
 
 export default function effect() {
   const route = Math.random() < ROUTES.ready.weight ? "ready" : "openapi";
+
   const response = http.get(`${BASE_URL}${ROUTES[route].path}`, {
     tags: { name: route },
   });
+
   expectOk(response);
 }

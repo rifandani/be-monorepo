@@ -87,6 +87,7 @@ describe("app routes", () => {
 
   it("serves the OpenAPI document", async () => {
     const response = await handler(new Request("http://localhost/openapi"));
+
     const document = (await response.json()) as {
       info: { title: string; version: string };
       paths: Record<string, unknown>;
@@ -94,6 +95,7 @@ describe("app routes", () => {
 
     assert.strictEqual(response.status, 200);
     assert.strictEqual(document.info.title, "@workspace/effect");
+
     for (const probe of Object.values(PROBES)) {
       assert.isTrue(Object.hasOwn(document.paths, probe.path), probe.path);
     }

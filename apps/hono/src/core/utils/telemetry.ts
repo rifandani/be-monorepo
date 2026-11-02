@@ -16,6 +16,7 @@ import { SERVICE_NAME } from "#core/constants/global.ts";
 
 const SMALL_ARRAY_LENGTH = 5;
 const PREVIEW_LENGTH = 3;
+
 const noopSpanContext: SpanContext = {
   spanId: "",
   traceFlags: 0,
@@ -72,9 +73,11 @@ export const noopTracer: Tracer = {
     if (typeof arg1 === "function") {
       return arg1(noopSpan);
     }
+
     if (typeof arg2 === "function") {
       return arg2(noopSpan);
     }
+
     if (typeof arg3 === "function") {
       return arg3(noopSpan);
     }
@@ -341,6 +344,7 @@ export const flattenAttributesV2 = (
             if (allPrimitives) {
               // OTel doesn't support mixed-type arrays, so convert all to strings.
               acc[newKey] = items.filter((item) => item !== null).map(String);
+
               return acc;
             }
 
@@ -364,6 +368,7 @@ export const flattenAttributesV2 = (
           })
           .with(P.union(P.string, P.number, P.boolean), (primitive) => {
             acc[newKey] = primitive;
+
             return acc;
           })
           .with(

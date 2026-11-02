@@ -57,17 +57,20 @@ const target = path.resolve(arg);
 
 const collectSarifFiles = (dirOrFile: string): string[] => {
   const st = statSync(dirOrFile);
+
   if (st.isFile()) {
     return dirOrFile.endsWith(".sarif") || dirOrFile.endsWith(".sarif.json")
       ? [dirOrFile]
       : [];
   }
+
   return readdirSync(dirOrFile)
     .filter((f) => f.endsWith(".sarif") || f.endsWith(".sarif.json"))
     .map((f) => path.join(dirOrFile, f));
 };
 
 const files = collectSarifFiles(target);
+
 if (files.length === 0) {
   console.log(`No SARIF files under ${target}; nothing to gate.`);
   process.exit(0);
@@ -78,17 +81,22 @@ const blockers: Blocker[] = [];
 for (const file of files) {
   // SAFETY: `JSON.parse` returns `any`; `SarifLog` describes only the fields this gate reads and marks every one of them optional, so a file that is not SARIF degrades to "no runs, no results" instead of throwing.
   const sarif = JSON.parse(readFileSync(file, "utf-8")) as SarifLog;
+
   for (const run of sarif.runs ?? []) {
     const rules = new Map(
       (run.tool?.driver?.rules ?? []).map((r) => [r.id, r] as const)
     );
+
     for (const result of run.results ?? []) {
       const rule = rules.get(result.ruleId ?? "");
+
       const props = {
         ...rule?.properties,
         ...result.properties,
       };
+
       const securitySeverity = Number(props["security-severity"] ?? Number.NaN);
+
       const level =
         result.level ?? rule?.defaultConfiguration?.level ?? "warning";
 
@@ -102,11 +110,13 @@ for (const file of files) {
 
       const loc =
         result.locations?.[0]?.physicalLocation?.artifactLocation?.uri;
+
       // Vendored reference trees are not product code; ignore even if a scan
       // config missed them.
       if (loc && /(?:^|\/)repos\//u.test(loc)) {
         continue;
       }
+
       blockers.push({
         ruleId: result.ruleId ?? "unknown",
         severity: Number.isNaN(securitySeverity) ? -1 : securitySeverity,
@@ -127,9 +137,11 @@ if (blockers.length === 0) {
 console.error(
   `::error::SAST gate failed: ${blockers.length} finding(s) at/above security-severity ${minSeverity}`
 );
+
 for (const b of blockers) {
   console.error(
     `- ${b.ruleId} (severity=${b.severity})${b.file ? ` @ ${b.file}` : ""}: ${b.message}`
   );
 }
+
 process.exit(1);

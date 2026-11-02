@@ -21,6 +21,7 @@ import { Counter } from "k6/metrics";
 import type { Options, Scenario } from "k6/options";
 
 const PROFILES = ["smoke", "load", "stress", "spike", "breakpoint"] as const;
+
 type Profile = (typeof PROFILES)[number];
 
 /**
@@ -35,6 +36,7 @@ export const expectOk = (response: RefinedResponse<ResponseType>) => {
   if (response.status === 429) {
     rateLimited.add(1);
   }
+
   return check(response, { "status is 200": (r) => r.status === 200 });
 };
 
@@ -156,9 +158,11 @@ const limit = (plan: Plan, expression: string) =>
 const durationThresholds = (plan: Plan) => {
   const { budget } = plan;
   const duration = [limit(plan, `p(95)<${budget.p95}`)];
+
   if (budget.p99 !== undefined) {
     duration.push(limit(plan, `p(99)<${budget.p99}`));
   }
+
   return duration;
 };
 
@@ -167,6 +171,7 @@ const thresholdsFor = (
   routes: readonly string[]
 ): NonNullable<Options["thresholds"]> => {
   const { budget } = plan;
+
   const thresholds: NonNullable<Options["thresholds"]> = {
     http_req_duration: durationThresholds(plan),
     http_req_failed: [limit(plan, `rate<=${budget.failed}`)],
@@ -178,9 +183,11 @@ const thresholdsFor = (
       ])
     ),
   };
+
   if (budget.checks !== undefined) {
     thresholds.checks = [`rate>=${budget.checks}`];
   }
+
   return thresholds;
 };
 
@@ -191,6 +198,7 @@ const thresholdsFor = (
  */
 export const profileOptions = (routes: readonly string[]): Options => {
   const profile = __ENV.LOAD_PROFILE;
+
   if (!isProfile(profile)) {
     throw new Error(
       `LOAD_PROFILE must be one of ${PROFILES.join(", ")}, got ${profile}`
@@ -200,6 +208,7 @@ export const profileOptions = (routes: readonly string[]): Options => {
   const plan = PLANS[profile];
   const rate = Number(envOr("LOAD_RATE", String(plan.defaultRate)));
   const hold = envOr("LOAD_HOLD", plan.defaultHold);
+
   return {
     scenarios: { [profile]: plan.scenario(rate, hold) },
     thresholds: thresholdsFor(plan, routes),
@@ -214,8 +223,10 @@ export const profileOptions = (routes: readonly string[]): Options => {
 export const handleSummary = (data: SummaryData) => {
   const stdout = textSummary(data, { enableColors: true, indent: " " });
   const path = __ENV.LOAD_SUMMARY_PATH;
+
   if (!path) {
     return { stdout };
   }
+
   return { [path]: JSON.stringify(data, null, 2), stdout };
 };
