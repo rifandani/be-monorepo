@@ -24,8 +24,9 @@ import {
 export type Props = Record<string, any>
 type FunctionComponentResult =
   | HtmlEscapedString
+  | JSXNode
   | Child[]
-  | Promise<HtmlEscapedString | Child[]>
+  | Promise<HtmlEscapedString | JSXNode | Child[]>
   | null
 export type FC<P = Props> = {
   (props: P): FunctionComponentResult
@@ -477,7 +478,7 @@ export const cloneElement = <T extends JSXNode | JSX.Element>(
     childrenToClone = children
   } else {
     const c = (element as JSXNode).props.children
-    childrenToClone = Array.isArray(c) ? c : [c]
+    childrenToClone = c !== undefined ? (Array.isArray(c) ? c : [c]) : []
   }
   return jsx(
     (element as JSXNode).tag,
