@@ -1,0 +1,1423 @@
+import type { RunnerTestSuite } from 'vitest'
+import type { ParamIndexMap, Params, Router } from '../router'
+
+const getSuiteHierarchy = (suite?: RunnerTestSuite) => {
+  const res: RunnerTestSuite[] = []
+  let s: RunnerTestSuite | undefined = suite
+  while (s) {
+    res.unshift(s)
+    s = s.suite
+  }
+  return res
+}
+
+export const runTest = ({
+  skip = [],
+  newRouter,
+}: {
+  skip?: {
+    reason: string
+    tests: string[]
+  }[]
+  newRouter: <T>() => Router<T>
+}) => {
+  describe('Common', () => {
+    type Match = (method: string, path: string) => { handler: string; params: Params }[]
+    let router: Router<string>
+    let match: Match
+
+    beforeEach(({ task, skip: skipTask }) => {
+      const suites = getSuiteHierarchy(task.suite)
+      const name = [...suites.slice(2).map((s) => s.name), task.name].join(' > ')
+      const isSkip = skip.find((s) => s.tests.some((t) => name === t || name.startsWith(`${t} > `)))
+      if (isSkip) {
+        console.log(`Skip: ${isSkip.reason}`)
+        skipTask()
+        return
+      }
+
+      router = newRouter()
+      match = (method: string, path: string) => {
+        const [matchRes, stash] = router.match(method, path)
+        const res = matchRes.map((r) =>
+          stash
+            ? {
+                handler: r[0],
+                params: Object.keys(r[1]).reduce(
+                  (acc, key) => {
+                    acc[key] = stash[(r[1] as ParamIndexMap)[key]]
+                    return acc
+                  },
+                  Object.create(null) as Params
+                ),
+              }
+            : { handler: r[0], params: r[1] as Params }
+        )
+        return res
+      }
+    })
+
+    describe('Basic Usage', () => {
+      beforeEach(() => {
+        router.add('GET', '/hello', 'get hello')
+        router.add('POST', '/hello', 'post hello')
+        router.add('PURGE', '/hello', 'purge hello')
+      })
+
+      it('GET, post hello', async () => {
+        let res = match('GET', '/hello')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('get hello')
+        res = match('POST', '/hello')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('post hello')
+        res = match('PURGE', '/hello')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('purge hello')
+        res = match('PUT', '/hello')
+        expect(res.length).toBe(0)
+        res = match('GET', '/')
+        expect(res.length).toBe(0)
+      })
+    })
+
+    describe('Reserved words', () => {
+      it('Reserved words and named parameter', async () => {
+        router.add('GET', '/entry/:constructor', 'get entry')
+        const res = match('GET', '/entry/123')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('get entry')
+        expect(res[0].params['constructor']).toBe('123')
+      })
+
+      it('Reserved words and wildcard', async () => {
+        router.add('GET', '/wild/*/card', 'get wildcard')
+        const res = match('GET', '/wild/constructor/card')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('get wildcard')
+      })
+
+      it('Reserved words and optional named parameter', async () => {
+        router.add('GET', '/api/animals/:constructor?', 'animals')
+        const res = match('GET', '/api/animals')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('animals')
+        expect(res[0].params['constructor']).toBeUndefined()
+      })
+    })
+
+    describe('Complex', () => {
+      it('Named Param', async () => {
+        router.add('GET', '/entry/:id', 'get entry')
+        let res = match('GET', '/entry/123')
+
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('get entry')
+        expect(res[0].params['id']).toBe('123')
+
+        res = match('GET', '/entry-123')
+        expect(res.length).toBe(0)
+      })
+
+      it('Wildcard', async () => {
+        router.add('GET', '/wild/*/card', 'get wildcard')
+        const res = match('GET', '/wild/xxx/card')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('get wildcard')
+      })
+
+      it('Default', async () => {
+        router.add('GET', '/api/abc', 'get api')
+        router.add('GET', '/api/*', 'fallback')
+        let res = match('GET', '/api/abc')
+        expect(res.length).toBe(2)
+        expect(res[0].handler).toEqual('get api')
+        expect(res[1].handler).toEqual('fallback')
+        res = match('GET', '/api/def')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('fallback')
+      })
+
+      it('Regexp', async () => {
+        router.add('GET', '/post/:date{[0-9]+}/:title{[a-z]+}', 'get post')
+        let res = match('GET', '/post/20210101/hello')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('get post')
+        expect(res[0].params['date']).toBe('20210101')
+        expect(res[0].params['title']).toBe('hello')
+        res = match('GET', '/post/onetwothree')
+        expect(res.length).toBe(0)
+        res = match('GET', '/post/123/123')
+        expect(res.length).toBe(0)
+      })
+
+      it('Parameter with {.*} regexp', () => {
+        router.add('GET', '/files/:name{.*}', 'file')
+        let res = match('GET', '/files')
+        expect(res.length).toBe(0)
+
+        res = match('GET', '/files/a')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('file')
+        expect(res[0].params['name']).toEqual('a')
+
+        res = match('GET', '/files/a/b')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('file')
+        expect(res[0].params['name']).toEqual('a/b')
+
+        res = match('GET', '/files/')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('file')
+      })
+
+      it('/*', async () => {
+        router.add('GET', '/api/*', 'auth middleware')
+        router.add('GET', '/api', 'top')
+        router.add('GET', '/api/posts', 'posts')
+        router.add('GET', '/api/*', 'fallback')
+
+        let res = match('GET', '/api')
+        expect(res.length).toBe(3)
+        expect(res[0].handler).toEqual('auth middleware')
+        expect(res[1].handler).toEqual('top')
+        expect(res[2].handler).toEqual('fallback')
+        res = match('GET', '/api/posts')
+        expect(res.length).toBe(3)
+        expect(res[0].handler).toEqual('auth middleware')
+        expect(res[1].handler).toEqual('posts')
+        expect(res[2].handler).toEqual('fallback')
+      })
+    })
+
+    describe('Registration order', () => {
+      it('middleware -> handler', async () => {
+        router.add('GET', '*', 'bar')
+        router.add('GET', '/:type/:action', 'foo')
+        const res = match('GET', '/posts/123')
+        expect(res.length).toBe(2)
+        expect(res[0].handler).toEqual('bar')
+        expect(res[1].handler).toEqual('foo')
+      })
+
+      it('handler -> fallback', async () => {
+        router.add('GET', '/:type/:action', 'foo')
+        router.add('GET', '*', 'fallback')
+        const res = match('GET', '/posts/123')
+        expect(res.length).toBe(2)
+        expect(res[0].handler).toEqual('foo')
+        expect(res[1].handler).toEqual('fallback')
+      })
+    })
+
+    describe('Multi match', () => {
+      describe('Blog', () => {
+        beforeEach(() => {
+          router.add('ALL', '*', 'middleware a')
+          router.add('GET', '*', 'middleware b')
+          router.add('GET', '/entry', 'get entries')
+          router.add('POST', '/entry/*', 'middleware c')
+          router.add('POST', '/entry', 'post entry')
+          router.add('GET', '/entry/:id', 'get entry')
+          router.add('GET', '/entry/:id/comment/:comment_id', 'get comment')
+        })
+
+        it('GET /', async () => {
+          const res = match('GET', '/')
+          expect(res.length).toBe(2)
+          expect(res[0].handler).toEqual('middleware a')
+          expect(res[1].handler).toEqual('middleware b')
+        })
+        it('GET /entry/123', async () => {
+          const res = match('GET', '/entry/123')
+          expect(res.length).toBe(3)
+          expect(res[0].handler).toEqual('middleware a')
+          expect(res[0].params['id']).toBe(undefined)
+          expect(res[1].handler).toEqual('middleware b')
+          expect(res[1].params['id']).toBe(undefined)
+          expect(res[2].handler).toEqual('get entry')
+          expect(res[2].params['id']).toBe('123')
+        })
+        it('GET /entry/123/comment/456', async () => {
+          const res = match('GET', '/entry/123/comment/456')
+          expect(res.length).toBe(3)
+          expect(res[0].handler).toEqual('middleware a')
+          expect(res[0].params['id']).toBe(undefined)
+          expect(res[0].params['comment_id']).toBe(undefined)
+          expect(res[1].handler).toEqual('middleware b')
+          expect(res[1].params['id']).toBe(undefined)
+          expect(res[1].params['comment_id']).toBe(undefined)
+          expect(res[2].handler).toEqual('get comment')
+          expect(res[2].params['id']).toBe('123')
+          expect(res[2].params['comment_id']).toBe('456')
+        })
+        it('POST /entry', async () => {
+          const res = match('POST', '/entry')
+          expect(res.length).toBe(3)
+          expect(res[0].handler).toEqual('middleware a')
+          expect(res[1].handler).toEqual('middleware c')
+          expect(res[2].handler).toEqual('post entry')
+        })
+        it('DELETE /entry', async () => {
+          const res = match('DELETE', '/entry')
+          expect(res.length).toBe(1)
+          expect(res[0].handler).toEqual('middleware a')
+        })
+      })
+
+      describe('`params` per a handler', () => {
+        beforeEach(() => {
+          router.add('ALL', '*', 'middleware a')
+          router.add('GET', '/entry/:id/*', 'middleware b')
+          router.add('GET', '/entry/:id/:action', 'action')
+        })
+
+        it('GET /entry/123/show', async () => {
+          const res = match('GET', '/entry/123/show')
+          expect(res.length).toBe(3)
+          expect(res[0].handler).toEqual('middleware a')
+          expect(res[0].params['id']).toBe(undefined)
+          expect(res[0].params['action']).toBe(undefined)
+          expect(res[1].handler).toEqual('middleware b')
+          expect(res[1].params['id']).toBe('123')
+          expect(res[1].params['comment_id']).toBe(undefined)
+          expect(res[2].handler).toEqual('action')
+          expect(res[2].params['id']).toBe('123')
+          expect(res[2].params['action']).toBe('show')
+        })
+      })
+
+      it('hierarchy', () => {
+        router.add('GET', '/posts/:id/comments/:comment_id', 'foo')
+        router.add('GET', '/posts/:id', 'bar')
+        expect(() => {
+          router.match('GET', '/')
+        }).not.toThrow()
+      })
+    })
+
+    describe('Duplicate param name', () => {
+      it('self', () => {
+        router.add('GET', '/:id/:id', 'foo')
+        const res = match('GET', '/123/456')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('foo')
+        expect(res[0].params['id']).toBe('123')
+      })
+
+      it('self with trailing static', () => {
+        router.add('GET', '/:id/:id/x', 'foo')
+        const res = match('GET', '/123/456/x')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('foo')
+        expect(res[0].params['id']).toBe('123')
+      })
+
+      it('self three times', () => {
+        router.add('GET', '/:id/:id/:id', 'foo')
+        const res = match('GET', '/1/2/3')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('foo')
+        expect(res[0].params['id']).toBe('1')
+      })
+
+      it('parent', () => {
+        router.add('GET', '/:id/:action', 'foo')
+        router.add('GET', '/posts/:id', 'bar')
+        const res = match('GET', '/posts/get')
+        expect(res.length).toBe(2)
+        expect(res[0].handler).toEqual('foo')
+        expect(res[0].params['id']).toBe('posts')
+        expect(res[0].params['action']).toBe('get')
+        expect(res[1].handler).toEqual('bar')
+        expect(res[1].params['id']).toBe('get')
+      })
+
+      it('child', () => {
+        router.add('GET', '/posts/:id', 'foo')
+        router.add('GET', '/:id/:action', 'bar')
+        const res = match('GET', '/posts/get')
+        expect(res.length).toBe(2)
+        expect(res[0].handler).toEqual('foo')
+        expect(res[0].params['id']).toBe('get')
+        expect(res[1].handler).toEqual('bar')
+        expect(res[1].params['id']).toBe('posts')
+        expect(res[1].params['action']).toBe('get')
+      })
+    })
+
+    describe('page', () => {
+      it('GET /page', async () => {
+        router.add('GET', '/page', 'page')
+        router.add('ALL', '*', 'fallback') // or '*'
+
+        const res = match('GET', '/page')
+        expect(res.length).toBe(2)
+        expect(res[0].handler).toEqual('page')
+        expect(res[1].handler).toEqual('fallback')
+      })
+    })
+
+    describe('star', () => {
+      beforeEach(() => {
+        router.add('GET', '/', '/')
+        router.add('GET', '/*', '/*')
+        router.add('GET', '*', '*')
+
+        router.add('GET', '/x', '/x')
+        router.add('GET', '/x/*', '/x/*')
+      })
+
+      it('top', async () => {
+        const res = match('GET', '/')
+        expect(res.length).toBe(3)
+        expect(res[0].handler).toEqual('/')
+        expect(res[1].handler).toEqual('/*')
+        expect(res[2].handler).toEqual('*')
+      })
+
+      it('Under a certain path', async () => {
+        const res = match('GET', '/x')
+        expect(res.length).toBe(4)
+        expect(res[0].handler).toEqual('/*')
+        expect(res[1].handler).toEqual('*')
+        expect(res[2].handler).toEqual('/x')
+        expect(res[3].handler).toEqual('/x/*')
+      })
+    })
+
+    describe('Suffix wildcard', () => {
+      beforeEach(() => {
+        router.add('GET', '/assets*', 'assets')
+      })
+
+      it('GET /assets', async () => {
+        const res = match('GET', '/assets')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('assets')
+      })
+
+      it('GET /assets-v2', async () => {
+        const res = match('GET', '/assets-v2')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('assets')
+      })
+
+      it('GET /assets/app.js', async () => {
+        const res = match('GET', '/assets/app.js')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('assets')
+      })
+
+      it('GET /asset', async () => {
+        const res = match('GET', '/asset')
+        expect(res.length).toBe(0)
+      })
+
+      it.each([
+        ['/assets*', '/assets/app.js'],
+        ['/assets/app.js', '/assets*'],
+      ])('associates %s before %s', async (first, second) => {
+        router.add('POST', first, first)
+        router.add('POST', second, second)
+        const res = match('POST', '/assets/app.js')
+        expect(res.map(({ handler }) => handler)).toEqual([first, second])
+      })
+    })
+
+    describe('Trailing wildcard', () => {
+      beforeEach(() => {
+        router.add('GET', '/path/*', 'path')
+      })
+
+      it('GET /path', async () => {
+        const res = match('GET', '/path')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('path')
+      })
+
+      it('GET /path/to/file', async () => {
+        const res = match('GET', '/path/to/file')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('path')
+      })
+
+      it('GET /pathfoo', async () => {
+        const res = match('GET', '/pathfoo')
+        expect(res.length).toBe(0)
+      })
+    })
+
+    describe('Trailing wildcard after a label', () => {
+      beforeEach(() => {
+        router.add('GET', '/:name/*', 'middleware')
+        router.add('GET', '/:id', 'handler')
+      })
+
+      it('GET /abc', async () => {
+        const res = match('GET', '/abc')
+        expect(res.length).toBe(2)
+        expect(res[0]).toEqual({ handler: 'middleware', params: { name: 'abc' } })
+        expect(res[1]).toEqual({ handler: 'handler', params: { id: 'abc' } })
+      })
+
+      it('GET /abc/sub', async () => {
+        const res = match('GET', '/abc/sub')
+        expect(res).toEqual([{ handler: 'middleware', params: { name: 'abc' } }])
+      })
+    })
+
+    describe('Trailing wildcard after a pattern label', () => {
+      beforeEach(() => {
+        router.add('GET', '/:name{[a-z]+}/*', 'middleware')
+        router.add('GET', '/:id{[a-z]+}', 'handler')
+      })
+
+      it('GET /abc', async () => {
+        const res = match('GET', '/abc')
+        expect(res.length).toBe(2)
+        expect(res[0]).toEqual({ handler: 'middleware', params: { name: 'abc' } })
+        expect(res[1]).toEqual({ handler: 'handler', params: { id: 'abc' } })
+      })
+
+      it('GET /reverse/abc in reverse registration order', async () => {
+        router = newRouter()
+        router.add('GET', '/reverse/:id{[a-z]+}', 'handler')
+        router.add('GET', '/reverse/:name{[a-z]+}/*', 'middleware')
+        const res = match('GET', '/reverse/abc')
+        expect(res.map(({ handler }) => handler)).toEqual(['handler', 'middleware'])
+      })
+
+      it('POST /all/abc with ALL middleware', async () => {
+        router = newRouter()
+        router.add('ALL', '/all/:name{[a-z]+}/*', 'middleware')
+        router.add('POST', '/all/:id{[a-z]+}', 'handler')
+        const res = match('POST', '/all/abc')
+        expect(res.map(({ handler }) => handler)).toEqual(['middleware', 'handler'])
+      })
+
+      it('GET /posts/2024/comments with nested braces', async () => {
+        router = newRouter()
+        router.add('GET', '/posts/:year{[0-9]{4}}/*', 'middleware')
+        router.add('GET', '/posts/:yr{[0-9]{4}}/comments', 'handler')
+        const res = match('GET', '/posts/2024/comments')
+        expect(res).toEqual([
+          { handler: 'middleware', params: { year: '2024' } },
+          { handler: 'handler', params: { yr: '2024' } },
+        ])
+      })
+
+      it('GET /files/foo/detail with regexp meta characters', async () => {
+        router = newRouter()
+        router.add('GET', '/files/:kind{(?:foo|bar)}/*', 'middleware')
+        router.add('GET', '/files/:type{(?:foo|bar)}/detail', 'handler')
+        const res = match('GET', '/files/foo/detail')
+        expect(res).toEqual([
+          { handler: 'middleware', params: { kind: 'foo' } },
+          { handler: 'handler', params: { type: 'foo' } },
+        ])
+      })
+
+      it('GET /user/123/profile with the default pattern', async () => {
+        router = newRouter()
+        router.add('GET', '/user/:userId{[^/]+}/*', 'middleware')
+        router.add('GET', '/user/:id/profile', 'handler')
+        const res = match('GET', '/user/123/profile')
+        expect(res).toEqual([
+          { handler: 'middleware', params: { userId: '123' } },
+          { handler: 'handler', params: { id: '123' } },
+        ])
+      })
+
+      it('GET /user/123/profile with the default pattern in reverse registration order', async () => {
+        router = newRouter()
+        router.add('GET', '/user/:id/profile', 'handler')
+        router.add('GET', '/user/:userId{[^/]+}/*', 'middleware')
+        const res = match('GET', '/user/123/profile')
+        expect(res).toEqual([
+          { handler: 'handler', params: { id: '123' } },
+          { handler: 'middleware', params: { userId: '123' } },
+        ])
+      })
+    })
+
+    describe('Trailing wildcard after a middle wildcard', () => {
+      beforeEach(() => {
+        router.add('GET', '/a/*/b/*', 'b')
+      })
+
+      it('GET /a/x/b', async () => {
+        const res = match('GET', '/a/x/b')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('b')
+      })
+
+      it('GET /a/x/b/c', async () => {
+        const res = match('GET', '/a/x/b/c')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('b')
+      })
+
+      it('GET /a/x/bz', async () => {
+        const res = match('GET', '/a/x/bz')
+        expect(res.length).toBe(0)
+      })
+    })
+
+    describe('Optional route', () => {
+      beforeEach(() => {
+        router.add('GET', '/api/animals/:type?', 'animals')
+        router.add('GET', '/v1/:version?/:platform?', 'result')
+      })
+
+      it('GET /api/animals/dog', async () => {
+        const res = match('GET', '/api/animals/dog')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('animals')
+        expect(res[0].params['type']).toBe('dog')
+      })
+      it('GET /api/animals', async () => {
+        const res = match('GET', '/api/animals')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('animals')
+        expect(res[0].params['type']).toBeUndefined()
+      })
+      it('GET /v1/123/abc', () => {
+        const res = match('GET', '/v1/123/abc')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('result')
+        expect(res[0].params['version']).toBe('123')
+        expect(res[0].params['platform']).toBe('abc')
+      })
+      it('GET /v1/123', () => {
+        const res = match('GET', '/v1/123')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('result')
+        expect(res[0].params['version']).toBe('123')
+        expect(res[0].params['platform']).toBeUndefined()
+      })
+      it('GET /v1', () => {
+        const res = match('GET', '/v1')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('result')
+        expect(res[0].params['version']).toBeUndefined()
+        expect(res[0].params['platform']).toBeUndefined()
+      })
+    })
+
+    describe('All', () => {
+      beforeEach(() => {
+        router.add('GET', '/hello', 'get hello')
+        router.add('ALL', '/all', 'get all')
+      })
+
+      it('GET, all hello', async () => {
+        const res = match('GET', '/all')
+        expect(res.length).toBe(1)
+      })
+    })
+
+    describe('long prefix, then star', () => {
+      describe('GET only', () => {
+        beforeEach(() => {
+          router.add('GET', '/long/prefix/*', 'long-prefix')
+          router.add('GET', '/long/*', 'long')
+          router.add('GET', '*', 'star1')
+          router.add('GET', '*', 'star2')
+        })
+
+        it('GET /', () => {
+          const res = match('GET', '/')
+          expect(res.length).toBe(2)
+          expect(res[0].handler).toEqual('star1')
+          expect(res[1].handler).toEqual('star2')
+        })
+
+        it('GET /long/prefix', () => {
+          const res = match('GET', '/long/prefix')
+          expect(res.length).toBe(4)
+          expect(res[0].handler).toEqual('long-prefix')
+          expect(res[1].handler).toEqual('long')
+          expect(res[2].handler).toEqual('star1')
+          expect(res[3].handler).toEqual('star2')
+        })
+
+        it('GET /long/prefix/test', () => {
+          const res = match('GET', '/long/prefix/test')
+          expect(res.length).toBe(4)
+          expect(res[0].handler).toEqual('long-prefix')
+          expect(res[1].handler).toEqual('long')
+          expect(res[2].handler).toEqual('star1')
+          expect(res[3].handler).toEqual('star2')
+        })
+      })
+
+      describe('ALL and GET', () => {
+        beforeEach(() => {
+          router.add('ALL', '/long/prefix/*', 'long-prefix')
+          router.add('ALL', '/long/*', 'long')
+          router.add('GET', '*', 'star1')
+          router.add('GET', '*', 'star2')
+        })
+
+        it('GET /', () => {
+          const res = match('GET', '/')
+          expect(res.length).toBe(2)
+          expect(res[0].handler).toEqual('star1')
+          expect(res[1].handler).toEqual('star2')
+        })
+
+        it('GET /long/prefix', () => {
+          const res = match('GET', '/long/prefix')
+          expect(res.length).toBe(4)
+          expect(res[0].handler).toEqual('long-prefix')
+          expect(res[1].handler).toEqual('long')
+          expect(res[2].handler).toEqual('star1')
+          expect(res[3].handler).toEqual('star2')
+        })
+
+        it('GET /long/prefix/test', () => {
+          const res = match('GET', '/long/prefix/test')
+          expect(res.length).toBe(4)
+          expect(res[0].handler).toEqual('long-prefix')
+          expect(res[1].handler).toEqual('long')
+          expect(res[2].handler).toEqual('star1')
+          expect(res[3].handler).toEqual('star2')
+        })
+      })
+    })
+
+    describe('Including slashes', () => {
+      beforeEach(() => {
+        router.add('GET', '/js/:filename{[a-z0-9/]+.js}', 'any file')
+      })
+
+      it('GET /js/main.js', () => {
+        router.add('GET', '/js/main.js', 'main.js')
+
+        const res = match('GET', '/js/main.js')
+        expect(res.length).toBe(2)
+        expect(res[0].handler).toEqual('any file')
+        expect(res[0].params['filename']).toEqual('main.js')
+        expect(res[1].handler).toEqual('main.js')
+        expect(res[1].params['filename']).toEqual(undefined)
+      })
+
+      it('GET /js/chunk/123.js', () => {
+        const res = match('GET', '/js/chunk/123.js')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('any file')
+        expect(res[0].params['filename']).toEqual('chunk/123.js')
+      })
+
+      it('GET /js/chunk/nest/123.js', () => {
+        const res = match('GET', '/js/chunk/nest/123.js')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('any file')
+        expect(res[0].params['filename']).toEqual('chunk/nest/123.js')
+      })
+    })
+
+    describe('Capture simple multiple directories', () => {
+      beforeEach(() => {
+        router.add('GET', '/:dirs{.+}/file.html', 'file.html')
+      })
+
+      it('GET /foo/bar/file.html', () => {
+        const res = match('GET', '/foo/bar/file.html')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('file.html')
+        expect(res[0].params['dirs']).toEqual('foo/bar')
+      })
+
+      it('GET /foo/bar/baz/file.html', () => {
+        const res = match('GET', '/foo/bar/baz/file.html')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('file.html')
+        expect(res[0].params['dirs']).toEqual('foo/bar/baz')
+      })
+
+      it('GET /a/b/c/d/file.html', () => {
+        const res = match('GET', '/a/b/c/d/file.html')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('file.html')
+        expect(res[0].params['dirs']).toEqual('a/b/c/d')
+      })
+    })
+
+    describe('Capture regex pattern has trailing wildcard', () => {
+      beforeEach(() => {
+        router.add('GET', '/:dir{[a-z]+}/*/file.html', 'file.html')
+      })
+
+      it('GET /foo/bar/file.html', () => {
+        const res = match('GET', '/foo/bar/file.html')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('file.html')
+        expect(res[0].params['dir']).toEqual('foo')
+      })
+    })
+
+    describe('Capture regex param with trailing wildcard on empty remainder', () => {
+      beforeEach(() => {
+        router.add('GET', '/:id{[0-9]+}/*', 'regexp')
+      })
+
+      it('GET /123', () => {
+        const res = match('GET', '/123')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('regexp')
+        expect(res[0].params['id']).toBe('123')
+      })
+    })
+
+    describe('Capture regex param with trailing wildcard and sibling route', () => {
+      beforeEach(() => {
+        router.add('GET', '/regex-abc/:id{[0-9]+}/*', 'middleware')
+        router.add('GET', '/regex-abc/:id{[0-9]+}/def', 'regexp')
+      })
+
+      it('GET /regex-abc/123/ghi', () => {
+        const res = match('GET', '/regex-abc/123/ghi')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('middleware')
+        expect(res[0].params['id']).toBe('123')
+      })
+    })
+
+    describe('Capture complex multiple directories', () => {
+      beforeEach(() => {
+        router.add('GET', '/:first{.+}/middle-a/:reference?', '1')
+        router.add('GET', '/:first{.+}/middle-b/end-c/:uuid', '2')
+        router.add('GET', '/:first{.+}/middle-b/:digest', '3')
+      })
+
+      it('GET /part1/middle-b/latest', () => {
+        const res = match('GET', '/part1/middle-b/latest')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('3')
+        expect(res[0].params['first']).toEqual('part1')
+        expect(res[0].params['digest']).toEqual('latest')
+      })
+
+      it('GET /part1/middle-b/end-c/latest', () => {
+        const res = match('GET', '/part1/middle-b/end-c/latest')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('2')
+        expect(res[0].params['first']).toEqual('part1')
+        expect(res[0].params['uuid']).toEqual('latest')
+      })
+    })
+
+    describe('Capture multiple directories and optional', () => {
+      beforeEach(() => {
+        router.add('GET', '/:prefix{.+}/contents/:id?', 'contents')
+      })
+
+      it('GET /foo/bar/contents', () => {
+        const res = match('GET', '/foo/bar/contents')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('contents')
+        expect(res[0].params['prefix']).toEqual('foo/bar')
+        expect(res[0].params['id']).toEqual(undefined)
+      })
+
+      it('GET /foo/bar/contents/123', () => {
+        const res = match('GET', '/foo/bar/contents/123')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('contents')
+        expect(res[0].params['prefix']).toEqual('foo/bar')
+        expect(res[0].params['id']).toEqual('123')
+      })
+    })
+
+    describe('non ascii characters', () => {
+      beforeEach(() => {
+        router.add('ALL', '/$/*', 'middleware $')
+        router.add('GET', '/$/:name', 'get $ name')
+        router.add('ALL', '/()/*', 'middleware ()')
+        router.add('GET', '/()/:name', 'get () name')
+      })
+
+      it('GET /$/hono', () => {
+        const res = match('GET', '/$/hono')
+        expect(res.length).toBe(2)
+        expect(res[0].handler).toEqual('middleware $')
+        expect(res[0].params).toEqual({})
+        expect(res[1].handler).toEqual('get $ name')
+        expect(res[1].params['name']).toEqual('hono')
+      })
+
+      it('GET /()/hono', () => {
+        const res = match('GET', '/()/hono')
+        expect(res.length).toBe(2)
+        expect(res[0].handler).toEqual('middleware ()')
+        expect(res[0].params).toEqual({})
+        expect(res[1].handler).toEqual('get () name')
+        expect(res[1].params['name']).toEqual('hono')
+      })
+    })
+
+    describe('REST API', () => {
+      beforeEach(() => {
+        router.add('GET', '/users/:username{[a-z]+}', 'profile')
+        router.add('GET', '/users/:username{[a-z]+}/posts', 'posts')
+      })
+
+      it('GET /users/hono', () => {
+        const res = match('GET', '/users/hono')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('profile')
+      })
+
+      it('GET /users/hono/posts', () => {
+        const res = match('GET', '/users/hono/posts')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('posts')
+      })
+    })
+
+    describe('Trailing slash', () => {
+      beforeEach(() => {
+        router.add('GET', '/book', 'GET /book')
+        router.add('GET', '/book/:id', 'GET /book/:id')
+      })
+
+      it('GET /book', () => {
+        const res = match('GET', '/book')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('GET /book')
+      })
+      it('GET /book/', () => {
+        const res = match('GET', '/book/')
+        expect(res.length).toBe(0)
+      })
+    })
+
+    describe('Empty path segment', () => {
+      beforeEach(() => {
+        router.add('GET', '/u/:id/posts', 'posts')
+      })
+
+      it('GET /u/42/posts', () => {
+        const res = match('GET', '/u/42/posts')
+        expect(res.length).toBe(1)
+        expect(res[0].params['id']).toBe('42')
+      })
+
+      it('GET /u//posts does not match with an empty param', () => {
+        const res = match('GET', '/u//posts')
+        expect(res.length).toBe(0)
+      })
+    })
+
+    describe('Same path', () => {
+      beforeEach(() => {
+        router.add('GET', '/hey', 'Middleware A')
+        router.add('GET', '/hey', 'Middleware B')
+      })
+
+      it('GET /hey', () => {
+        const res = match('GET', '/hey')
+        expect(res.length).toBe(2)
+        expect(res[0].handler).toEqual('Middleware A')
+        expect(res[1].handler).toEqual('Middleware B')
+      })
+    })
+
+    describe('Routing with a hostname', () => {
+      beforeEach(() => {
+        router.add('GET', 'www1.example.com/hello', 'www1')
+        router.add('GET', 'www2.example.com/hello', 'www2')
+      })
+      it('GET www1.example.com/hello', () => {
+        const res = match('GET', 'www1.example.com/hello')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('www1')
+      })
+      it('GET www2.example.com/hello', () => {
+        const res = match('GET', 'www2.example.com/hello')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toEqual('www2')
+      })
+      it('GET /hello', () => {
+        const res = match('GET', '/hello')
+        expect(res.length).toBe(0)
+      })
+    })
+
+    describe('static routes of ALL and GET', () => {
+      beforeEach(() => {
+        router.add('ALL', '/foo', 'foo')
+        router.add('GET', '/bar', 'bar')
+      })
+
+      it('get /foo', () => {
+        const res = match('GET', '/foo')
+        expect(res[0].handler).toEqual('foo')
+      })
+    })
+
+    describe.each<[string, string, string, Params, Params]>([
+      ['/v1/*/*', '/v1/:a/:b', '/v1/x/y', {}, { a: 'x', b: 'y' }],
+      ['/v1/*/fixed/*', '/v1/:a/fixed/:b', '/v1/x/fixed/y', {}, { a: 'x', b: 'y' }],
+      [
+        '/v1/*/:id/*',
+        '/v1/:a/:b/:c/:d',
+        '/v1/first/second/third/fourth',
+        { id: 'second' },
+        { a: 'first', b: 'second', c: 'third', d: 'fourth' },
+      ],
+      [
+        '/v1/:first/*/:last/*',
+        '/v1/:a/:b/:c/:d',
+        '/v1/first/second/third/fourth',
+        { first: 'first', last: 'third' },
+        { a: 'first', b: 'second', c: 'third', d: 'fourth' },
+      ],
+    ])(
+      'Wildcard route %s with a parameter route',
+      (wildcardPath, routePath, requestPath, middlewareParams, handlerParams) => {
+        it.each([
+          { method: 'GET', reverse: false },
+          { method: 'GET', reverse: true },
+          { method: 'ALL', reverse: false },
+          { method: 'ALL', reverse: true },
+        ])('$method with reverse registration: $reverse', ({ method, reverse }) => {
+          const routes: [string, string, string][] = [
+            [method, wildcardPath, 'middleware'],
+            ['GET', routePath, 'handler'],
+          ]
+          const middleware = { handler: 'middleware', params: middlewareParams }
+          const expected = [middleware, { handler: 'handler', params: handlerParams }]
+          if (reverse) {
+            routes.reverse()
+            expected.reverse()
+          }
+          for (const route of routes) {
+            router.add(...route)
+          }
+
+          expect(match('GET', requestPath)).toEqual(expected)
+          expect(match('GET', `${requestPath}/z`)).toEqual([middleware])
+          expect(match('POST', requestPath)).toEqual(method === 'ALL' ? [middleware] : [])
+        })
+      }
+    )
+
+    describe('Overlapping wildcard routes', () => {
+      it.each([
+        { method: 'GET', reverse: false },
+        { method: 'GET', reverse: true },
+        { method: 'ALL', reverse: false },
+        { method: 'ALL', reverse: true },
+      ])('$method with reverse registration: $reverse', ({ method, reverse }) => {
+        const routes: [string, string, string][] = [
+          ['GET', '/v1/:a/*', 'parent'],
+          [method, '/v1/*/*/*', 'child'],
+        ]
+        const parent = { handler: 'parent', params: { a: 'x' } }
+        const child = { handler: 'child', params: {} }
+        const expected = [parent, child]
+        if (reverse) {
+          routes.reverse()
+          expected.reverse()
+        }
+        for (const route of routes) {
+          router.add(...route)
+        }
+
+        expect(match('GET', '/v1/x')).toEqual([parent])
+        expect(match('GET', '/v1/x/')).toEqual([parent])
+        expect(match('GET', '/v1/x/y/z')).toEqual(expected)
+        expect(match('POST', '/v1/x')).toEqual([])
+        expect(match('POST', '/v1/x/y/z')).toEqual(method === 'ALL' ? [child] : [])
+      })
+    })
+
+    describe('Parameter middleware with a wildcard route', () => {
+      it.each([
+        { routePath: '/v1/*/b', reverse: false },
+        { routePath: '/v1/*/b', reverse: true },
+        { routePath: '/v1/*/b/*', reverse: false },
+        { routePath: '/v1/*/b/*', reverse: true },
+      ])('$routePath with reverse registration: $reverse', ({ routePath, reverse }) => {
+        const routes: [string, string, string][] = [
+          ['GET', '/v1/:a/*', 'middleware'],
+          ['GET', routePath, 'handler'],
+        ]
+        const middleware = { handler: 'middleware', params: { a: 'x' } }
+        const expected = [middleware, { handler: 'handler', params: {} }]
+        if (reverse) {
+          routes.reverse()
+          expected.reverse()
+        }
+        for (const route of routes) {
+          router.add(...route)
+        }
+
+        expect(match('GET', '/v1/x/b')).toEqual(expected)
+        expect(match('GET', '/v1/x')).toEqual([middleware])
+      })
+    })
+
+    describe.each<[string, string, Params]>([
+      ['/prefix/:x{a}/*', '/prefix/a/static', { x: 'a' }],
+      ['/prefix/:x{a}/*', '/prefix/a', { x: 'a' }],
+      ['/prefix/:x{a}/:y{b}/*', '/prefix/a/b/static', { x: 'a', y: 'b' }],
+    ])('Parameter middleware %s with static route %s', (wildcardPath, routePath, params) => {
+      it.each([
+        { method: 'GET', reverse: false },
+        { method: 'GET', reverse: true },
+        { method: 'ALL', reverse: false },
+        { method: 'ALL', reverse: true },
+      ])('$method with reverse registration: $reverse', ({ method, reverse }) => {
+        const routes: [string, string, string][] = [
+          [method, wildcardPath, 'middleware'],
+          ['GET', routePath, 'handler'],
+        ]
+        const middleware = { handler: 'middleware', params }
+        const expected = [middleware, { handler: 'handler', params: {} }]
+        if (reverse) {
+          routes.reverse()
+          expected.reverse()
+        }
+        for (const route of routes) {
+          router.add(...route)
+        }
+
+        expect(match('GET', routePath)).toEqual(expected)
+        expect(match('GET', `${routePath}/more`)).toEqual([middleware])
+        expect(match('POST', routePath)).toEqual(method === 'ALL' ? [middleware] : [])
+      })
+    })
+
+    describe('Wildcard routes that end at the same segment', () => {
+      it.each([
+        { method: 'GET', reverse: false },
+        { method: 'GET', reverse: true },
+        { method: 'ALL', reverse: false },
+        { method: 'ALL', reverse: true },
+      ])('$method with reverse registration: $reverse', ({ method, reverse }) => {
+        const routes: [string, string, string][] = [
+          [method, '/x/a*', 'prefix'],
+          ['GET', '/x/a/*', 'tail'],
+        ]
+        const prefix = { handler: 'prefix', params: {} }
+        const expected = [prefix, { handler: 'tail', params: {} }]
+        if (reverse) {
+          routes.reverse()
+          expected.reverse()
+        }
+        for (const route of routes) {
+          router.add(...route)
+        }
+
+        expect(match('GET', '/x/a')).toEqual(expected)
+        expect(match('GET', '/x/a/q')).toEqual(expected)
+        expect(match('GET', '/x/ab')).toEqual([prefix])
+        expect(match('POST', '/x/a/q')).toEqual(method === 'ALL' ? [prefix] : [])
+      })
+
+      it('Should apply both wildcards to a nested route', () => {
+        router.add('GET', '/x/a*', 'prefix')
+        router.add('GET', '/x/a/*', 'tail')
+        router.add('GET', '/x/a/:id', 'route')
+        const prefix = { handler: 'prefix', params: {} }
+        const tail = { handler: 'tail', params: {} }
+        expect(match('GET', '/x/a/q')).toEqual([
+          prefix,
+          tail,
+          { handler: 'route', params: { id: 'q' } },
+        ])
+        expect(match('GET', '/x/a/q/r')).toEqual([prefix, tail])
+        expect(match('GET', '/x/a')).toEqual([prefix, tail])
+        expect(match('GET', '/x/ab')).toEqual([prefix])
+      })
+    })
+
+    describe('Middleware paths that do not nest', () => {
+      it('Should both apply to a route they both match', () => {
+        router.add('GET', '/:a/b/*', 'short')
+        router.add('GET', '/:aaaaaaa/*', 'long')
+        router.add('GET', '/:x/b/c', 'handler')
+        expect(match('GET', '/q/b/c')).toEqual([
+          { handler: 'short', params: { a: 'q' } },
+          { handler: 'long', params: { aaaaaaa: 'q' } },
+          { handler: 'handler', params: { x: 'q' } },
+        ])
+      })
+    })
+
+    describe('Parameter pattern identical to the label pattern', () => {
+      it('Should receive wildcard middleware', () => {
+        router.add('GET', '/v1/*/fixed/*', 'middleware')
+        router.add('GET', '/v1/:a{[^/]+}/fixed/:b', 'handler')
+        expect(match('GET', '/v1/x/fixed/y')).toEqual([
+          { handler: 'middleware', params: {} },
+          { handler: 'handler', params: { a: 'x', b: 'y' } },
+        ])
+      })
+    })
+
+    describe('Equivalent parameter syntax in wildcard coverage', () => {
+      describe.each([
+        [':tenant{[^/]+}', ':account'],
+        [':tenant', ':account{[^/]+}'],
+        [':tenant{([^/]+)}', ':account{(?:[^/]+)}'],
+        [':tenant{([a-z]+)}', ':account{(?:[a-z]+)}'],
+        [':tenant{(?:[a-z]+)}', ':account{([a-z]+)}'],
+        [':tenant{[^/]{1,}}', ':account{[^/]{1,}}'],
+        [':tenant{[^/]+?}', ':account{[^/]+?}'],
+        [':tenant{[^\\/]+}', ':account{[^\\/]+}'],
+      ])('%s and %s', (middlewareSegment, routeSegment) => {
+        it.each([
+          { method: 'GET', reverse: false },
+          { method: 'GET', reverse: true },
+          { method: 'ALL', reverse: false },
+          { method: 'ALL', reverse: true },
+        ])('$method with reverse registration: $reverse', ({ method, reverse }) => {
+          const routes: [string, string, string][] = [
+            [method, `/api/${middlewareSegment}/admin/*`, 'middleware'],
+            ['GET', `/api/${routeSegment}/admin/:id`, 'handler'],
+          ]
+          const middleware = { handler: 'middleware', params: { tenant: 'acme' } }
+          const expected = [
+            middleware,
+            { handler: 'handler', params: { account: 'acme', id: '42' } },
+          ]
+          if (reverse) {
+            routes.reverse()
+            expected.reverse()
+          }
+          for (const route of routes) {
+            router.add(...route)
+          }
+          expect(match('GET', '/api/acme/admin/42')).toEqual(expected)
+          expect(match('GET', '/api/acme/admin')).toEqual([middleware])
+          expect(match('POST', '/api/acme/admin/42')).toEqual(method === 'ALL' ? [middleware] : [])
+          expect(match('GET', '/api/acme/public/42')).toEqual([])
+        })
+      })
+    })
+
+    describe('Static middleware parameter stashes across methods', () => {
+      it('preserves captures after an unrelated capture and method registration', () => {
+        router.add('ALL', '/:z{Z}/*', 'unrelated')
+        router.add('ALL', '/:x{a}/*', 'middleware')
+        router.add('GET', '/a/q', 'get')
+        router.add('POST', '/a/q', 'post')
+        expect(match('GET', '/a/q')).toEqual([
+          { handler: 'middleware', params: { x: 'a' } },
+          { handler: 'get', params: {} },
+        ])
+        expect(match('POST', '/a/q')).toEqual([
+          { handler: 'middleware', params: { x: 'a' } },
+          { handler: 'post', params: {} },
+        ])
+        expect(match('PUT', '/a/q')).toEqual([{ handler: 'middleware', params: { x: 'a' } }])
+      })
+    })
+
+    describe.each(['\n', '\r', '\u2028', '\u2029'])(
+      'Wildcard coverage with line terminator %j',
+      (char) => {
+        it('matches wildcards without changing custom regexp flags', () => {
+          router.add('ALL', '*', 'all')
+          router.add('ALL', '/path/*', 'middleware')
+          router.add('GET', '/path/:id', 'handler')
+          router.add('GET', '/pattern/:id{.+}', 'pattern')
+          expect(match('GET', `/path/a${char}b`)).toEqual([
+            { handler: 'all', params: {} },
+            { handler: 'middleware', params: {} },
+            { handler: 'handler', params: { id: `a${char}b` } },
+          ])
+          expect(match('GET', `/pattern/a${char}b`)).toEqual([{ handler: 'all', params: {} }])
+        })
+
+        it('preserves literal line terminators in the route prefix', () => {
+          router.add('ALL', `/a${char}b/*`, 'middleware')
+          router.add('GET', `/a${char}b/:id`, 'handler')
+          expect(match('GET', `/a${char}b/42`)).toEqual([
+            { handler: 'middleware', params: {} },
+            { handler: 'handler', params: { id: '42' } },
+          ])
+          expect(match('GET', '/ab/42')).toEqual([])
+        })
+      }
+    )
+
+    describe('ALL and Star', () => {
+      beforeEach(() => {
+        router.add('ALL', '/x', '/x')
+        router.add('GET', '*', 'star')
+      })
+
+      it('Should return /x and star', async () => {
+        const res = match('GET', '/x')
+        expect(res.length).toBe(2)
+        expect(res[0].handler).toEqual('/x')
+        expect(res[1].handler).toEqual('star')
+      })
+    })
+
+    describe('GET star, ALL static, GET star...', () => {
+      beforeEach(() => {
+        router.add('GET', '*', 'star1')
+        router.add('ALL', '/x', '/x')
+        router.add('GET', '*', 'star2')
+        router.add('GET', '*', 'star3')
+      })
+
+      it('Should return /x and star', async () => {
+        const res = match('GET', '/x')
+        expect(res.length).toBe(4)
+        expect(res[0].handler).toEqual('star1')
+        expect(res[1].handler).toEqual('/x')
+        expect(res[2].handler).toEqual('star2')
+        expect(res[3].handler).toEqual('star3')
+      })
+    })
+
+    // https://github.com/honojs/hono/issues/699
+    describe('GET star, GET static, ALL star...', () => {
+      beforeEach(() => {
+        router.add('GET', '/y/*', 'star1')
+        router.add('GET', '/y/a', 'a')
+        router.add('ALL', '/y/b/*', 'star2')
+        router.add('GET', '/y/b/bar', 'bar')
+      })
+
+      it('Should return star1, star2, and bar', async () => {
+        const res = match('GET', '/y/b/bar')
+        expect(res.length).toBe(3)
+        expect(res[0].handler).toEqual('star1')
+        expect(res[1].handler).toEqual('star2')
+        expect(res[2].handler).toEqual('bar')
+      })
+    })
+
+    describe('ALL star, ALL star, GET static, ALL star...', () => {
+      beforeEach(() => {
+        router.add('ALL', '*', 'wildcard')
+        router.add('ALL', '/a/*', 'star1')
+        router.add('GET', '/a/foo', 'foo')
+        router.add('ALL', '/b/*', 'star2')
+        router.add('GET', '/b/bar', 'bar')
+      })
+
+      it('Should return wildcard, star2 and bar', async () => {
+        const res = match('GET', '/b/bar')
+        expect(res.length).toBe(3)
+        expect(res[0].handler).toEqual('wildcard')
+        expect(res[1].handler).toEqual('star2')
+        expect(res[2].handler).toEqual('bar')
+      })
+    })
+
+    describe('Capture Group', () => {
+      describe('Simple capturing group', () => {
+        beforeEach(() => {
+          router.add('get', '/foo/:capture{(bar|baz)}', 'ok')
+        })
+
+        it('GET /foo/bar', () => {
+          const res = match('get', '/foo/bar')
+          expect(res.length).toBe(1)
+          expect(res[0].handler).toBe('ok')
+          expect(res[0].params['capture']).toBe('bar')
+        })
+
+        it('GET /foo/baz', () => {
+          const res = match('get', '/foo/baz')
+          expect(res.length).toBe(1)
+          expect(res[0].handler).toBe('ok')
+          expect(res[0].params['capture']).toBe('baz')
+        })
+
+        it('GET /foo/qux', () => {
+          const res = match('get', '/foo/qux')
+          expect(res.length).toBe(0)
+        })
+      })
+
+      describe('Non-capturing group', () => {
+        beforeEach(() => {
+          router.add('get', '/foo/:capture{(?:bar|baz)}', 'ok')
+        })
+
+        it('GET /foo/bar', () => {
+          const res = match('get', '/foo/bar')
+          expect(res.length).toBe(1)
+          expect(res[0].handler).toBe('ok')
+          expect(res[0].params['capture']).toBe('bar')
+        })
+
+        it('GET /foo/baz', () => {
+          const res = match('get', '/foo/baz')
+          expect(res.length).toBe(1)
+          expect(res[0].handler).toBe('ok')
+          expect(res[0].params['capture']).toBe('baz')
+        })
+
+        it('GET /foo/qux', () => {
+          const res = match('get', '/foo/qux')
+          expect(res.length).toBe(0)
+        })
+      })
+
+      describe('Non-capturing group with prefix', () => {
+        beforeEach(() => {
+          router.add('get', '/foo/:capture{ba(?:r|z)}', 'ok')
+        })
+
+        it('GET /foo/bar', () => {
+          const res = match('get', '/foo/bar')
+          expect(res.length).toBe(1)
+          expect(res[0].handler).toBe('ok')
+          expect(res[0].params['capture']).toBe('bar')
+        })
+
+        it('GET /foo/baz', () => {
+          const res = match('get', '/foo/baz')
+          expect(res.length).toBe(1)
+          expect(res[0].handler).toBe('ok')
+          expect(res[0].params['capture']).toBe('baz')
+        })
+
+        it('GET /foo/qux', () => {
+          const res = match('get', '/foo/qux')
+          expect(res.length).toBe(0)
+        })
+      })
+
+      describe('Complex capturing group', () => {
+        it('GET request', () => {
+          router.add('get', '/foo/:capture{ba(r|z)}', 'ok')
+
+          const res = match('get', '/foo/bar')
+          expect(res.length).toBe(1)
+          expect(res[0].handler).toBe('ok')
+        })
+      })
+    })
+
+    describe('Unknown method', () => {
+      beforeEach(() => {
+        router.add('GET', '/', 'index')
+        router.add('ALL', '/all', 'all')
+      })
+
+      it('UNKNOWN_METHOD /', () => {
+        const res = match('UNKNOWN_METHOD', '/')
+        expect(res.length).toBe(0)
+      })
+
+      it('UNKNOWN_METHOD /all', () => {
+        const res = match('UNKNOWN_METHOD', '/all')
+        expect(res.length).toBe(1)
+        expect(res[0].handler).toBe('all')
+      })
+    })
+  })
+}

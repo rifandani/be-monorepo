@@ -1,4 +1,0 @@
-# Vendored subtrees under repos/ are reference material, not product code.
-name: be-monorepo
-paths-ignore:
-  - repos/**
