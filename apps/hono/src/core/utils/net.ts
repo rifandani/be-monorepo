@@ -23,12 +23,14 @@ export const ipAddressHeaders = {
 export const getClientIpAddress = (headers: Headers): string | null => {
   // 1. Cloudflare
   const cfConnectingIp = headers.get(ipAddressHeaders.cfConnectingIp);
+
   if (cfConnectingIp) {
     return cfConnectingIp;
   }
 
   // 2. X-Forwarded-For (most common)
   const xForwardedFor = headers.get(ipAddressHeaders.xForwardedFor);
+
   if (xForwardedFor) {
     // Dropping everything after the first comma rather than `split(",")[0]`,
     // whose index access is optional under `noUncheckedIndexedAccess` and so
@@ -38,20 +40,24 @@ export const getClientIpAddress = (headers: Headers): string | null => {
 
   // 3. X-Real-IP (Nginx)
   const xRealIp = headers.get(ipAddressHeaders.xRealIp);
+
   if (xRealIp) {
     return xRealIp;
   }
 
   // 4. X-Client-IP (used by some load balancers and proxies)
   const xClientIp = headers.get(ipAddressHeaders.xClientIp);
+
   if (xClientIp) {
     return xClientIp;
   }
 
   // 5. Forwarded (RFC 7239 standard)
   const forwarded = headers.get(ipAddressHeaders.forwarded);
+
   if (forwarded) {
     const match = forwarded.match(/for=(?<ip>[^;,\s]+)/u);
+
     if (match?.groups?.ip) {
       return match.groups.ip;
     }

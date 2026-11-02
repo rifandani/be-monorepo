@@ -4,6 +4,7 @@ import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 // Lowercase because that is how Effect keys an incoming header. Header names are
 // case insensitive, so the response carries the same name `apps/hono` sends.
 const HEADER = "x-request-id";
+
 // The bounds `hono/request-id` applies to an inbound id before it trusts it. An
 // id is echoed into logs and into the response, so an unbounded or unescaped one
 // from a client is a log injection waiting to happen.

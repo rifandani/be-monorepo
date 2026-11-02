@@ -46,6 +46,7 @@ const tryGit = (args: string[]): string | null => {
     encoding: "utf-8",
     maxBuffer: 64 * 1024 * 1024,
   });
+
   return result.status === 0 ? result.stdout.trim() : null;
 };
 
@@ -55,6 +56,7 @@ const git = (args: string[]): string =>
 /** Runs git with its output shown, for the slow or noisy steps. */
 const gitLoud = (args: string[]): void => {
   const result = spawnSync("git", args, { cwd: REPO_ROOT, stdio: "inherit" });
+
   if (result.status !== 0) {
     fail(`git ${args.join(" ")} failed (exit ${result.status ?? "signal"})`);
   }
@@ -69,9 +71,11 @@ const assertCleanTree = (): void => {
 const resolveUpstream = ({ url, branch }: VendoredRepo): string => {
   const line = git(["ls-remote", url, `refs/heads/${branch}`]);
   const hash = line.split(/\s+/u)[0] ?? "";
+
   if (!/^[0-9a-f]{40}$/u.test(hash)) {
     fail(`cannot resolve ${branch} on ${url}`);
   }
+
   return hash;
 };
 
@@ -87,6 +91,7 @@ const currentSplit = (prefix: string): string | null => {
   if (!isTracked(prefix)) {
     return null;
   }
+
   const body = tryGit([
     "log",
     "-1",
@@ -95,6 +100,7 @@ const currentSplit = (prefix: string): string | null => {
     "--format=%B",
     "HEAD",
   ]);
+
   return (
     body?.match(/^git-subtree-split: (?<hash>[0-9a-f]{40})$/mu)?.groups?.hash ??
     null
@@ -103,6 +109,7 @@ const currentSplit = (prefix: string): string | null => {
 
 const fetchCommit = (repo: VendoredRepo, target: string): void => {
   gitLoud(["fetch", "--no-tags", repo.url, target]);
+
   if (tryGit(["cat-file", "-e", `${target}^{commit}`]) === null) {
     fail(`${target} is not in the object store after the fetch`);
   }
@@ -121,6 +128,7 @@ const removePlainCopy = (prefix: string): void => {
       `chore(repos): remove ${prefix} before re-adding it as a git subtree`,
     ]);
   }
+
   // Ignored files (an editor's .vscode/, for example) survive `git rm` and
   // make `git subtree add` refuse the prefix.
   rmSync(path.join(REPO_ROOT, prefix), { recursive: true, force: true });
@@ -128,6 +136,7 @@ const removePlainCopy = (prefix: string): void => {
 
 const assertMatchesUpstream = (prefix: string, target: string): void => {
   const vendored = git(["rev-parse", `HEAD:${prefix}`]);
+
   if (vendored !== git(["rev-parse", `${target}^{tree}`])) {
     fail(
       `${prefix} does not match upstream ${target.slice(0, 10)}. ` +
@@ -143,16 +152,20 @@ const updateRepo = (name: RepoName): void => {
 
   const target = resolveUpstream(repo);
   const split = currentSplit(prefix);
+
   if (split === target) {
     console.log(`${prefix}: already at ${target.slice(0, 10)}`);
+
     return;
   }
 
   console.log(`${prefix}: fetching ${repo.branch} (${target.slice(0, 10)})`);
   fetchCommit(repo, target);
+
   if (split === null) {
     removePlainCopy(prefix);
   }
+
   const mode = split === null ? "add" : "merge";
   gitLoud(["subtree", mode, `--prefix=${prefix}`, target, "--squash"]);
 
@@ -165,12 +178,14 @@ const isRepoName = (value: string): value is RepoName =>
 
 const args = process.argv.slice(2);
 const unknown = args.filter((arg) => !isRepoName(arg));
+
 if (unknown.length > 0) {
   fail(
     `unknown repository: ${unknown.join(", ")}. ` +
       `Known: ${Object.keys(REPOS).join(", ")}`
   );
 }
+
 const names =
   args.length > 0
     ? args.filter(isRepoName)

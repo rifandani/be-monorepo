@@ -19,6 +19,7 @@ const llmsCacheControl: MiddlewareHandler = (c, next) => {
     "Cache-Control",
     `public, max-age=${LLMS_CACHE_MAX_AGE_SECONDS}, immutable`
   );
+
   return next();
 };
 
@@ -41,9 +42,11 @@ export const getAllFiles = async (dir: string): Promise<string[]> => {
       // or absolute, so the join cannot escape `dir`.
       // fallow-ignore-next-line security-sink
       const fullPath = path.join(dir, entry.name);
+
       if (entry.isDirectory()) {
         return getAllFiles(fullPath);
       }
+
       return entry.isFile() ? [fullPath] : [];
     })
   );
@@ -104,6 +107,7 @@ const registerDocsFolderRoute = (app: DocsApp) => {
       const contents = await Promise.all(
         files.map((file) => readFile(file, "utf-8"))
       );
+
       // Each file gets its own trailing separator, which makes the empty-docs
       // case fall out as `""` without a branch on `contents.length`.
       const fullContent = contents.map((content) => `${content}\n\n`).join("");
@@ -125,6 +129,7 @@ const registerDocsFolderRoute = (app: DocsApp) => {
  */
 const registerAuthMarkdownRoute = async (app: DocsApp) => {
   const betterauthOpenapiObject = await auth.api.generateOpenAPISchema();
+
   const betterauthMarkdown = await createMarkdownFromOpenApi(
     JSON.stringify(betterauthOpenapiObject)
   );
@@ -173,6 +178,7 @@ const registerOpenApiMarkdownRoute = async (app: DocsApp) => {
     },
     openapi: "3.1.0",
   });
+
   const markdown = await createMarkdownFromOpenApi(
     JSON.stringify(openapiObject)
   );

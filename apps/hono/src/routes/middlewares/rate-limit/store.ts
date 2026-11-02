@@ -118,6 +118,7 @@ export class DbStore<
       if (this.#isExpired(record.lastRequest, now)) {
         // Record is expired, drop it so the next hit starts a fresh window
         await db.delete(rateLimitTable).where(eq(rateLimitTable.key, key));
+
         return;
       }
 
@@ -191,6 +192,7 @@ export class DbStore<
 
     try {
       const record = await this.#findRecord(key);
+
       const totalHits = record
         ? await this.#bumpRecord(record, key, now)
         : await this.#createRecord(key, now);
@@ -198,6 +200,7 @@ export class DbStore<
       return { resetTime, totalHits: totalHits || 1 };
     } catch (error) {
       log.error(LOG_TAG, `increment failed: ${reason(error)}`);
+
       // Fallback: return a conservative estimate
       return { resetTime, totalHits: 1 };
     }

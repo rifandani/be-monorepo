@@ -48,6 +48,7 @@ const linkCredentialAccounts = async (db: Db) => {
     db.select({ id: userTable.id }).from(userTable),
     hashPassword(SEED_BULK_PASSWORD),
   ]);
+
   await db.insert(accountTable).values(
     users.map((user) => ({
       accountId: user.id,
@@ -81,11 +82,13 @@ const seedDemoUser = async (db: Db) => {
 
 const main = async () => {
   const connectionString = process.env.DATABASE_URL;
+
   if (!connectionString) {
     throw new Error("DATABASE_URL is required");
   }
 
   const pool = new Pool({ connectionString });
+
   const db = drizzle({
     casing: "snake_case",
     client: pool,

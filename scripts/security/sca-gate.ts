@@ -72,16 +72,19 @@ const LEVEL_RANK = {
 } satisfies Record<SeverityBand, number>;
 
 const root = path.resolve(import.meta.dirname, "../..");
+
 const allowlistPath = path.resolve(
   root,
   process.env.SCA_ALLOWLIST_PATH ?? ".github/security/sca-allowlist.json"
 );
+
 const auditLevel = (process.env.SCA_AUDIT_LEVEL ?? "high").toLowerCase();
 const today = new Date().toISOString().slice(0, 10);
 const lockfile = "bun.lock";
 
 // SAFETY: `auditLevel` comes from the environment, so it may not be a band at all; the lookup then yields `undefined` and the guard below exits. The assertion only lets an arbitrary string index the map.
 const minRank = LEVEL_RANK[auditLevel as SeverityBand];
+
 if (!minRank) {
   console.error(
     `::error::invalid SCA_AUDIT_LEVEL=${auditLevel} (use low|moderate|high|critical)`
@@ -93,6 +96,7 @@ if (!minRank) {
 const raw = JSON.parse(readFileSync(allowlistPath, "utf-8")) as {
   entries?: AllowEntry[];
 };
+
 const entries = raw.entries ?? [];
 
 const errors: string[] = [];
@@ -103,16 +107,19 @@ for (const entry of entries) {
     errors.push(`invalid allowlist entry: ${JSON.stringify(entry)}`);
     continue;
   }
+
   if (entry.severity === "critical") {
     errors.push(`${entry.id}: critical advisories cannot be allowlisted`);
     continue;
   }
+
   if (entry.expires < today) {
     errors.push(
       `${entry.id}: allowlist expired on ${entry.expires} — remediate or renew`
     );
     continue;
   }
+
   active.push(entry);
 }
 
@@ -120,6 +127,7 @@ if (errors.length > 0) {
   for (const line of errors) {
     console.error(`::error::sca-allowlist: ${line}`);
   }
+
   process.exit(1);
 }
 
@@ -127,18 +135,23 @@ if (errors.length > 0) {
 // oxlint-disable-next-line anti-slop/no-unknown-parameters
 const bandFromCvss = (score: unknown): SeverityBand | null => {
   const n = Number(score);
+
   if (!Number.isFinite(n) || n <= 0) {
     return null;
   }
+
   if (n >= 9) {
     return "critical";
   }
+
   if (n >= 7) {
     return "high";
   }
+
   if (n >= 4) {
     return "moderate";
   }
+
   return "low";
 };
 
@@ -147,13 +160,16 @@ const normalizeBand = (value: unknown): SeverityBand | null => {
   const v = String(value ?? "")
     .trim()
     .toLowerCase();
+
   if (v === "medium") {
     return "moderate";
   }
+
   if (v in LEVEL_RANK) {
     // SAFETY: the `in` check just confirmed `v` is one of `LEVEL_RANK`'s keys, which are exactly the `SeverityBand` members.
     return v as SeverityBand;
   }
+
   return null;
 };
 
@@ -164,9 +180,11 @@ const maxBand = (
   if (!a) {
     return b;
   }
+
   if (!b) {
     return a;
   }
+
   return LEVEL_RANK[a] >= LEVEL_RANK[b] ? a : b;
 };
 
@@ -175,39 +193,50 @@ const which = (cmd: string): string | null => {
     if (!dir) {
       continue;
     }
+
     const candidate = path.join(dir, cmd);
+
     try {
       accessSync(candidate, fsConstants.X_OK);
+
       return candidate;
     } catch {
       // not found / not executable
     }
   }
+
   return null;
 };
 
 const ensureOsvScanner = (): string => {
   const fromEnv = process.env.OSV_SCANNER_BIN;
+
   if (fromEnv) {
     return fromEnv;
   }
+
   const onPath = which("osv-scanner");
+
   if (onPath) {
     return onPath;
   }
 
   const version = process.env.OSV_SCANNER_VERSION ?? "2.4.0";
+
   // Maps rather than object literals: the keys are the Node platform/arch names this project builds for, and `.get` returns `undefined` for anything else without needing the lookup key asserted into range.
   const platforms = new Map([
     ["darwin", "darwin"],
     ["linux", "linux"],
   ]);
+
   const arches = new Map([
     ["arm64", "arm64"],
     ["x64", "amd64"],
   ]);
+
   const platform = platforms.get(process.platform);
   const arch = arches.get(process.arch);
+
   if (!(platform && arch)) {
     throw new Error(
       `osv-scanner not found and no binary for ${process.platform}/${process.arch}`
@@ -216,25 +245,31 @@ const ensureOsvScanner = (): string => {
 
   const cacheDir = path.resolve(root, "node_modules/.cache/osv-scanner");
   mkdirSync(cacheDir, { recursive: true });
+
   const dest = path.resolve(
     cacheDir,
     `osv-scanner-${version}-${platform}-${arch}`
   );
+
   if (existsSync(dest)) {
     return dest;
   }
 
   const url = `https://github.com/google/osv-scanner/releases/download/v${version}/osv-scanner_${platform}_${arch}`;
   console.error(`Downloading osv-scanner v${version}…`);
+
   const curl = spawnSync("curl", ["-sSfL", url, "-o", dest], {
     stdio: "inherit",
   });
+
   if (curl.status !== 0) {
     throw new Error(
       `failed to download osv-scanner (curl exit ${curl.status}): ${url}`
     );
   }
+
   chmodSync(dest, 0o755);
+
   return dest;
 };
 
@@ -244,6 +279,7 @@ const writeConfig = (activeEntries: AllowEntry[]): string => {
     `# Source: ${allowlistPath}`,
     "",
   ];
+
   for (const e of activeEntries) {
     lines.push(
       "[[IgnoredVulns]]",
@@ -251,16 +287,21 @@ const writeConfig = (activeEntries: AllowEntry[]): string => {
       // Bare TOML date (not a quoted string) — osv-scanner expects LocalDate.
       `ignoreUntil = ${e.expires}`
     );
+
     if (e.reason) {
       lines.push(`reason = ${JSON.stringify(e.reason)}`);
     }
+
     lines.push("");
   }
+
   const configPath = path.resolve(
     tmpdir(),
     `osv-scanner-config-${process.pid}.toml`
   );
+
   writeFileSync(configPath, `${lines.join("\n")}`);
+
   return configPath;
 };
 
@@ -273,16 +314,21 @@ interface IdBands {
 const buildIdBands = (groups: OsvGroup[]): IdBands => {
   const idBand = new Map<string, SeverityBand>();
   let pkgMax: SeverityBand | null = null;
+
   for (const g of groups) {
     const band = bandFromCvss(g.max_severity);
+
     if (!band) {
       continue;
     }
+
     pkgMax = maxBand(pkgMax, band);
+
     for (const id of g.ids ?? []) {
       idBand.set(id, band);
     }
   }
+
   return { idBand, pkgMax };
 };
 
@@ -295,14 +341,17 @@ const resolveVulnSeverity = (
     normalizeBand(vuln.database_specific?.severity) ??
     idBand.get(vuln.id) ??
     null;
+
   if (!sev) {
     for (const alias of vuln.aliases ?? []) {
       sev = idBand.get(alias) ?? null;
+
       if (sev) {
         break;
       }
     }
   }
+
   // Fail closed: unclassified advisory treated as high
   return sev ?? pkgMax ?? "high";
 };
@@ -310,6 +359,7 @@ const resolveVulnSeverity = (
 const groupKeyFor = (pkg: OsvPackage, vulnId: string): string => {
   const group =
     (pkg.groups ?? []).find((g) => (g.ids ?? []).includes(vulnId)) ?? null;
+
   return [...(group?.ids ?? [vulnId])].toSorted().join(",");
 };
 
@@ -317,6 +367,7 @@ const collectPackageFindings = (pkg: OsvPackage): Finding[] => {
   const name = pkg.package?.name ?? "?";
   const version = pkg.package?.version ?? "?";
   const { idBand, pkgMax } = buildIdBands(pkg.groups ?? []);
+
   const byGroupKey = new Map<
     string,
     { id: string; severity: SeverityBand; summary: string }
@@ -324,12 +375,14 @@ const collectPackageFindings = (pkg: OsvPackage): Finding[] => {
 
   for (const vuln of pkg.vulnerabilities ?? []) {
     const sev = resolveVulnSeverity(vuln, idBand, pkgMax);
+
     if ((LEVEL_RANK[sev] ?? 0) < minRank) {
       continue;
     }
 
     const key = groupKeyFor(pkg, vuln.id);
     const prev = byGroupKey.get(key);
+
     if (!prev || LEVEL_RANK[sev] > LEVEL_RANK[prev.severity]) {
       byGroupKey.set(key, {
         id: vuln.id,
@@ -350,11 +403,13 @@ const collectPackageFindings = (pkg: OsvPackage): Finding[] => {
 
 const collectBlockers = (doc: OsvDocument): Finding[] => {
   const blockers: Finding[] = [];
+
   for (const result of doc.results ?? []) {
     for (const pkg of result.packages ?? []) {
       blockers.push(...collectPackageFindings(pkg));
     }
   }
+
   return blockers;
 };
 
@@ -386,6 +441,7 @@ if (code !== 0 && code !== 1) {
 }
 
 let doc: OsvDocument;
+
 try {
   // SAFETY: `JSON.parse` returns `any`, and unparseable output is caught below; `OsvDocument` describes osv-scanner's documented result shape with every field this gate reads treated as optional.
   doc = JSON.parse(stdout || "{}") as OsvDocument;
@@ -396,6 +452,7 @@ try {
 }
 
 const blockers = collectBlockers(doc);
+
 if (blockers.length === 0) {
   console.log(`SCA gate passed (no findings ≥ ${auditLevel}).`);
   process.exit(0);
@@ -404,9 +461,11 @@ if (blockers.length === 0) {
 console.error(
   `::error::SCA gate failed: ${blockers.length} finding(s) ≥ ${auditLevel}`
 );
+
 for (const b of blockers) {
   console.error(
     `- ${b.severity.toUpperCase()} ${b.id} ${b.package}@${b.version}: ${b.summary}`
   );
 }
+
 process.exit(1);

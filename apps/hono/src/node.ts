@@ -19,6 +19,7 @@ const shutdown = async (exitCode: number) => {
   if (isShuttingDown) {
     return;
   }
+
   isShuttingDown = true;
 
   await shutdownObservability();
@@ -27,6 +28,7 @@ const shutdown = async (exitCode: number) => {
       log.error("node-server", err.message);
       process.exit(1);
     }
+
     process.exit(exitCode);
   });
 };
@@ -46,4 +48,5 @@ const handleSignal = async () => {
 };
 
 process.on("SIGINT", handleSignal);
+
 process.on("SIGTERM", handleSignal);

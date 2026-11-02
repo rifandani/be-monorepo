@@ -71,7 +71,7 @@ layer(
       // error channel also carries transport and decode failures, so this
       // states that the readiness failure arrived as the declared one.
       if (!(error instanceof Unhealthy)) {
-        throw new Error(`expected Unhealthy, got ${String(error)}`);
+        throw new TypeError(`expected Unhealthy, got ${String(error)}`);
       }
 
       assert.strictEqual(error.status, "unhealthy");

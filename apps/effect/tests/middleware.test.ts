@@ -61,10 +61,12 @@ const configProvider = ConfigProvider.layer(
 // returns, so the ambient registry is one `Map` shared by every test in the
 // process. Calling the factory gives this file a registry of its own.
 const registry = Metric.MetricRegistry.defaultValue();
+
 const logRecords: {
   readonly annotations: Record<string, unknown>;
   readonly message: unknown;
 }[] = [];
+
 const spans: Tracer.Span[] = [];
 
 const collector = Logger.make((options) => {
@@ -103,6 +105,7 @@ const build = (extra: Layer.Layer<never>) =>
 // The tracer exclusion is provided the way the entrypoints provide it. Nothing
 // forces it to be entrypoint-only; it is a layer, and a test can hand it over.
 const served = build(tracerDisabledForProbes);
+
 // The same app without it, for the one case below that needs the app as it
 // would be if that layer were forgotten.
 const unguarded = build(Layer.empty);
@@ -209,7 +212,7 @@ describe("the global middleware", () => {
 
       assert.deepStrictEqual(
         spans.map((span) => span.name),
-        ["http.server GET", "Health.ready"]
+        ["GET", "Health.ready"]
       );
     });
 
@@ -218,7 +221,7 @@ describe("the global middleware", () => {
 
       assert.deepStrictEqual(
         spans.map((span) => span.name),
-        ["http.server GET"]
+        ["GET"]
       );
     });
 
@@ -232,7 +235,7 @@ describe("the global middleware", () => {
 
       assert.deepStrictEqual(
         spans.map((span) => span.name),
-        ["http.server GET"]
+        ["GET"]
       );
     });
   });

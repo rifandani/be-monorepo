@@ -20,6 +20,7 @@ export const base64ToUint8Array = (base64String: string): Uint8Array => {
     (BASE64_PADDING_LENGTH - (base64String.length % BASE64_PADDING_LENGTH)) %
       BASE64_PADDING_LENGTH
   );
+
   const base64 = (base64String + padding)
     .replaceAll("-", "+")
     .replaceAll("_", "/");
@@ -35,6 +36,7 @@ export const base64ToUint8Array = (base64String: string): Uint8Array => {
     // oxlint-disable-next-line unicorn/prefer-code-point
     outputArray[i] = rawData.charCodeAt(i);
   }
+
   return outputArray;
 };
 
@@ -56,12 +58,15 @@ export const fileToDataUri = async (file: File): Promise<string> => {
   const uint8Array = new Uint8Array(arrayBuffer);
   // Convert Uint8Array to binary string
   let binaryString = "";
+
   // Avoid potential stack overflow issues with String.fromCharCode.apply for large arrays
   for (const byte of uint8Array) {
     binaryString += String.fromCodePoint(byte);
   }
+
   // Encode binary string to base64
   const base64String = btoa(binaryString);
   const mimeType = file.type || "application/octet-stream"; // Default MIME type
+
   return `data:${mimeType};base64,${base64String}`;
 };

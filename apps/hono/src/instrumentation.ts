@@ -135,4 +135,5 @@ export const shutdownObservability = async () => {
 };
 
 sdk.start();
+
 log.info("instrumentation", "Instrumentation started");

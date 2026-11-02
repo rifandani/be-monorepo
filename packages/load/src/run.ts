@@ -59,11 +59,13 @@ const [app, profile, urlArg] = args.filter((arg) => !arg.startsWith("--"));
 if (!isOneOf(APPS, app)) {
   fail(`give an app, one of ${APPS.join(", ")}`);
 }
+
 if (!isOneOf(PROFILES, profile)) {
   fail(`give a profile, one of ${PROFILES.join(", ")}`);
 }
 
 const target = urlArg ?? process.env.LOAD_TARGET;
+
 if (!target) {
   fail(
     "a target URL is required and has no default.\n" +
@@ -73,6 +75,7 @@ if (!target) {
 }
 
 const targetUrl = URL.parse(target);
+
 if (!targetUrl) {
   fail(`not a URL: ${target}`);
 }
@@ -80,6 +83,7 @@ if (!targetUrl) {
 const isLocal =
   LOCAL_HOSTS.has(targetUrl.hostname) ||
   targetUrl.hostname.endsWith(".localhost");
+
 if (!isLocal && DESTRUCTIVE_PROFILES.has(profile) && !allowRemote) {
   fail(
     `${profile} against ${targetUrl.host} can take it down for everyone on it.\n` +
@@ -88,11 +92,13 @@ if (!isLocal && DESTRUCTIVE_PROFILES.has(profile) && !allowRemote) {
 }
 
 const k6Version = spawnSync("k6", ["version"], { encoding: "utf-8" });
+
 if (k6Version.error) {
   fail("k6 is not installed. Install it with `brew install k6`.");
 }
 
 mkdirSync(REPORT_DIR, { recursive: true });
+
 const stamp = new Date().toISOString().replaceAll(/[:.]/gu, "-");
 const reportBase = path.join(REPORT_DIR, `${app}-${profile}-${stamp}`);
 
@@ -128,6 +134,7 @@ const k6Args = [
 ];
 
 console.log(`load: ${app} ${profile} against ${target}`);
+
 const result = spawnSync("k6", k6Args, {
   env: {
     ...process.env,
@@ -142,5 +149,6 @@ const result = spawnSync("k6", k6Args, {
 console.log(
   `load: reports in ${path.relative(REPO_ROOT, reportBase)}.{json,html}`
 );
+
 // 99 is k6's exit code for a failed threshold, which is a result, not a crash.
 process.exit(result.status ?? 1);

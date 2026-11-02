@@ -6,11 +6,13 @@ import { ALLOWED_ORIGIN } from "#server/origin.ts";
 // The same tests `hono/csrf` applies, in the same order. A request is rejected
 // only when every one of them agrees it looks like a cross-site form post.
 const SAFE_METHOD = /^(?:GET|HEAD|OPTIONS)$/u;
+
 // The content types an HTML form can send without a preflight. Anything else —
 // `application/json`, for one — cannot leave a form element, so the same-origin
 // policy already stops it and CORS governs the rest.
 const FORM_CONTENT_TYPE =
   /^\b(?:application\/x-www-form-urlencoded|multipart\/form-data|text\/plain)\b/iu;
+
 // A request with no `Content-Type` is treated as `text/plain`, which is what a
 // form sends when it omits the header. `hono/csrf` makes the same assumption.
 const ASSUMED_CONTENT_TYPE = "text/plain";

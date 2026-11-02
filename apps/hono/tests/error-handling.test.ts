@@ -11,6 +11,7 @@ import { app } from "#app.ts";
 // the sibling test files that share this app instance.
 app.get("/__test/zod", () => {
   z.object({ name: z.string() }).parse({ name: 42 });
+
   return new Response("unreachable");
 });
 
@@ -66,6 +67,7 @@ describe("app error handling", () => {
 
   it("turns a ky HTTPError into a 400 carrying the upstream body", async () => {
     const res = await app.request("/__test/ky");
+
     const body = (await res.json()) as {
       error: { detail: string };
       message: string;
@@ -131,6 +133,7 @@ describe("app language detection", () => {
     const id = await app.request("/__test/lang", {
       headers: { "Accept-Language": "id" },
     });
+
     const fallback = await app.request("/__test/lang", {
       headers: { "Accept-Language": "fr" },
     });

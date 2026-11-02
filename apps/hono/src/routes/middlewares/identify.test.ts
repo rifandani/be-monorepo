@@ -13,6 +13,7 @@ const appWithLog = (log: FakeLog) => {
   const app = new Hono<{ Variables: Variables }>();
   app.use("*", (c, next) => {
     c.set("log", log as unknown as Variables["log"]);
+
     return next();
   });
   app.use("*", identifyMiddleware());
@@ -20,6 +21,7 @@ const appWithLog = (log: FakeLog) => {
   app.get("/api/auth/session-check", (c) => c.text("auth"));
   app.get("/api/health", (c) => c.text("health"));
   app.get("/api/public/ping", (c) => c.text("public"));
+
   return app;
 };
 

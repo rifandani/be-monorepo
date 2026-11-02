@@ -40,6 +40,7 @@ interface OpenApiDoc {
 const fetchOpenApi = async () => {
   const res = await app.request("/openapi");
   expect(res.status).toBe(200);
+
   return (await res.json()) as OpenApiDoc;
 };
 

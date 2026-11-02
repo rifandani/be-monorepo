@@ -19,6 +19,7 @@ import { parseServerTimingHeader } from "./util.ts";
 describe("/llms-docs endpoint", () => {
   it("returns docs content with length, tokens, and separators", async () => {
     const res = await app.request("/llms-docs");
+
     const json = (await res.json()) as {
       length: number;
       text: string;
@@ -36,9 +37,11 @@ describe("/llms-docs endpoint", () => {
     // the route actually read. Reproducing the join here is what pins the
     // separator: an empty string or a Stryker placeholder no longer matches.
     const files = await getAllFiles(path.join(process.cwd(), "./docs"));
+
     const contents = await Promise.all(
       files.map((file) => readFile(file, "utf-8"))
     );
+
     const expectedText = contents.map((content) => `${content}\n\n`).join("");
 
     expect(files.length).toBeGreaterThan(0);

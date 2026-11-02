@@ -77,6 +77,7 @@ describe.each(CASES)(
       const spy = vi.spyOn(console, consoleMethod).mockImplementation(() => {
         // Swallow output so the test run stays readable.
       });
+
       const attribute = { requestId: "abc" };
 
       logger[method]("something happened", attribute, 42);

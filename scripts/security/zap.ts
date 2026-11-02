@@ -41,16 +41,19 @@ const fail: (message: string) => never = (message) => {
 };
 
 const plan = process.argv.at(2);
+
 if (!plan) {
   fail("give a plan name, e.g. `bun scripts/security/zap.ts hono-baseline`");
 }
 
 const planPath = path.join(PLAN_DIR, `${plan}.yaml`);
+
 if (!existsSync(planPath)) {
   fail(`no plan at ${path.relative(REPO_ROOT, planPath)}`);
 }
 
 const target = process.env.ZAP_TARGET;
+
 if (!target) {
   fail(
     "ZAP_TARGET is required and has no default.\n" +
@@ -61,6 +64,7 @@ if (!target) {
 }
 
 const targetUrl = URL.parse(target);
+
 if (!targetUrl) {
   fail(`ZAP_TARGET is not a URL: ${target}`);
 }
@@ -92,9 +96,11 @@ const resolveNetworkArgs = (url: URL): string[] => {
   if (process.platform === "linux") {
     return ["--network", "host"];
   }
+
   if (url.hostname.endsWith(".localhost")) {
     return ["--add-host", `${url.hostname}:host-gateway`];
   }
+
   return [];
 };
 
@@ -111,6 +117,7 @@ const resolvePlatformArgs = (): string[] =>
 const platformArgs = resolvePlatformArgs();
 
 mkdirSync(REPORT_DIR, { recursive: true });
+
 // ZAP runs as uid 1000 in the container, which is not the uid that owns a
 // checkout on a CI runner. `action-af` widens the workspace for the same
 // reason; this widens only the directory the plans write to.
@@ -142,6 +149,7 @@ const args = [
 ];
 
 console.log(`zap: ${plan} against ${target}`);
+
 const result = spawnSync("docker", args, { stdio: "inherit" });
 
 if (result.error) {
@@ -153,4 +161,5 @@ if (result.error) {
 if (readdirSync(REPORT_DIR).length > 0) {
   console.log(`zap: reports in ${path.relative(REPO_ROOT, REPORT_DIR)}/`);
 }
+
 process.exit(result.status ?? 1);
