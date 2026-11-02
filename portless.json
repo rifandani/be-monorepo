@@ -1,7 +1,0 @@
-{
-  "name": "be-monorepo",
-  "apps": {
-    "apps/hono": { "name": "hono.be-monorepo" },
-    "apps/effect": { "name": "effect.be-monorepo" }
-  }
-}
