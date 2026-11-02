@@ -4,6 +4,11 @@
 
 [![Mintlify Docs](https://img.shields.io/badge/mintlify-docs-green?logo=mintlify)](https://rifandani-be-monorepo.mintlify.app)
 
+## Maintenance
+
+- /improve-codebase-architecture
+- remove oxlint-disable, fallow-disable across codebase and actually fix it
+
 ## 🚀 Getting Started
 
 This repository is a boilerplate. Many values in it are placeholders for this template. When you start a new project from it, do the steps below. Then do the steps for each app that you keep:
