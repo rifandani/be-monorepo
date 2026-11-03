@@ -71,7 +71,7 @@ For a simple fill, write an `UPDATE` statement in the migration. If the fill nee
 
 Loop until all green, in parallel/subagent:
 
-1. `bun lint-typecheck`
+1. `bun lint` (it also type-checks)
 2. `bun test:cov`
 3. Boot each app on Node and hit one route, then stop it: `bun effect node:start` → `curl localhost:$PORT/health/ready`, `bun hono node:start` → `curl localhost:$PORT/openapi`. Both must answer `200`. There is no build step to stand in for this any more — since ADR-0003 the apps run their own `.ts`, so a wrong import specifier fails at startup and gate 1 will not catch it.
 4. `bun audit:sca`
