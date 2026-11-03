@@ -46,7 +46,7 @@ interface Blocker {
 const [arg] = process.argv.slice(2);
 const minSeverity = Number(process.env.SAST_MIN_SECURITY_SEVERITY ?? "7.0");
 
-if (!arg) {
+if (arg === undefined || arg.length === 0) {
   console.error(
     "Usage: bun scripts/security/sarif-severity-gate.ts <sarif-path>"
   );
@@ -113,7 +113,7 @@ for (const file of files) {
 
       // Vendored reference trees are not product code; ignore even if a scan
       // config missed them.
-      if (loc && /(?:^|\/)repos\//u.test(loc)) {
+      if (loc !== undefined && loc.length > 0 && /(?:^|\/)repos\//u.test(loc)) {
         continue;
       }
 
@@ -140,7 +140,7 @@ console.error(
 
 for (const b of blockers) {
   console.error(
-    `- ${b.ruleId} (severity=${b.severity})${b.file ? ` @ ${b.file}` : ""}: ${b.message}`
+    `- ${b.ruleId} (severity=${b.severity})${b.file !== undefined && b.file.length > 0 ? ` @ ${b.file}` : ""}: ${b.message}`
   );
 }
 

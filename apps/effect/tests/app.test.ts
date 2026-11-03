@@ -33,7 +33,7 @@ const { dispose, handler } = HttpRouter.toWebHandler(
 // row of one table. This suite keeps the mount points and each middleware's
 // own behaviour.
 describe("app routes", () => {
-  afterAll(() => dispose());
+  afterAll(async () => dispose());
 
   // The probes are asserted here and not only in `tests/health.test.ts`, which
   // rebuilds the routes from the api description and so cannot see a mount

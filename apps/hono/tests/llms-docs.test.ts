@@ -39,7 +39,7 @@ describe("/llms-docs endpoint", () => {
     const files = await getAllFiles(path.join(process.cwd(), "./docs"));
 
     const contents = await Promise.all(
-      files.map((file) => readFile(file, "utf-8"))
+      files.map(async (file) => readFile(file, "utf-8"))
     );
 
     const expectedText = contents.map((content) => `${content}\n\n`).join("");
@@ -67,7 +67,7 @@ describe(getAllFiles, () => {
   let root: string | undefined;
 
   afterEach(async () => {
-    if (root) {
+    if (root !== undefined) {
       await rm(root, { force: true, recursive: true });
       root = undefined;
     }

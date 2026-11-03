@@ -49,16 +49,16 @@ export const setup = (): SetupData => {
   );
 
   // The bearer plugin returns the session token in this header.
-  const token = response.headers["Set-Auth-Token"];
+  const token = response.headers["Set-Auth-Token"] ?? "";
 
-  if (response.status !== 200 || !token) {
+  if (response.status !== 200 || token.length === 0) {
     exec.test.abort(
       `sign-in as ${__ENV.LOAD_USER_EMAIL} failed with ${response.status}. ` +
         "Run `bun hono db:seed` first, or set LOAD_USER_EMAIL and LOAD_USER_PASSWORD."
     );
   }
 
-  return { token: token ?? "" };
+  return { token };
 };
 
 const pickRoute = (): Route => {

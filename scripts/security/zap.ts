@@ -42,7 +42,7 @@ const fail: (message: string) => never = (message) => {
 
 const plan = process.argv.at(2);
 
-if (!plan) {
+if (plan === undefined || plan.length === 0) {
   fail("give a plan name, e.g. `bun scripts/security/zap.ts hono-baseline`");
 }
 
@@ -54,7 +54,7 @@ if (!existsSync(planPath)) {
 
 const target = process.env.ZAP_TARGET;
 
-if (!target) {
+if (target === undefined || target.length === 0) {
   fail(
     "ZAP_TARGET is required and has no default.\n" +
       "  local hono:   ZAP_TARGET=https://hono.be-monorepo.localhost bun zap:hono:baseline\n" +

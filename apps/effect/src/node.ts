@@ -10,6 +10,6 @@ import { main } from "./main.ts";
 // finalizers, so there is no shutdown code to hand-roll here. Everything the two
 // entrypoints share — the router, the probe tracer exclusion, telemetry, the
 // banner — lives in `main.ts`.
-Layer.launch(
-  main(NodeHttpServer.layerConfig(createServer, { port: PORT }))
-).pipe(NodeRuntime.runMain);
+NodeRuntime.runMain(
+  Layer.launch(main(NodeHttpServer.layerConfig(createServer, { port: PORT })))
+);

@@ -167,7 +167,7 @@ const ROWS: readonly Row[] = [
 ];
 
 describe("what a short-circuited response carries", () => {
-  afterAll(() => dispose());
+  afterAll(async () => dispose());
 
   it.each(ROWS)("$name: $why", async (row) => {
     const response = await handler(row.request);

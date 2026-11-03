@@ -33,7 +33,7 @@ const drain = pipeline(
   })
 );
 
-export const flushEvlogDrain = () => drain.flush();
+export const flushEvlogDrain = async () => drain.flush();
 
 export const evlogMiddlewareOptions = {
   drain,
@@ -44,7 +44,7 @@ export const evlogMiddlewareOptions = {
     }
   },
   keep: (ctx) => {
-    if (ctx.duration && ctx.duration > 2000) {
+    if (ctx.duration !== undefined && ctx.duration > 2000) {
       ctx.shouldKeep = true;
     }
   },

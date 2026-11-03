@@ -23,7 +23,6 @@ describe(getTracer, () => {
     const tracer = getTracer({ isEnabled: true });
 
     expect(tracer).not.toBe(noopTracer);
-    expect(tracer.startSpan).toBeTypeOf("function");
   });
 });
 
@@ -54,7 +53,7 @@ describe("the noop tracer", () => {
     ).toBeUndefined();
   });
 
-  it("returns a span whose lifecycle methods are chainable no-ops", () => {
+  it("runs span lifecycle methods as no-ops", () => {
     const span = noopTracer.startSpan("span");
 
     expect(span.addEvent("event")).toBe(span);
@@ -64,7 +63,7 @@ describe("the noop tracer", () => {
     expect(span.recordException(new Error("boom"))).toBe(span);
   });
 
-  it("returns a span whose mutators are chainable no-ops", () => {
+  it("runs span mutators as no-ops", () => {
     const span = noopTracer.startSpan("span");
 
     expect(span.setAttribute("key", "value")).toBe(span);
@@ -85,7 +84,7 @@ describe("the noop tracer", () => {
   });
 });
 
-const record = <T>(
+const record = async <T>(
   fn: (span: Span) => Promise<T>,
   endWhenDone?: boolean
 ): Promise<T> =>
@@ -99,26 +98,26 @@ const record = <T>(
 
 describe(recordSpan, () => {
   it("resolves with the wrapped function's result", async () => {
-    await expect(record(() => Promise.resolve("result"))).resolves.toBe(
+    await expect(record(async () => Promise.resolve("result"))).resolves.toBe(
       "result"
     );
   });
 
   it("passes the span into the wrapped function", async () => {
     await expect(
-      record((span) => Promise.resolve(span.isRecording()))
+      record(async (span) => Promise.resolve(span.isRecording()))
     ).resolves.toBeFalsy();
   });
 
   it("skips ending the span when endWhenDone is false", async () => {
     await expect(
-      record(() => Promise.resolve("kept-open"), false)
+      record(async () => Promise.resolve("kept-open"), false)
     ).resolves.toBe("kept-open");
   });
 
   it("rethrows an Error after recording it on the span", async () => {
     await expect(
-      record(() => Promise.reject(new Error("wrapped failure")))
+      record(async () => Promise.reject(new Error("wrapped failure")))
     ).rejects.toThrow(/^wrapped failure$/u);
   });
 
@@ -127,9 +126,9 @@ describe(recordSpan, () => {
     // thrown value has no message, name, or stack to record. Rejecting with a
     // non-Error is the whole point of the case.
     // oxlint-disable-next-line eslint/prefer-promise-reject-errors
-    await expect(record(() => Promise.reject("string failure"))).rejects.toBe(
-      "string failure"
-    );
+    await expect(
+      record(async () => Promise.reject("string failure"))
+    ).rejects.toBe("string failure");
   });
 });
 

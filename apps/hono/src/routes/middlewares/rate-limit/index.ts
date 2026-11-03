@@ -11,6 +11,17 @@ import { DbStore } from "./store.ts";
 const RATE_LIMIT_WINDOW_MS = 15_000; // 15 seconds
 const RATE_LIMIT_LIMIT = 15; // Limit each IP to 150 requests per 15 seconds (10 req/s average)
 
+const nonEmpty = (ip: string | null): string | null =>
+  ip === null || ip.length === 0 ? null : ip;
+
+/**
+ * First non-empty address wins: headers, then request context, then `anonymous`.
+ */
+const resolveClientIp = (
+  fromHeaders: string | null,
+  fromContext: string | null
+): string => nonEmpty(fromHeaders) ?? nonEmpty(fromContext) ?? "anonymous";
+
 /**
  * rate limit middleware using drizzle postgres store with default rate limit of 10 req/s
  */
@@ -25,13 +36,13 @@ export const rateLimit = rateLimiter<{
       return `session:${session.id}`;
     }
 
-    // get IP address from headers (most common)
-    const ipAddressFromHeaders = getClientIpAddress(c.req.raw.headers);
+    // get IP address from headers (most common), then from context (less common)
+    const ipAddress = resolveClientIp(
+      getClientIpAddress(c.req.raw.headers),
+      await getClientIpAddressFromContext(c)
+    );
 
-    // fallback to IP address from context (less common)
-    const ipAddressFromContext = await getClientIpAddressFromContext(c);
-
-    return `ip:${ipAddressFromHeaders || ipAddressFromContext || "anonymous"}`;
+    return `ip:${ipAddress}`;
   },
   limit: RATE_LIMIT_LIMIT,
   message: (c) => {

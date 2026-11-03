@@ -28,7 +28,7 @@ const { dispose, handler } = HttpRouter.toWebHandler(
 );
 
 describe("error handler", () => {
-  afterAll(() => dispose());
+  afterAll(async () => dispose());
 
   it("answers a defect with a 500 and JSON", async () => {
     const response = await handler(new Request("http://localhost/die"));

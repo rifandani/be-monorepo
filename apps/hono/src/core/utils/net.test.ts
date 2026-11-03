@@ -79,7 +79,7 @@ const requestWithSocket = async (socket: Record<string, unknown> | null) => {
 
   const res = await app.request("/", {}, { incoming: { socket } });
 
-  return await res.text();
+  return res.text();
 };
 
 describe(getClientIpAddressFromContext, () => {

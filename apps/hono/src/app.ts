@@ -81,7 +81,7 @@ await routes(app);
 //   colorize: true,
 // });
 
-app.onError((error, c) => {
+app.onError(async (error, c) => {
   // evlog always mounts `log` ahead of routes; optional chain is defensive for
   // the rare case a test mounts onError without that middleware.
   // Stryker disable next-line OptionalChaining,StringLiteral: log is always set under the real middleware stack; missing-key and ?. vs . are observationally identical there
@@ -122,6 +122,7 @@ app.onError((error, c) => {
         }),
         // SAFETY: `parseError` only ever reports an error status (>= 400), and
         // every such code carries a body, so none of the bodiless `StatusCode`s (101/204/205/304) that `ContentfulStatusCode` excludes can reach here.
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- parseError emits only contentful error status codes.
         parsed.status as ContentfulStatusCode
       );
     });

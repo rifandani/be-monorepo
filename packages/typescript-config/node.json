@@ -11,7 +11,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "target": "esnext",
-    "module": "esnext",
+    "module": "NodeNext",
     "types": ["bun", "node"]
   }
 }

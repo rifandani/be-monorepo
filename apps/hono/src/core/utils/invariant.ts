@@ -21,6 +21,7 @@ export const invariant = (
   condition: any,
   message?: string | (() => string)
 ): asserts condition => {
+  // oxlint-disable-next-line typescript/strict-boolean-expressions -- truthiness is the public contract of this assertion function.
   if (condition) {
     return;
   }
@@ -39,6 +40,10 @@ export const invariant = (
   // Options:
   // 1. message provided: `${prefix}: ${provided}`
   // 2. message not provided: prefix
-  const value: string = provided ? `${prefix}: ${provided}` : prefix;
+  const value: string =
+    provided !== undefined && provided.length > 0
+      ? `${prefix}: ${provided}`
+      : prefix;
+
   throw new Error(value);
 };

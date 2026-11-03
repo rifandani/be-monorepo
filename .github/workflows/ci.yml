@@ -80,7 +80,7 @@ jobs:
           # gate: new-only
           dupes-mode: semantic
 
-  lint-typecheck:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
@@ -94,8 +94,10 @@ jobs:
       - name: Install deps
         run: bun ci
 
+      # Oxlint runs with `typeAware` and `typeCheck` enabled. This also reports
+      # TypeScript compiler diagnostics, so no separate `tsc` step is needed.
       - name: Lint and typecheck
-        run: bun lint-typecheck
+        run: bun lint
 
   typerange:
     runs-on: ubuntu-latest

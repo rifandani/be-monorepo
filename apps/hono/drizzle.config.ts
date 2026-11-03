@@ -1,6 +1,9 @@
 import { defineConfig } from "drizzle-kit";
 
-if (!process.env.DATABASE_URL) {
+if (
+  process.env.DATABASE_URL === undefined ||
+  process.env.DATABASE_URL.length === 0
+) {
   throw new Error("DATABASE_URL is not set");
 }
 
