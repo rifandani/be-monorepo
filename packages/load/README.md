@@ -33,4 +33,4 @@ LOAD_TARGET=http://localhost:3000 bun load:hono:load
 | `src/profiles.ts` | The five test types, their thresholds, the 429 counter, and the end-of-test summary. k6 code. |
 | `src/hono.ts`, `src/effect.ts` | One scenario for each app. k6 code. |
 
-The k6 files run in the k6 runtime, not in Node. They import `k6/*` modules and read `__ENV`. `bun load:typecheck` checks them with `@types/k6`.
+The k6 files run in the k6 runtime, not in Node. They import `k6/*` modules and read `__ENV`. `bun lint` checks them with `@types/k6`.

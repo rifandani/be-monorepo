@@ -6,9 +6,6 @@
   "license": "MIT",
   "author": "Tri Rizeki Rifandani",
   "type": "module",
-  "scripts": {
-    "typecheck": "tsc --noEmit"
-  },
   "devDependencies": {
     "@types/k6": "2.3.1",
     "@types/node": "26.6.6",

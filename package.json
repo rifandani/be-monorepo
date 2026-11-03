@@ -49,19 +49,14 @@
     "test:cov": "vitest run --coverage",
     "test:mutate": "stryker run",
     "test:mutate:inc": "stryker run --incremental",
-    "typecheck": "bun run --parallel load:typecheck hono:typecheck effect:typecheck",
     "typerange": "bun run --parallel hono:typerange effect:typerange",
-    "lint-typecheck": "bun run --parallel lint load:typecheck hono:typecheck effect:typecheck",
     "hono": "bun --elide-lines=0 --filter @workspace/hono",
-    "hono:typecheck": "bun hono typecheck",
     "hono:typerange": "bun hono typerange",
     "hono:test": "bun hono test",
     "effect": "bun --elide-lines=0 --filter @workspace/effect",
-    "effect:typecheck": "bun effect typecheck",
     "effect:typerange": "bun effect typerange",
     "effect:test": "bun effect test",
-    "load": "bun --elide-lines=0 --filter @workspace/load",
-    "load:typecheck": "bun load typecheck"
+    "load": "bun --elide-lines=0 --filter @workspace/load"
   },
   "devDependencies": {
     "@changesets/cli": "3.0.3",
@@ -76,6 +71,7 @@
     "msw": "3.0.3",
     "oxfmt": "0.75.0",
     "oxlint": "1.90.0",
+    "oxlint-tsgolint": "7.0.2005",
     "rimraf": "6.1.3",
     "typescript": "7.0.2",
     "ultracite": "8.1.1",

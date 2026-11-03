@@ -5,6 +5,12 @@ import vitest from "ultracite/oxlint/vitest";
 
 export default defineConfig({
   extends: [core, antiSlop, vitest],
+  // Type-aware rules use TypeScript type information. Compiler diagnostics
+  // also replace the separate `tsc --noEmit` checks in this monorepo.
+  options: {
+    typeAware: true,
+    typeCheck: true,
+  },
   rules: {
     "sort-keys": "off",
     "no-inline-comments": "off",
