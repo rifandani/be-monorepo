@@ -9,7 +9,7 @@
     "incremental": false,
     "isolatedModules": true,
     "lib": ["esnext", "DOM"],
-    "module": "esnext",
+    "module": "NodeNext",
     "moduleDetection": "force",
     "moduleResolution": "nodenext",
     "noUncheckedIndexedAccess": true,

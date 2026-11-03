@@ -110,7 +110,7 @@ const served = build(tracerDisabledForProbes);
 // would be if that layer were forgotten.
 const unguarded = build(Layer.empty);
 
-const get = (path: string) =>
+const get = async (path: string) =>
   served.handler(new Request(`http://localhost${path}`));
 
 const requestCount = (options: {
@@ -337,7 +337,7 @@ describe("the global middleware", () => {
       { disableLogger: true }
     );
 
-    afterAll(() => dispose());
+    afterAll(async () => dispose());
 
     it("answers 504 when the handler outlasts the duration", async () => {
       const response = await handler(new Request("http://localhost/slow"));

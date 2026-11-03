@@ -6,7 +6,7 @@ import { PORT } from "#core/constants/global.ts";
 import { app } from "./app.ts";
 import { shutdownObservability } from "./instrumentation.ts";
 
-const server = serve({ ...app, port: PORT }, (info) => {
+const server = serve({ fetch: app.fetch, port: PORT }, (info) => {
   log.info(
     "node-server",
     `Started development server: http://localhost:${info.port}`
@@ -35,16 +35,15 @@ const shutdown = async (exitCode: number) => {
 
 // `void shutdown(0)` used to discard the promise here; oxlint 1.79 turns
 // `no-void` on, and a rejection had nowhere to go anyway.
-const handleSignal = async () => {
-  try {
-    await shutdown(0);
-  } catch (error: unknown) {
+const handleSignal = () => {
+  // oxlint-disable-next-line anti-slop/no-unknown-parameters -- errors caught from a promise are unknown by TypeScript; narrow before logging.
+  void shutdown(0).catch((error: unknown) => {
     log.error(
       "node-server",
       error instanceof Error ? error.message : String(error)
     );
     process.exit(1);
-  }
+  });
 };
 
 process.on("SIGINT", handleSignal);

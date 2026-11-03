@@ -31,7 +31,18 @@ export const rateLimit = rateLimiter<{
     // fallback to IP address from context (less common)
     const ipAddressFromContext = await getClientIpAddressFromContext(c);
 
-    return `ip:${ipAddressFromHeaders || ipAddressFromContext || "anonymous"}`;
+    let ipAddress = "anonymous";
+
+    if (ipAddressFromHeaders !== null && ipAddressFromHeaders.length > 0) {
+      ipAddress = ipAddressFromHeaders;
+    } else if (
+      ipAddressFromContext !== null &&
+      ipAddressFromContext.length > 0
+    ) {
+      ipAddress = ipAddressFromContext;
+    }
+
+    return `ip:${ipAddress}`;
   },
   limit: RATE_LIMIT_LIMIT,
   message: (c) => {

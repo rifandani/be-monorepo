@@ -17,7 +17,7 @@ import {
 //
 // A fresh registry per run, for the reason `metrics.test.ts` explains: the
 // default one is shared by every test in the process.
-const run = <A, E>(effect: Effect.Effect<A, E>): Promise<A> =>
+const run = async <A, E>(effect: Effect.Effect<A, E>): Promise<A> =>
   Effect.runPromise(
     Effect.provideService(effect, Metric.MetricRegistry, new Map())
   );

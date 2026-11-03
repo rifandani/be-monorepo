@@ -39,7 +39,9 @@ describe(withTimeout, () => {
 
       assert.strictEqual(response.status, 504);
       assert.strictEqual(
-        yield* Effect.promise(() => HttpServerResponse.toWeb(response).text()),
+        yield* Effect.promise(async () =>
+          HttpServerResponse.toWeb(response).text()
+        ),
         "Gateway Timeout"
       );
     })

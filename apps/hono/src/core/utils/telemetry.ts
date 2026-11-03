@@ -5,7 +5,7 @@
 import { SpanStatusCode, trace } from "@opentelemetry/api";
 import type {
   Attributes,
-  AttributeValue,
+  AnyValue,
   Span,
   SpanContext,
   Tracer,
@@ -16,6 +16,9 @@ import { SERVICE_NAME } from "#core/constants/global.ts";
 
 const SMALL_ARRAY_LENGTH = 5;
 const PREVIEW_LENGTH = 3;
+
+const isObject = (value: unknown): value is object =>
+  typeof value === "object" && value !== null;
 
 const noopSpanContext: SpanContext = {
   spanId: "",
@@ -71,15 +74,18 @@ export const noopTracer: Tracer = {
     // oxlint-disable-next-line typescript/no-explicit-any
   ): ReturnType<any> {
     if (typeof arg1 === "function") {
-      return arg1(noopSpan);
+      // oxlint-disable-next-line anti-slop/no-reflect-apply -- OTel overloads put the callback in three argument positions.
+      return Reflect.apply(arg1, undefined, [noopSpan]);
     }
 
     if (typeof arg2 === "function") {
-      return arg2(noopSpan);
+      // oxlint-disable-next-line anti-slop/no-reflect-apply -- OTel overloads put the callback in three argument positions.
+      return Reflect.apply(arg2, undefined, [noopSpan]);
     }
 
     if (typeof arg3 === "function") {
-      return arg3(noopSpan);
+      // oxlint-disable-next-line anti-slop/no-reflect-apply -- OTel overloads put the callback in three argument positions.
+      return Reflect.apply(arg3, undefined, [noopSpan]);
     }
   },
 
@@ -182,7 +188,7 @@ const endSpanWithError = (span: Span, error: unknown): void => {
  * });
  * ```
  */
-export const recordSpan = <T>({
+export const recordSpan = async <T>({
   name,
   tracer,
   attributes,
@@ -326,10 +332,10 @@ export const flattenAttributes = (
  * Recursively flattens nested objects for trace attributes
  */
 export const flattenAttributesV2 = (
-  obj: Record<string, unknown>,
+  obj: object,
   prefix = ""
-): Record<string, AttributeValue> =>
-  Object.entries(obj).reduce(
+): Record<string, AnyValue> =>
+  Object.entries(obj).reduce<Record<string, AnyValue>>(
     (acc, [key, value]) => {
       const newKey = prefix ? `${prefix}.${key}` : key;
 
@@ -349,16 +355,10 @@ export const flattenAttributesV2 = (
             }
 
             for (const [i, item] of items.entries()) {
-              if (typeof item === "object" && item !== null) {
+              if (isObject(item)) {
                 // SAFETY: the branch above establishes `item` is a non-null
                 // object, and this helper only reads its own entries.
-                Object.assign(
-                  acc,
-                  flattenAttributesV2(
-                    item as Record<string, unknown>,
-                    `${newKey}.${i}`
-                  )
-                );
+                Object.assign(acc, flattenAttributesV2(item, `${newKey}.${i}`));
               } else if (item !== null && item !== undefined) {
                 acc[`${newKey}.${i}`] = String(item);
               }
@@ -371,16 +371,11 @@ export const flattenAttributesV2 = (
 
             return acc;
           })
-          .with(
-            P.when((candidate) => typeof candidate === "object"),
-            (record) =>
-              // SAFETY: the `P.when` guard above matched `typeof === "object"`
-              // and the earlier `P.nullish` arm already took `null`, so
-              // `record` is a non-null object whose entries are only read.
-              Object.assign(
-                acc,
-                flattenAttributesV2(record as Record<string, unknown>, newKey)
-              )
+          .with(P.when(isObject), (record) =>
+            // SAFETY: the `P.when` guard above matched `typeof === "object"`
+            // and the earlier `P.nullish` arm already took `null`, so
+            // `record` is a non-null object whose entries are only read.
+            Object.assign(acc, flattenAttributesV2(record, newKey))
           )
           // Anything left is a function, symbol or bigint, none of which OTel
           // can represent — the original code dropped them via a missing
@@ -391,5 +386,5 @@ export const flattenAttributesV2 = (
     // SAFETY: the accumulator starts empty and every arm above writes only
     // `AttributeValue`s into it, so the assertion names the type the reduce
     // builds up rather than widening anything.
-    {} as Record<string, AttributeValue>
+    {}
   );

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { logger } from "./logger";
+import { logger } from "./logger.ts";
 
 const WHITE = "\u001B[37m";
 const TIMESTAMP = /\[\d{2}:\d{2}:\d{2}\.\d{3}\]/u;

@@ -66,7 +66,7 @@ if (!isOneOf(PROFILES, profile)) {
 
 const target = urlArg ?? process.env.LOAD_TARGET;
 
-if (!target) {
+if (target === undefined || target.length === 0) {
   fail(
     "a target URL is required and has no default.\n" +
       `  bun load:${app}:${profile} http://localhost:3000\n` +

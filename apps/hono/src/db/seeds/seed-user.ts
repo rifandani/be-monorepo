@@ -83,7 +83,7 @@ const seedDemoUser = async (db: Db) => {
 const main = async () => {
   const connectionString = process.env.DATABASE_URL;
 
-  if (!connectionString) {
+  if (connectionString === undefined || connectionString.length === 0) {
     throw new Error("DATABASE_URL is required");
   }
 

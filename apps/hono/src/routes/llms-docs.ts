@@ -14,7 +14,7 @@ import type { Variables } from "#core/types/hono.ts";
 const TOKENS_PER_CHARACTER = 4;
 const LLMS_CACHE_MAX_AGE_SECONDS = 3600;
 
-const llmsCacheControl: MiddlewareHandler = (c, next) => {
+const llmsCacheControl: MiddlewareHandler = async (c, next) => {
   c.header(
     "Cache-Control",
     `public, max-age=${LLMS_CACHE_MAX_AGE_SECONDS}, immutable`
@@ -37,7 +37,7 @@ export const getAllFiles = async (dir: string): Promise<string[]> => {
   const entries = await readdir(dir, { withFileTypes: true });
 
   const nested = await Promise.all(
-    entries.map((entry) => {
+    entries.map(async (entry) => {
       // `entry.name` is a single path segment from the filesystem, never `..`
       // or absolute, so the join cannot escape `dir`.
       // fallow-ignore-next-line security-sink
@@ -105,7 +105,7 @@ const registerDocsFolderRoute = (app: DocsApp) => {
 
       // read all the files and combine them into a single string
       const contents = await Promise.all(
-        files.map((file) => readFile(file, "utf-8"))
+        files.map(async (file) => readFile(file, "utf-8"))
       );
 
       // Each file gets its own trailing separator, which makes the empty-docs

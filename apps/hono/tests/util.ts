@@ -12,5 +12,9 @@ export const parseServerTimingHeader = (
 ): number | null => {
   const m = header?.match(/total;dur=(?<dur>[\d.]+)/u);
 
-  return m?.groups?.dur ? Number(m.groups.dur) : null;
+  const duration = m?.groups?.dur;
+
+  return duration !== undefined && duration.length > 0
+    ? Number(duration)
+    : null;
 };

@@ -15,7 +15,7 @@ import {
 const request = HttpServerRequest.fromWeb(new Request("http://localhost/"));
 
 const bodyOf = (response: HttpServerResponse.HttpServerResponse) =>
-  Effect.promise(() => HttpServerResponse.toWeb(response).json());
+  Effect.promise(async () => HttpServerResponse.toWeb(response).json());
 
 describe(errorMessage, () => {
   it("tells a client what it got wrong", () => {

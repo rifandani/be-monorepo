@@ -24,14 +24,14 @@ export const getClientIpAddress = (headers: Headers): string | null => {
   // 1. Cloudflare
   const cfConnectingIp = headers.get(ipAddressHeaders.cfConnectingIp);
 
-  if (cfConnectingIp) {
+  if (cfConnectingIp !== null && cfConnectingIp.length > 0) {
     return cfConnectingIp;
   }
 
   // 2. X-Forwarded-For (most common)
   const xForwardedFor = headers.get(ipAddressHeaders.xForwardedFor);
 
-  if (xForwardedFor) {
+  if (xForwardedFor !== null && xForwardedFor.length > 0) {
     // Dropping everything after the first comma rather than `split(",")[0]`,
     // whose index access is optional under `noUncheckedIndexedAccess` and so
     // adds a `?? null` branch that no input can reach.
@@ -41,25 +41,27 @@ export const getClientIpAddress = (headers: Headers): string | null => {
   // 3. X-Real-IP (Nginx)
   const xRealIp = headers.get(ipAddressHeaders.xRealIp);
 
-  if (xRealIp) {
+  if (xRealIp !== null && xRealIp.length > 0) {
     return xRealIp;
   }
 
   // 4. X-Client-IP (used by some load balancers and proxies)
   const xClientIp = headers.get(ipAddressHeaders.xClientIp);
 
-  if (xClientIp) {
+  if (xClientIp !== null && xClientIp.length > 0) {
     return xClientIp;
   }
 
   // 5. Forwarded (RFC 7239 standard)
   const forwarded = headers.get(ipAddressHeaders.forwarded);
 
-  if (forwarded) {
-    const match = forwarded.match(/for=(?<ip>[^;,\s]+)/u);
+  if (forwarded !== null && forwarded.length > 0) {
+    const match = /for=(?<ip>[^;,\s]+)/u.exec(forwarded);
 
-    if (match?.groups?.ip) {
-      return match.groups.ip;
+    const ip = match?.groups?.ip;
+
+    if (ip !== undefined && ip.length > 0) {
+      return ip;
     }
   }
 
@@ -75,7 +77,7 @@ export const getClientIpAddress = (headers: Headers): string | null => {
  * same function, so the conditional import lives here and the caller awaits a
  * plain call.
  */
-const importGetConnInfo = () =>
+const importGetConnInfo = async () =>
   getRuntimeKey() === "node"
     ? import("@hono/node-server/conninfo")
     : import("hono/bun");
@@ -96,5 +98,5 @@ export const getClientIpAddressFromContext = async <
   const { getConnInfo } = await importGetConnInfo();
   const connInfo: ConnInfo = getConnInfo(c);
 
-  return connInfo.remote.address || null;
+  return connInfo.remote.address ?? null;
 };

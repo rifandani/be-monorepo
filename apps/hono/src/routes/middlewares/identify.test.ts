@@ -11,7 +11,7 @@ interface FakeLog {
 
 const appWithLog = (log: FakeLog) => {
   const app = new Hono<{ Variables: Variables }>();
-  app.use("*", (c, next) => {
+  app.use("*", async (c, next) => {
     c.set("log", log as unknown as Variables["log"]);
 
     return next();

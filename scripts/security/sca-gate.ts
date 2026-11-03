@@ -213,13 +213,13 @@ const which = (cmd: string): string | null => {
 const ensureOsvScanner = (): string => {
   const fromEnv = process.env.OSV_SCANNER_BIN;
 
-  if (fromEnv) {
+  if (fromEnv !== undefined && fromEnv.length > 0) {
     return fromEnv;
   }
 
   const onPath = which("osv-scanner");
 
-  if (onPath) {
+  if (onPath !== null && onPath.length > 0) {
     return onPath;
   }
 
@@ -239,7 +239,7 @@ const ensureOsvScanner = (): string => {
   const platform = platforms.get(process.platform);
   const arch = arches.get(process.arch);
 
-  if (!(platform && arch)) {
+  if (platform === undefined || arch === undefined) {
     throw new Error(
       `osv-scanner not found and no binary for ${process.platform}/${process.arch}`
     );
@@ -290,7 +290,7 @@ const writeConfig = (activeEntries: AllowEntry[]) => {
       `ignoreUntil = ${e.expires}`
     );
 
-    if (e.reason) {
+    if (e.reason !== undefined && e.reason.length > 0) {
       lines.push(`reason = ${JSON.stringify(e.reason)}`);
     }
 
@@ -452,7 +452,7 @@ try {
   rmSync(configDir, { force: true, recursive: true });
 }
 
-const stdout = proc.stdout ?? "";
+const stdout = String(proc.stdout ?? "");
 const code = proc.status ?? 1;
 
 // 0 = no vulns, 1 = vulns found, other = scanner/tool failure

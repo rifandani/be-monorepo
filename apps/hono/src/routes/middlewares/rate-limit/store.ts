@@ -73,7 +73,7 @@ export class DbStore<
    * always stamps one.
    */
   #isExpired(lastRequest: number | null, now: number): boolean {
-    return lastRequest ? lastRequest < now - this.#windowMs : false;
+    return lastRequest !== null && lastRequest < now - this.#windowMs;
   }
 
   /**
@@ -81,7 +81,7 @@ export class DbStore<
    * "just now", giving a full window.
    */
   #resetTime(lastRequest: number | null, now: number): Date {
-    return new Date(now + this.#windowMs - (now - (lastRequest || now)));
+    return new Date(now + this.#windowMs - (now - (lastRequest ?? now)));
   }
 
   /**
@@ -111,20 +111,22 @@ export class DbStore<
       const record = await this.#findRecord(key);
       const now = Date.now();
 
-      if (!record) {
-        return;
+      if (record === undefined) {
+        return undefined;
       }
 
       if (this.#isExpired(record.lastRequest, now)) {
         // Record is expired, drop it so the next hit starts a fresh window
         await db.delete(rateLimitTable).where(eq(rateLimitTable.key, key));
 
-        return;
+        return undefined;
       }
 
       return this.#toRateLimitInfo(record, now);
     } catch (error) {
       log.error(LOG_TAG, `get failed: ${reason(error)}`);
+
+      return undefined;
     }
   }
 
@@ -193,11 +195,12 @@ export class DbStore<
     try {
       const record = await this.#findRecord(key);
 
-      const totalHits = record
-        ? await this.#bumpRecord(record, key, now)
-        : await this.#createRecord(key, now);
+      const totalHits =
+        record === undefined
+          ? await this.#createRecord(key, now)
+          : await this.#bumpRecord(record, key, now);
 
-      return { resetTime, totalHits: totalHits || 1 };
+      return { resetTime, totalHits: totalHits ?? 1 };
     } catch (error) {
       log.error(LOG_TAG, `increment failed: ${reason(error)}`);
 

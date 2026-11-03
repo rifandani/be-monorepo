@@ -147,11 +147,15 @@ const isProfile = (value: string | undefined): value is Profile =>
   PROFILES.some((profile) => profile === value);
 
 /** `__ENV` value, or the profile default when the variable is unset. */
-const envOr = (key: string, fallback: string): string => __ENV[key] || fallback;
+const envOr = (key: string, fallback: string): string => {
+  const value = __ENV[key];
+
+  return value !== undefined && value.length > 0 ? value : fallback;
+};
 
 /** A threshold expression, or an aborting threshold when the plan says so. */
 const limit = (plan: Plan, expression: string) =>
-  plan.abortOnFail
+  plan.abortOnFail === true
     ? { abortOnFail: true, delayAbortEval: "30s", threshold: expression }
     : expression;
 
@@ -224,7 +228,7 @@ export const handleSummary = (data: SummaryData) => {
   const stdout = textSummary(data, { enableColors: true, indent: " " });
   const path = __ENV.LOAD_SUMMARY_PATH;
 
-  if (!path) {
+  if (path === undefined || path.length === 0) {
     return { stdout };
   }
 
