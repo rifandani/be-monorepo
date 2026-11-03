@@ -11,6 +11,17 @@ import { DbStore } from "./store.ts";
 const RATE_LIMIT_WINDOW_MS = 15_000; // 15 seconds
 const RATE_LIMIT_LIMIT = 15; // Limit each IP to 150 requests per 15 seconds (10 req/s average)
 
+const nonEmpty = (ip: string | null): string | null =>
+  ip === null || ip.length === 0 ? null : ip;
+
+/**
+ * First non-empty address wins: headers, then request context, then `anonymous`.
+ */
+const resolveClientIp = (
+  fromHeaders: string | null,
+  fromContext: string | null
+): string => nonEmpty(fromHeaders) ?? nonEmpty(fromContext) ?? "anonymous";
+
 /**
  * rate limit middleware using drizzle postgres store with default rate limit of 10 req/s
  */
@@ -25,22 +36,11 @@ export const rateLimit = rateLimiter<{
       return `session:${session.id}`;
     }
 
-    // get IP address from headers (most common)
-    const ipAddressFromHeaders = getClientIpAddress(c.req.raw.headers);
-
-    // fallback to IP address from context (less common)
-    const ipAddressFromContext = await getClientIpAddressFromContext(c);
-
-    let ipAddress = "anonymous";
-
-    if (ipAddressFromHeaders !== null && ipAddressFromHeaders.length > 0) {
-      ipAddress = ipAddressFromHeaders;
-    } else if (
-      ipAddressFromContext !== null &&
-      ipAddressFromContext.length > 0
-    ) {
-      ipAddress = ipAddressFromContext;
-    }
+    // get IP address from headers (most common), then from context (less common)
+    const ipAddress = resolveClientIp(
+      getClientIpAddress(c.req.raw.headers),
+      await getClientIpAddressFromContext(c)
+    );
 
     return `ip:${ipAddress}`;
   },
