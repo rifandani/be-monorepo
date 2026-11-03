@@ -1,103 +1,98 @@
-# be-monorepo
+<!-- Use a static Shields badge because pkg.pr.new's dynamic badge times out while counting this repository's releases. -->
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rifandani/be-monorepo)
+[![pkg.pr.new](https://img.shields.io/badge/pkg.pr.new-Effect--TS%2Feffect-black)](https://pkg.pr.new/~/Effect-TS/effect)
 
-[![Mintlify Docs](https://img.shields.io/badge/mintlify-docs-green?logo=mintlify)](https://rifandani-be-monorepo.mintlify.app)
+# Effect
 
-## 🚀 Getting Started
+Effect is a library for building robust, maintainable, type-safe, and production grade applications in TypeScript. It helps you handle the hard problems at scale: typed errors, dependency injection, structured concurrency, scheduling, tracing, and unified schema validation.
 
-This repository is a boilerplate. Many values in it are placeholders for this template. When you start a new project from it, do the steps below. Then do the steps for each app that you keep:
+> **Effect 4.x is a long-term support (LTS) release.** If you are upgrading from Effect 3.x, follow the [migration guide](MIGRATION.md).
 
-- [`@workspace/hono` Getting Started](./apps/hono/README.md#-getting-started)
-- [`@workspace/effect` Getting Started](./apps/effect/README.md#-getting-started)
+## Installation
 
-In the steps, `<project>` is the name of your new project (for example `acme-api`). `<owner>/<repo>` is your GitHub repository.
-
-### 1. Find all the template names
-
-Run this command to find the template names that you must replace:
-
-```bash
-grep -rn -E "be-monorepo|rifandani|Rifandani|vaandani" . \
-  --exclude-dir={node_modules,repos,.git} --exclude=bun.lock
+```sh
+npm install effect
 ```
 
-The table below shows the root files. The app READMEs show the app files.
+## Requirements
 
-| File | Value to replace |
-| --- | --- |
-| `README.md` | The title, the DeepWiki badge and the Mintlify badge. There is no Mintlify config in this repository, so remove that badge or add a docs site. Also clear the **Todo** and **Notes** sections. |
-| `package.json` | `name`, `description`, `author`. Add a `license` if you need one. |
-| `packages/typescript-config/package.json` | `author` |
-| `portless.json` | `name`, and the `name` of each app (`hono.be-monorepo`, `effect.be-monorepo`) |
-| `docker/docker-compose.yml` | `name` (the Compose project name) |
-| `.gitleaks.toml` | `title` |
-| `.github/codeql/codeql-config.yml` | `name` |
-| `.codex/environments/environment.toml` | `name` |
-| `.agents/skills/wt/scripts/setup-worktree-unix.sh` and `setup-worktree-windows.ps1` | The hono portless name (`hono.be-monorepo`). It must be the same as in `portless.json`. |
-| `.github/ISSUE_TEMPLATE/*.yml` | The issue links (`rifandani/be-monorepo`) |
-| `CLAUDE.md` | The issue tracker repository (`rifandani/be-monorepo`) |
-| `.claude/settings.json` | The `Read(//Users/<user>/...)` paths. They are for one local user. |
-| `docs/security/*.md`, `scripts/security/zap.ts` | The local URLs (`https://<app>.be-monorepo.localhost`) in the examples |
+- **TypeScript 5.9 or newer.** TypeScript 7 is recommended for the best performance and compatibility with [Effect's TypeScript tooling](https://github.com/Effect-TS/tsgo#installation).
+- **Node.js 22.19 or newer** is the general minimum for running Effect on Node.js.
+- **Strict type-checking:** the `strict` flag must be enabled in your `tsconfig.json`.
 
-### 2. Set up the GitHub repository
+## Links
 
-1. Labels: `.github/settings.yml` holds the labels. The [Probot Settings app](https://github.com/apps/settings) applies them. Install the app, or make the labels by hand. The triage labels are also in `docs/agents/triage-labels.md`.
-2. Environments and secrets: see the app READMEs. `@workspace/hono` can use a `HONO_ENV_FILE` secret. `@workspace/effect` needs no secret.
-3. DAST: when an app is deployed, set the repository variable `PROD_HONO_URL` or `PROD_EFFECT_URL` (**Settings → Secrets and variables → Actions → Variables**). Until then, `dast.yml` skips the app.
-4. Code scanning: CodeQL uploads SARIF only on a public repository or with GitHub Code Security. The severity gate works without the upload.
+- [Website](https://effect.website): documentation, guides, and news
+- [Discord](https://discord.gg/effect-ts): ask questions, share what you're building, and talk to the core team
+- [Community](https://effect.website/community-hub): meetups and events, or bring Effect to your own
+- [Issues](https://github.com/Effect-TS/effect/issues): bug reports and feature requests
+- [Jobs](https://effect.website/effect-jobs): companies hiring Effect developers
+- Follow us on [X](https://x.com/EffectTS_), [Bluesky](https://bsky.app/profile/effect-ts.bsky.social), and [LinkedIn](https://www.linkedin.com/company/effect-ts)
 
-### 3. Update the project documents
+## Let's talk
 
-- `.github/SECURITY.md`: write your own contacts and owners in place of "Application lead" and "Infrastructure".
-- `.github/CONTRIBUTING.md` and `.github/CODE_OF_CONDUCT.md`: write your own contact. `CONTRIBUTING.md` refers to ESLint, but this repository uses oxlint and oxfmt (`bun lint`).
-- `.github/security/sca-allowlist.json`: each entry has an `expires` date. When the date is past, the SCA gate fails. Remove the entries that you do not need, or examine them again.
-- `CONTEXT-MAP.md`, `apps/*/CONTEXT.md` and the `docs/adr/` folders: they are about the template. Keep the decisions that you keep, and add the terms of your own domain.
+Whether your team is considering Effect, rolling it out, or already running it in production, we'd love to hear from you: what you're building, what works, and what you need from Effect next.
 
-## 📝 Environment Variables
+- **Talk to the maintainers.** Introduce your team on [Discord](https://discord.gg/effect-ts) or email [contact@effectful.co](mailto:contact@effectful.co). We're happy to connect privately on Slack or Discord for feedback and help with adoption.
+- **Production support.** We're exploring how to better support teams running Effect in production. If your organization has specific support needs, let's discuss them.
+- **Adoption help.** Our [adoption partners](https://effect.website/adoption-partners) offer implementation, consulting, team extension, training, and commercial support.
 
-Source of truth is local env files. When changing them, update deployment/CI project env too.
+Feedback from teams using and evaluating Effect directly shapes what we stabilize and build next.
 
-Each app has its own env files. See the Getting Started section of each app:
+## Long-term support
 
-- [`@workspace/hono`](./apps/hono/README.md#-getting-started): needs a secret (`BETTER_AUTH_SECRET`). CI can read the env file from the `HONO_ENV_FILE` secret.
-- [`@workspace/effect`](./apps/effect/README.md#-getting-started): needs no secret.
+Teams depend on Effect for systems they expect to run for years. Effect 4.x is a long-term support (LTS) release with the following guarantees:
 
-## 🗒️ Notes
+- At least three years of support, including bug and security fixes.
+- Bug fixes for one year after the next major version is released.
+- Security fixes for two years after the next major version is released.
 
-- We have adjusted `/tdd` skills from original Matt Pocock's
+Stable APIs reserve breaking changes for major releases. APIs marked unstable may change in minor releases, and experimental APIs may change in patch releases.
 
-## 📱 Apps
+## Effect v3
 
-### @workspace/hono
+The Effect v3 source code is available on the [`v3`](https://github.com/Effect-TS/effect/tree/v3) branch, which is also where issues and pull requests meant for Effect v3 should be targeted. To upgrade, see the [migration guide](MIGRATION.md).
 
-[See here](./apps/hono/README.md)
+## Packages
 
-### @workspace/effect
+This monorepo contains the core `effect` package alongside integration packages that extend it. All packages listed below are released together with synchronized versions.
 
-[See here](./apps/effect/README.md)
+| Package                                                               | Description                                              | API Reference                                                      |
+| --------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
+| [`effect`](packages/effect)                                           | The core package                                         | [docs](https://effect.website/docs/v4/api/effect)                  |
+| [`@effect/platform-browser`](packages/platform/browser)               | Platform services for the browser                        | [docs](https://effect.website/docs/v4/api/platform-browser)        |
+| [`@effect/platform-bun`](packages/platform/bun)                       | Platform services for [Bun](https://bun.sh)              | [docs](https://effect.website/docs/v4/api/platform-bun)            |
+| [`@effect/platform-deno`](packages/platform/deno)                     | Platform services for [Deno](https://deno.com)           | [docs](https://effect.website/docs/v4/api/platform-deno)           |
+| [`@effect/platform-node`](packages/platform/node)                     | Platform services for [Node.js](https://nodejs.org)      | [docs](https://effect.website/docs/v4/api/platform-node)           |
+| [`@effect/platform-node-shared`](packages/platform/node-shared)       | Shared services for Node.js-compatible runtimes          | [docs](https://effect.website/docs/v4/api/platform-node-shared)    |
+| [`@effect/sql-clickhouse`](packages/sql/clickhouse)                   | SQL client for [ClickHouse](https://clickhouse.com)      | [docs](https://effect.website/docs/v4/api/sql-clickhouse)          |
+| [`@effect/sql-d1`](packages/sql/d1)                                   | SQL client for Cloudflare D1                             | [docs](https://effect.website/docs/v4/api/sql-d1)                  |
+| [`@effect/sql-libsql`](packages/sql/libsql)                           | SQL client for libSQL                                    | [docs](https://effect.website/docs/v4/api/sql-libsql)              |
+| [`@effect/sql-mssql`](packages/sql/mssql)                             | SQL client for Microsoft SQL Server                      | [docs](https://effect.website/docs/v4/api/sql-mssql)               |
+| [`@effect/sql-mysql2`](packages/sql/mysql2)                           | SQL client for MySQL                                     | [docs](https://effect.website/docs/v4/api/sql-mysql2)              |
+| [`@effect/sql-pg`](packages/sql/pg)                                   | SQL client for PostgreSQL                                | [docs](https://effect.website/docs/v4/api/sql-pg)                  |
+| [`@effect/sql-pglite`](packages/sql/pglite)                           | SQL client for [PGlite](https://pglite.dev)              | [docs](https://effect.website/docs/v4/api/sql-pglite)              |
+| [`@effect/sql-sqlite-bun`](packages/sql/sqlite-bun)                   | SQL client for SQLite via `bun:sqlite`                   | [docs](https://effect.website/docs/v4/api/sql-sqlite-bun)          |
+| [`@effect/sql-sqlite-do`](packages/sql/sqlite-do)                     | SQL client for Cloudflare Durable Objects SQLite         | [docs](https://effect.website/docs/v4/api/sql-sqlite-do)           |
+| [`@effect/sql-sqlite-node`](packages/sql/sqlite-node)                 | SQL client for SQLite via `node:sqlite`                  | [docs](https://effect.website/docs/v4/api/sql-sqlite-node)         |
+| [`@effect/sql-sqlite-react-native`](packages/sql/sqlite-react-native) | SQL client for SQLite in React Native                    | [docs](https://effect.website/docs/v4/api/sql-sqlite-react-native) |
+| [`@effect/sql-sqlite-wasm`](packages/sql/sqlite-wasm)                 | SQL client for SQLite compiled to WebAssembly            | [docs](https://effect.website/docs/v4/api/sql-sqlite-wasm)         |
+| [`@effect/ai-anthropic`](packages/ai/anthropic)                       | Anthropic provider for the Effect AI modules             | [docs](https://effect.website/docs/v4/api/ai-anthropic)            |
+| [`@effect/ai-openai`](packages/ai/openai)                             | OpenAI provider for the Effect AI modules                | [docs](https://effect.website/docs/v4/api/ai-openai)               |
+| [`@effect/ai-cloudflare`](packages/ai/cloudflare)                     | Cloudflare decision provider for the Effect AI modules   | [docs](https://effect.website/docs/v4/api/ai-cloudflare)           |
+| [`@effect/ai-typesafe`](packages/ai/typesafe)                         | TypeSafe decision provider for the Effect AI modules     | [docs](https://effect.website/docs/v4/api/ai-typesafe)             |
+| [`@effect/ai-openai-compat`](packages/ai/openai-compat)               | OpenAI-compatible API provider for the Effect AI modules | [docs](https://effect.website/docs/v4/api/ai-openai-compat)        |
+| [`@effect/ai-openrouter`](packages/ai/openrouter)                     | OpenRouter provider for the Effect AI modules            | [docs](https://effect.website/docs/v4/api/ai-openrouter)           |
+| [`@effect/atom-react`](packages/atom/react)                           | React bindings for Effect Atom                           | [docs](https://effect.website/docs/v4/api/atom-react)              |
+| [`@effect/atom-solid`](packages/atom/solid)                           | SolidJS bindings for Effect Atom                         | [docs](https://effect.website/docs/v4/api/atom-solid)              |
+| [`@effect/atom-vue`](packages/atom/vue)                               | Vue bindings for Effect Atom                             | [docs](https://effect.website/docs/v4/api/atom-vue)                |
+| [`@effect/opentelemetry`](packages/opentelemetry)                     | [OpenTelemetry](https://opentelemetry.io) integration    | [docs](https://effect.website/docs/v4/api/opentelemetry)           |
+| [`@effect/vitest`](packages/vitest)                                   | Helpers for testing with [Vitest](https://vitest.dev)    | [docs](https://effect.website/docs/v4/api/vitest)                  |
+| [`@effect/docgen`](packages/tools/docgen)                             | Documentation generator for Effect projects              | [docs](https://effect.website/docs/v4/api/docgen)                  |
+| [`@effect/doctest`](packages/tools/doctest)                           | Runs JSDoc examples as Vitest tests                      | [docs](https://effect.website/docs/v4/api/doctest)                 |
+| [`@effect/openapi-generator`](packages/tools/openapi-generator)       | Generate Effect code from OpenAPI specifications         | [docs](https://effect.website/docs/v4/api/openapi-generator)       |
+| [`@effect/graphql-generator`](packages/tools/graphql-generator)       | Generate Effect code from GraphQL documents              | [docs](https://effect.website/docs/v4/api/graphql-generator)       |
 
-## 📦 Packages
+## License
 
-### @workspace/typescript-config
-
-[See here](./packages/typescript-config/README.md)
-
-## 📚 References
-
-### Observability
-
-- [`grafana/otel-lgtm` docker](https://github.dev/grafana/docker-otel-lgtm/)
-- [Grafana Prometheus](https://grafana.com/docs/grafana/latest/datasources/prometheus/)
-- [Grafana Tempo](https://grafana.com/docs/grafana/latest/datasources/tempo/)
-- [Grafana Loki](https://grafana.com/docs/grafana/latest/datasources/loki/)
-- [Grafana Pyroscope](https://grafana.com/docs/grafana/latest/datasources/pyroscope/)
-
-To check the traces and metrics in the local Grafana dashboard, run the `grafana/otel-lgtm` container. This will spin up a OpenTelemetry backend including Prometheus (metrics database), Tempo (traces database), Loki (logs database), and Pyroscope (profiling database). Login to dashboard at `http://localhost:3111` with credentials:
-
-- Username: `admin`
-- Password: `admin`
-
-### Security
-
-- DAST OWASP ZAP [Tutorial](./docs/security/dast-tutorial.md) · [How-to](./docs/security/dast-how-to.md)
+MIT
