@@ -7,7 +7,6 @@
 ## Maintenance
 
 - /improve-codebase-architecture
-- https://www.ultracite.ai/docs/presets#authorization-proofs-with-gdp-ts (align the folder structure with our fallow bulletproof preset)
 
 ## 🚀 Getting Started
 
