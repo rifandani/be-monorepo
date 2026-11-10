@@ -1,0 +1,6 @@
+interface:
+  display_name: "Getting Started"
+  short_description: "Turn this boilerplate into your new project"
+  default_prompt: "Use $getting-started to set up this repo for my new app"
+policy:
+  allow_implicit_invocation: false
