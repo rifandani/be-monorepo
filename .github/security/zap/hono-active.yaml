@@ -21,7 +21,7 @@
 # local dev server. In-scope routes have no rate limit today.
 #
 # Credentials are the committed seed user. The database is a disposable
-# container, so they are not a secret. See apps/hono/src/db/seeds/seed-user-data.ts.
+# container, so they are not a secret. See apps/hono/src/server/db/seeds/seed-user-data.ts.
 env:
   contexts:
     - name: hono

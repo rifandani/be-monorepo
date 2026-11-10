@@ -85,7 +85,7 @@ Check these in order:
 1. **The user exists.** Run `bun hono db:seed` again.
 2. **The credentials match.** The plan reads `ZAP_USER_EMAIL` and
    `ZAP_USER_PASSWORD`. Both default to `SEED_USER` in
-   `apps/hono/src/db/seeds/seed-user-data.ts`.
+   `apps/hono/src/server/db/seeds/seed-user-data.ts`.
 3. **The sign-in response still matches the verification regex.** The plan decides it is logged in by finding `"token"` in the response:
 
    ```yaml

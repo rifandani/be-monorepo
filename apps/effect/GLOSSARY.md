@@ -34,4 +34,4 @@ The Effect v4 HTTP API app. It answers three health probes, serves its own OpenA
 
 ### Server
 
-**Middleware Chain**: The eleven global middleware this app wraps its router in, declared as one ordered tuple in `src/server/chain.ts` and folded once. The order is the whole of what it is: registration order is nesting order, and nesting decides what a response that never reaches the router carries out — a cors preflight leaves with no timings, a csrf 403 leaves with everything. Stated once because the count in prose drifted when it was not. _Avoid_: middleware stack, pipeline, the middlewares
+**Middleware Chain**: The eleven global middleware this app wraps its router in, declared as one ordered tuple in `src/app/chain.ts` and folded once. The order is the whole of what it is: registration order is nesting order, and nesting decides what a response that never reaches the router carries out — a cors preflight leaves with no timings, a csrf 403 leaves with everything. Stated once because the count in prose drifted when it was not. _Avoid_: middleware stack, pipeline, the middlewares

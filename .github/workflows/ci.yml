@@ -73,6 +73,10 @@ jobs:
       - name: Install deps and disallow changes to lockfile
         run: bun ci
 
+      # A root Fallow scan does not apply workspace boundary configs.
+      - name: Check workspace boundaries
+        run: bun run check:boundaries
+
       - name: Fallow all checks
         uses: fallow-rs/fallow@v3
         with:

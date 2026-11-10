@@ -1,10 +1,10 @@
 import { Effect, Layer } from "effect";
 import { HttpRouter } from "effect/http";
 
-import { ALLOWED_ORIGIN } from "#server/origin.ts";
+import { ALLOWED_ORIGIN } from "./origin.ts";
 
 /**
- * CORS, with the same policy as `apps/hono` (`src/app.ts`): one allowed origin,
+ * CORS, with the same policy as `apps/hono` (`src/app/app.ts`): one allowed origin,
  * read from the environment.
  *
  * `HttpRouter.cors` registers a global middleware, so it covers the OpenAPI

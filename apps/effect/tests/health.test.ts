@@ -3,9 +3,10 @@ import { Effect, Layer } from "effect";
 import { HttpServer } from "effect/http";
 import { HttpApiTest } from "effect/http-api";
 
-import { Api } from "#api/api.ts";
-import { Unhealthy } from "#domain/health.ts";
-import { Health } from "#server/health.ts";
+import { Api } from "#app/api.ts";
+import { healthHandlers } from "#app/health.ts";
+import { Unhealthy } from "#features/health/schema.ts";
+import { Health } from "#features/health/service.ts";
 
 // `HttpApiTest.groups` builds a typed client wired straight to the handlers,
 // using the real request encoding, routing and response decoding — but without
@@ -19,7 +20,7 @@ const makeClient = HttpApiTest.groups(Api, ["health"]);
 // untestable without swapping the service.
 const withHealth = (health: Health["Service"]) =>
   Layer.mergeAll(
-    Health.handlers.pipe(Layer.provide(Layer.succeed(Health)(health))),
+    healthHandlers.pipe(Layer.provide(Layer.succeed(Health)(health))),
     HttpServer.layerServices
   );
 

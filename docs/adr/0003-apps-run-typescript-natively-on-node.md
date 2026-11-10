@@ -37,3 +37,7 @@ This replaces the previous arrangement, where `node:build` ran `tsc -p .` into `
 `.node-version` pins `26.8.1`, the version we develop and test on, and all four CI workflows read it via `node-version-file`. The split is deliberate: the floor says what will run, the pin says what we check. One consequence to keep in mind — an exact pin means CI no longer picks up 26.x patch releases on its own, so `.node-version` is something `/bump-deps` should maintain.
 
 Note also that Bun does not enforce `engines` on install. The floor is enforced by CI reading `.node-version`, not by the package manager.
+
+## Bulletproof folder migration
+
+[ADR-0004](./0004-follow-the-default-bulletproof-boundaries.md) moves both runtime entrypoints to `src/app/{node,bun}.ts`. Native TypeScript execution, real `.ts` import extensions, and the package `#*` imports remain in use.

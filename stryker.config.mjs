@@ -20,7 +20,7 @@ export default {
   // guaranteed survivors — ADR-0001 leaves them untested on purpose — and a
   // report that is mostly noise is a report nobody reads. Deriving it also
   // makes ADR-0001's two conditional exclusions self-healing: the commit that
-  // drops `middlewares/auth.ts` from `exclude` pulls it into scope here.
+  // drops `server/middleware/auth.ts` from `exclude` pulls it into scope here.
   mutate: [...include, ...exclude.map((pattern) => `!${pattern}`)],
   // Deliberately empty, recorded here rather than omitted so the choice is visible at
   // the site a reader would check. Excluding a whole mutator class is an empirical
@@ -40,7 +40,7 @@ export default {
     // Restricts each mutant's test set to the files that actually import it.
     // This used to carry a second job — reaching mutants in `packages/core/src`
     // from the hono route tests through the `@workspace/core` alias — but that
-    // package was dissolved into `apps/hono/src/core`, so every mutant now sits
+    // package was dissolved into `apps/hono`, so every mutant now sits
     // inside the project whose tests cover it. Kept explicit because the
     // symptom of getting it wrong is a false survivor, not an error.
     related: true,

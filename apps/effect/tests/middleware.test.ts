@@ -11,12 +11,12 @@ import {
 } from "effect";
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 
-import { LIVE_PATH, READY_PATH, STARTUP_PATH } from "#api/health.ts";
-import { CHAIN } from "#server/chain.ts";
-import { probeAttributes, probeResult } from "#server/health.ts";
-import { app } from "#server/http.ts";
+import { CHAIN } from "#app/chain.ts";
+import { app } from "#app/http.ts";
+import { tracerDisabledForProbes } from "#app/probes.ts";
+import { LIVE_PATH, READY_PATH, STARTUP_PATH } from "#features/health/api.ts";
+import { probeAttributes, probeResult } from "#features/health/service.ts";
 import { requestAttributes, requestDuration } from "#server/metrics.ts";
-import { tracerDisabledForProbes } from "#server/probes.ts";
 import { timeoutFor } from "#server/timeout.ts";
 
 /*
@@ -24,7 +24,7 @@ import { timeoutFor } from "#server/timeout.ts";
  *
  * `tests/app.test.ts` asks what this app serves and what a response carries.
  * This suite asks a different question — does each entry in the chain in
- * `src/server/chain.ts` actually run — and it exists because coverage cannot
+ * `src/app/chain.ts` actually run — and it exists because coverage cannot
  * ask it. The `metrics`, `timeout` and `quietProbes` layers all read 100% on
  * the per-file gate while nothing asserted them: the requests in the other
  * suites execute them, and a test on the function each one calls says only
@@ -240,7 +240,7 @@ describe("the global middleware", () => {
     });
   });
 
-  // The service test in `src/server/health.test.ts` asserts every outcome this
+  // The service test in `src/features/health/service.test.ts` asserts every outcome this
   // counter records. What it cannot say is that a call over the mount point
   // reaches it at all, which is what this one adds.
   describe("Probe Outcome", () => {

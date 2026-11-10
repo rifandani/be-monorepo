@@ -26,7 +26,7 @@ import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-import { SEED_USER } from "../../apps/hono/src/db/seeds/seed-user-data.js";
+import { SEED_USER } from "../../apps/hono/src/server/db/seeds/seed-user-data.ts";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const PLAN_DIR = path.join(REPO_ROOT, ".github/security/zap");

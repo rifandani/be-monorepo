@@ -56,7 +56,7 @@ bun hono db:seed
 ```
 
 The seed prints the credentials. 
-They are also in `apps/hono/src/db/seeds/seed-user-data.ts`, in the clear. 
+They are also in `apps/hono/src/server/db/seeds/seed-user-data.ts`, in the clear.
 That is on purpose: this database is disposable, so the credentials are not a secret.
 
 ## Step 3 — run the baseline scan
@@ -89,7 +89,7 @@ There are two reports in that directory:
 - **`.sarif.json`** — for tooling. CI uploads this to GitHub code scanning, the same place CodeQL findings appear.
 
 Most baseline findings are about response headers. 
-Compare them against `apps/hono/src/app.ts`, where `secureHeaders()` is applied. 
+Compare them against `apps/hono/src/app/app.ts`, where `secureHeaders()` is applied.
 A finding that contradicts that middleware is worth investigating. 
 A finding about a header the middleware never sets is a real gap.
 

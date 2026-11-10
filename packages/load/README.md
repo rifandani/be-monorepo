@@ -23,14 +23,14 @@ LOAD_TARGET=http://localhost:3000 bun load:hono:load
 - `LOAD_RATE` sets the peak requests per second. `LOAD_HOLD` sets how long the peak stays (for `breakpoint`, the length of the ramp). Do not use `K6_*` names: k6 reads them as its own options.
 - Hono: the run signs in once as the seed user, so run `bun hono db:seed` first. Set `LOAD_USER_EMAIL` and `LOAD_USER_PASSWORD` to use a different user. Start the app with `NODE_ENV` unset. `production` turns on the better-auth rate limits, so the test measures the limiter. `development` turns on the query logger, which slows down each database call.
 - Each run writes a JSON summary and an HTML report to `.k6-reports/`.
-- A failed threshold makes k6 exit with code 99. The thresholds are in `src/profiles.ts`.
+- A failed threshold makes k6 exit with code 99. The thresholds are in `src/shared/profiles.ts`.
 
 ## Files
 
 | File | What it does |
 | --- | --- |
-| `src/run.ts` | The wrapper, run by bun. It reads the arguments, applies the remote guard, and starts `k6 run`. |
-| `src/profiles.ts` | The five test types, their thresholds, the 429 counter, and the end-of-test summary. k6 code. |
-| `src/hono.ts`, `src/effect.ts` | One scenario for each app. k6 code. |
+| `src/app/run.ts` | The wrapper, run by bun. It reads the arguments, applies the remote guard, and starts `k6 run`. |
+| `src/shared/profiles.ts` | The five test types, their thresholds, the 429 counter, and the end-of-test summary. k6 code. |
+| `src/features/hono/index.ts`, `src/features/effect/index.ts` | One scenario for each app. k6 code. |
 
 The k6 files run in the k6 runtime, not in Node. They import `k6/*` modules and read `__ENV`. `bun lint` checks them with `@types/k6`.

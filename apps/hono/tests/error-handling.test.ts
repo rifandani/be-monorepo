@@ -4,7 +4,7 @@ import { HTTPError } from "ky";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
-import { app } from "#app.ts";
+import { app } from "#app/app.ts";
 
 // Routes registered with `get` rather than `openapi` stay out of the OpenAPI
 // document, so they cannot leak into the /openapi or /llms.txt assertions in

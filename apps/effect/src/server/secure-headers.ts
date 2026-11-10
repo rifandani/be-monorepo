@@ -3,7 +3,7 @@ import { HttpRouter, HttpServerResponse } from "effect/http";
 
 /**
  * The headers `hono/secure-headers` sends when a caller names no options, which
- * is how `apps/hono` mounts it (`src/app.ts`).
+ * is how `apps/hono` mounts it (`src/app/app.ts`).
  *
  * Lowercase keys because that is how Effect keys a header. Header names are
  * case insensitive, so the response carries the same names `apps/hono` sends.
@@ -47,7 +47,7 @@ const POWERED_BY = "x-powered-by";
 
 /**
  * Security response headers, with the same policy as `apps/hono`
- * (`src/app.ts`): the defaults of `hono/secure-headers`.
+ * (`src/app/app.ts`): the defaults of `hono/secure-headers`.
  *
  * Effect has no secure headers middleware, so this is a port. It is a flat set
  * of constants, which is why the whole of it is the record above — nothing here

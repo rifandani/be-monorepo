@@ -1,0 +1,10 @@
+{
+  "$schema": "../../node_modules/fallow/schema.json",
+  "boundaries": {
+    "preset": "bulletproof",
+    "coverage": {
+      "requireAllFiles": true,
+      "allowUnmatched": ["tests/**", "vitest.config.ts", "drizzle.config.ts"]
+    }
+  }
+}

@@ -2,8 +2,8 @@ import { afterAll, assert, describe, it } from "@effect/vitest";
 import { ConfigProvider, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 
-import { LIVE_PATH, PREFIX, PROBES } from "#api/health.ts";
-import { app } from "#server/http.ts";
+import { app } from "#app/http.ts";
+import { LIVE_PATH, PREFIX, PROBES } from "#features/health/api.ts";
 import { NOT_FOUND_MESSAGE } from "#server/not-found.ts";
 import { SECURE_HEADERS } from "#server/secure-headers.ts";
 
@@ -170,7 +170,7 @@ describe("app routes", () => {
     assert.strictEqual(response.status, 403);
     assert.strictEqual(await response.text(), "Forbidden");
     // csrf is the innermost middleware, so a rejection still carries what the
-    // ones outside it add. See the nesting in `src/server/chain.ts`.
+    // ones outside it add. See the nesting in `src/app/chain.ts`.
     assert.isNotNull(response.headers.get("x-request-id"));
   });
 

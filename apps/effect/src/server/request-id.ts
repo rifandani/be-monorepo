@@ -34,7 +34,7 @@ export const RequestId = Context.Reference<string>(
 );
 
 /**
- * Request id, with the same behaviour as `apps/hono` (`src/app.ts`): trust an
+ * Request id, with the same behaviour as `apps/hono` (`src/app/app.ts`): trust an
  * inbound `X-Request-Id` when it is well formed, generate a UUID otherwise, and
  * send it back on the response.
  *

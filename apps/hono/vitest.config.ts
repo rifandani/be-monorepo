@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { config } from "@dotenvx/dotenvx";
 import { defineConfig } from "vitest/config";
 
-// `src/core/constants/env.ts` validates env at module load, so it must be
+// `src/shared/constants/env.ts` validates env at module load, so it must be
 // populated before any test file is imported. Loading it here rather than
 // wrapping the runner in `dotenvx run` keeps this project self-contained, so
 // the root `projects` config can run it alongside packages that need no env.
