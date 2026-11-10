@@ -7,10 +7,7 @@
 ## Maintenance
 
 - /improve-codebase-architecture
-- remove oxlint-disable, fallow-disable across codebase and actually fix it, and remove dead suppressions
-- fix error in browser logs and terminal logs
-- fix issues in build logs and find improvements to make it faster, smaller, etc
-- find all of the implicit state machines in my app. Make the best decision that will elevate all three: UX, DX, and AX (agent experience) always without breaking anything
+- https://www.ultracite.ai/docs/presets#authorization-proofs-with-gdp-ts (align the folder structure with our fallow bulletproof preset)
 
 ## 🚀 Getting Started
 
