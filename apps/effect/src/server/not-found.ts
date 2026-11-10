@@ -4,7 +4,7 @@ import { HttpRouter, HttpServerError, HttpServerResponse } from "effect/http";
 /**
  * The body an unknown path is answered with.
  *
- * The string `apps/hono` sends from `app.notFound` (`src/app.ts`), so both apps
+ * The string `apps/hono` sends from `app.notFound` (`src/app/app.ts`), so both apps
  * answer a miss the same way. Exported because `tests/app.test.ts` asserts
  * against it rather than repeating it.
  */
@@ -32,7 +32,7 @@ export const isRouteNotFound = (error: unknown): boolean =>
 
 /**
  * The unknown path handler, with the same behaviour as `apps/hono`
- * (`app.notFound` in `src/app.ts`): a warning in the log, then a 404 carrying
+ * (`app.notFound` in `src/app/app.ts`): a warning in the log, then a 404 carrying
  * the same text.
  *
  * Effect answers a miss on its own — `HttpServerError.causeResponse` maps

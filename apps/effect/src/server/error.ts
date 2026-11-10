@@ -16,7 +16,7 @@ import {
  * client can act on which field failed, so that message is passed on.
  *
  * This is the one departure from `apps/hono`, which returns the message of
- * whatever it caught (`app.onError` in `src/app.ts`).
+ * whatever it caught (`app.onError` in `src/app/app.ts`).
  */
 export const SERVER_ERROR_MESSAGE = "Internal Server Error";
 const SERVER_ERROR_STATUS = 500;
@@ -67,7 +67,7 @@ export const toErrorResponse = Effect.fn("toErrorResponse")(
 
 /**
  * The error handler, with the same behaviour as `apps/hono` (`app.onError` in
- * `src/app.ts`): every failure is logged, then answered as JSON.
+ * `src/app/app.ts`): every failure is logged, then answered as JSON.
  *
  * `Effect.catchCause` and not `Effect.catch`, because a handler that throws
  * fails no error channel — it dies — and a request the client abandoned is

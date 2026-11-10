@@ -8,17 +8,17 @@ Do the [root Getting Started](../../README.md#-getting-started) steps first. The
 
 | File | Value to replace |
 | --- | --- |
-| `package.json` | `description` ("Effect v4 HTTP API template"), `author`. The `name` is also the OpenAPI title and the service name (`src/metadata.ts`). |
+| `package.json` | `description` ("Effect v4 HTTP API template"), `author`. The `name` is also the OpenAPI title and the service name (`src/shared/metadata.ts`). |
 | `package.json` | The portless name `effect.be-monorepo` in the `dev` and `node:dev` scripts. It must be the same as in the root `portless.json`. |
 | `.env.example` | `APP_TITLE` and `APP_URL` (`https://effect.<project>.localhost`) |
-| `src/api/api.ts` | The API id (`"effect-api"`) and the OpenAPI `description` ("Effect v4 HTTP API template") |
+| `src/app/api.ts` | The API id (`"effect-api"`) and the OpenAPI `description` ("Effect v4 HTTP API template") |
 | `src/server/origin.test.ts`, `tests/app.test.ts`, `tests/middleware.test.ts`, `tests/nesting.test.ts`, `tests/platform.test.ts` | `https://effect.be-monorepo.localhost`. The tests do not read the environment, so this change is optional. It keeps the names the same. |
 | `README.md` | The local URLs below, and the **Todo** section |
 
 ### 2. Replace the example code
 
-- The health probes (`src/api/health.ts`, `src/server/health.ts`) are ready to use. `READINESS_CHECKS` in `src/server/health.ts` is empty. Add a check for each dependency (for example, the database) that the app needs before it can serve traffic.
-- Add your own endpoint groups to `src/api/api.ts`. Keep the folder order: `domain/` ← `api/` ← `server/` (see `docs/http-api.md`).
+- The health probes (`src/features/health/api.ts`, `src/features/health/service.ts`) are ready to use. `READINESS_CHECKS` in `src/features/health/service.ts` is empty. Add a check for each dependency (for example, the database) that the app needs before it can serve traffic.
+- Add your own endpoint groups to `src/app/api.ts`. Keep the folder order: `domain/` ← `api/` ← `server/` (see `docs/http-api.md`).
 - `GLOSSARY.md` and `docs/`: add your own domain terms and rules.
 
 ## OpenAPI

@@ -11,6 +11,6 @@ export default defineConfig({
     "**/.repos",
     "**/repos",
     "**/docs",
-    "apps/hono/src/db/migrations/**",
+    "apps/hono/src/server/db/migrations/**",
   ],
 });

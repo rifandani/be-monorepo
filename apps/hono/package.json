@@ -15,15 +15,16 @@
     "db:push": "dotenvx run --env-file=.env.dev -- drizzle-kit push --verbose --strict",
     "db:gen": "dotenvx run --env-file=.env.dev -- drizzle-kit generate",
     "db:migrate": "dotenvx run --env-file=.env.dev -- drizzle-kit migrate",
-    "db:seed": "dotenvx run --env-file=.env.dev -- bun ./src/db/seeds/seed-user.ts",
+    "db:seed": "dotenvx run --env-file=.env.dev -- bun ./src/server/db/seeds/seed-user.ts",
     "db:studio": "dotenvx run --env-file=.env.dev -- drizzle-kit studio --port 3334 --verbose",
-    "auth:gen": "dotenvx run --env-file=.env.dev -- bunx @better-auth/cli@latest generate --config ./src/auth/utils/index.ts --output ./src/db/auth-schema.ts --yes",
+    "auth:gen": "dotenvx run --env-file=.env.dev -- bunx @better-auth/cli@latest generate --config ./src/server/auth.ts --output ./src/server/db/auth-schema.ts --yes",
     "test": "vitest",
-    "dev:server": "bun run --env-file=.env.dev --hot --preload ./src/instrumentation.ts src/bun.ts",
+    "dev:server": "bun run --env-file=.env.dev --hot --preload ./src/server/instrumentation.ts src/app/bun.ts",
     "dev": "portless run --name hono.be-monorepo --script dev:server",
-    "node:dev:server": "dotenvx run --env-file=.env.dev -- node --watch --import ./src/instrumentation.ts src/node.ts",
+    "node:dev:server": "dotenvx run --env-file=.env.dev -- node --watch --import ./src/server/instrumentation.ts src/app/node.ts",
     "node:dev": "portless run --name hono.be-monorepo --script node:dev:server",
-    "node:start": "dotenvx run --env-file=.env.dev -- node ./src/node.ts"
+    "node:start": "dotenvx run --env-file=.env.dev -- node ./src/app/node.ts",
+    "check:boundaries": "fallow architecture --boundaries --fail-on-issues --quiet"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "2.38.2",

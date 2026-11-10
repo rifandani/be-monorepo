@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { app } from "#app.ts";
+import { app } from "#app/app.ts";
 
 import { parseServerTimingHeader } from "./util.ts";
 

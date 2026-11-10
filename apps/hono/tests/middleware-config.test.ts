@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { app } from "#app.ts";
-import { ENV } from "#core/constants/env.ts";
+import { app } from "#app/app.ts";
+import { ENV } from "#shared/constants/env.ts";
 
 describe("app middleware configuration", () => {
   it("answers CORS preflight with the configured origin", async () => {

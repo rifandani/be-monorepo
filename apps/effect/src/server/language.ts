@@ -10,7 +10,7 @@ import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
  * The languages the service answers in, and the one it falls back to.
  *
  * The same pair `apps/hono` configures in
- * `src/core/constants/language.ts`. They live here and not in `domain/` because
+ * `src/shared/constants/language.ts`. They live here and not in `domain/` because
  * nothing outside this middleware reads them yet; move them the moment a
  * handler needs to know the set. `SUPPORTED_LANGUAGES` is deliberately not
  * exported for the same reason — `Language` below is the exported surface, and
@@ -183,7 +183,7 @@ export const queryLanguage = (url: string): string | undefined => {
 };
 
 /**
- * Language detection, with the same behaviour as `apps/hono` (`src/app.ts`).
+ * Language detection, with the same behaviour as `apps/hono` (`src/app/app.ts`).
  *
  * Effect has no language middleware, so this is a port of `hono/language` with
  * that app's options: `en` and `id` supported, `en` as the fallback, and the

@@ -7,7 +7,7 @@ const HEADER = "server-timing";
 
 // The name, the description and the precision `hono/timing` gives the metric it
 // measures itself, with the options `apps/hono` leaves at their defaults
-// (`src/app.ts` mounts `timing()` and passes none). These four values are the
+// (`src/app/app.ts` mounts `timing()` and passes none). These four values are the
 // parity that matters — see the note on the middleware below.
 const TOTAL = "total";
 const TOTAL_DESCRIPTION = "Total Response Time";

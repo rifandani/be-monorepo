@@ -4,7 +4,7 @@ import { HttpRouter, HttpServerResponse } from "effect/http";
 /**
  * How long a request may take before it is given up on.
  *
- * The 15 seconds `apps/hono` passes to `timeout` in `src/app.ts`. A `Duration`
+ * The 15 seconds `apps/hono` passes to `timeout` in `src/app/app.ts`. A `Duration`
  * rather than the bare `15_000` that middleware takes, because a unit that is
  * written down cannot be misread.
  */
@@ -60,7 +60,7 @@ export const timeoutFor = (duration: Duration.Duration) =>
   HttpRouter.middleware(withTimeout(duration), { global: true });
 
 /**
- * Timeout, with the same behaviour as `apps/hono` (`src/app.ts`): 15 seconds,
+ * Timeout, with the same behaviour as `apps/hono` (`src/app/app.ts`): 15 seconds,
  * then a 504.
  *
  * Effect has no timeout middleware, so this is a port of `hono/timeout` — and

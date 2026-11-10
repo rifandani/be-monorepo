@@ -6,6 +6,9 @@
   "license": "MIT",
   "author": "Tri Rizeki Rifandani",
   "type": "module",
+  "scripts": {
+    "check:boundaries": "fallow architecture --boundaries --fail-on-issues --quiet"
+  },
   "devDependencies": {
     "@types/k6": "2.3.1",
     "@types/node": "26.6.6",

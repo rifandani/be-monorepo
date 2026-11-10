@@ -1,6 +1,6 @@
 import { Config } from "effect";
 
-import { APP_URL } from "#config.ts";
+import { APP_URL } from "#shared/config.ts";
 
 /**
  * The one origin this app trusts.

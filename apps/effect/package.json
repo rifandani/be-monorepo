@@ -12,11 +12,12 @@
   "scripts": {
     "typerange": "fr",
     "test": "vitest",
-    "dev:server": "bun run --env-file=.env.dev --hot src/bun.ts",
+    "dev:server": "bun run --env-file=.env.dev --hot src/app/bun.ts",
     "dev": "portless run --name effect.be-monorepo --script dev:server",
-    "node:dev:server": "dotenvx run --env-file=.env.dev -- node --watch src/node.ts",
+    "node:dev:server": "dotenvx run --env-file=.env.dev -- node --watch src/app/node.ts",
     "node:dev": "portless run --name effect.be-monorepo --script node:dev:server",
-    "node:start": "dotenvx run --env-file=.env.dev -- node ./src/node.ts"
+    "node:start": "dotenvx run --env-file=.env.dev -- node ./src/app/node.ts",
+    "check:boundaries": "fallow architecture --boundaries --fail-on-issues --quiet"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "2.38.2",

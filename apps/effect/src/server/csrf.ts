@@ -1,7 +1,7 @@
 import { Effect, Layer } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 
-import { ALLOWED_ORIGIN } from "#server/origin.ts";
+import { ALLOWED_ORIGIN } from "./origin.ts";
 
 // The same tests `hono/csrf` applies, in the same order. A request is rejected
 // only when every one of them agrees it looks like a cross-site form post.
@@ -19,7 +19,7 @@ const ASSUMED_CONTENT_TYPE = "text/plain";
 const FORBIDDEN = HttpServerResponse.text("Forbidden", { status: 403 });
 
 /**
- * CSRF, with the same policy as `apps/hono` (`src/app.ts`): one allowed origin,
+ * CSRF, with the same policy as `apps/hono` (`src/app/app.ts`): one allowed origin,
  * read from the environment.
  *
  * Effect has no CSRF middleware, so this is a port of `hono/csrf`. It is a

@@ -11,8 +11,8 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { app } from "#app.ts";
-import { getAllFiles } from "#routes/llms-docs.ts";
+import { app } from "#app/app.ts";
+import { getAllFiles } from "#features/docs/routes.ts";
 
 import { parseServerTimingHeader } from "./util.ts";
 

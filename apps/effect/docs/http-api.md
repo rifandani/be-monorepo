@@ -1,13 +1,15 @@
 # HTTP API
 
-## Layers
+## Source folders
 
-`domain/` (schemas, typed errors) ← `api/` (the description) ← `server/` (the
-implementation). A folder imports only from the ones before it.
+The app follows the default Bulletproof boundaries. See [ADR-0004](../../../docs/adr/0004-follow-the-default-bulletproof-boundaries.md).
 
-- **`api/` must not import `server/`.** A client needs the description only; one that loaded handler code would load the database and the secrets with it. `HealthReport` lives in `domain/` for the same reason.
-- **`api/` contains no `Config`.** Annotations are read at module load, so a title from the environment would make the description an `Effect`.
-- A sibling is imported relatively (`./cors.ts`); anything across a folder goes through `#*`, Node's own subpath imports (`#domain/health.ts`). A tsconfig `paths` alias is not an option: Node reads no tsconfig, so `paths` would resolve for `tsc` and fail at startup. See ADR-0003.
+- `src/features/health/` owns the probe definitions, schemas, typed errors, and health service. Its API description does not import the service or server infrastructure, so a client can load the description alone.
+- `src/app/` combines the API groups, binds their handlers, and composes the middleware and runtime layers. It supplies the probe definitions to the server's probe policy factory.
+- `src/server/` owns HTTP middleware and observability. It imports no feature code.
+- `src/shared/` owns common configuration and package metadata.
+- API annotations use package metadata at module load. They contain no runtime `Config` values.
+- Import siblings relatively (`./cors.ts`). Use Node's `#*` subpath imports across folders (`#features/health/schema.ts`). Node does not read TypeScript `paths` aliases. See ADR-0003.
 - Test split (`vitest.config.ts`): `src/**` for pure modules, `tests/**` for endpoints.
 
 ## Conventions

@@ -3,8 +3,8 @@ import { assert, layer } from "@effect/vitest";
 import { ConfigProvider, Duration, Effect, Layer } from "effect";
 import { HttpBody, HttpClient, HttpRouter } from "effect/http";
 
-import { LIVE_PATH } from "#api/health.ts";
-import { app } from "#server/http.ts";
+import { app } from "#app/http.ts";
+import { LIVE_PATH } from "#features/health/api.ts";
 import { NOT_FOUND_MESSAGE } from "#server/not-found.ts";
 
 /**

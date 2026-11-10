@@ -2,14 +2,14 @@ import { afterAll, assert, describe, it } from "@effect/vitest";
 import { ConfigProvider, Duration, Effect, Layer } from "effect";
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 
-import { appWith } from "#server/http.ts";
+import { appWith } from "#app/http.ts";
 import { SECURE_HEADERS } from "#server/secure-headers.ts";
 import { timeoutFor } from "#server/timeout.ts";
 
 /*
  * What a short-circuited response carries.
  *
- * `CHAIN` in `src/server/chain.ts` decides this. Four middleware answer without
+ * `CHAIN` in `src/app/chain.ts` decides this. Four middleware answer without
  * ever reaching the router — the cors preflight, the csrf 403, the timeout 504
  * and the 404 — and each one carries exactly what the middleware *outside* it
  * adds on the way back. So a reorder in that chain changes the table below, and

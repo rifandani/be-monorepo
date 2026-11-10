@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { app } from "#app.ts";
+import { app } from "#app/app.ts";
 
 // Only better-auth's own database-free endpoints are exercised here: the point
 // is that the wildcard mount reaches `auth.handler`, not that better-auth works.
