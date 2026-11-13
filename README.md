@@ -24,7 +24,7 @@ Each app has its own env files. The `.env.example` file of each app shows the va
 ## 🗒️ Notes
 
 - We have adjusted `/tdd` skills from original Matt Pocock's
-- Our custom skills are: `/bump-deps`, `/delete-wt`, `/getting-started`, `/release`, `/settle-pr`, `/upkeep-implicit-state-machine`, `/upkeep-lint-suppressions`, `/upkeep-warning-logs`, `/wt`
+- Our custom skills are: `/bump-deps`, `/delete-wt`, `/getting-started`, `/release`, `/settle-pr`, `/upkeep-implicit-state-machine`, `/upkeep-lint-suppressions`, `/upkeep-storage-space`, `/upkeep-warning-logs`, `/wt`
 
 ## 📱 Apps
 
