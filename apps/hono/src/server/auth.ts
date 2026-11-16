@@ -2,10 +2,10 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, openAPI } from "better-auth/plugins";
 
+import { clientAddressHeaders } from "#server/client-address.ts";
 import { db } from "#server/db/index.ts";
 import * as schema from "#server/db/schema.ts";
 import { ENV } from "#shared/constants/env.ts";
-import { ipAddressHeaders } from "#shared/utils/net.ts";
 
 const RATE_LIMIT_WINDOW_SECONDS = 15; // 15 seconds
 const RATE_LIMIT_MAX_REQUESTS = 10 * RATE_LIMIT_WINDOW_SECONDS; // 10 req/s
@@ -13,8 +13,8 @@ const RATE_LIMIT_MAX_REQUESTS = 10 * RATE_LIMIT_WINDOW_SECONDS; // 10 req/s
 export const auth = betterAuth({
   advanced: {
     ipAddress: {
-      // request headers to check for IP address
-      ipAddressHeaders: Object.values(ipAddressHeaders),
+      // same headers, same order as the rate limiter
+      ipAddressHeaders: [...clientAddressHeaders],
     },
   },
   appName: ENV.APP_TITLE,

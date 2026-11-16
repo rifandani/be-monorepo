@@ -75,7 +75,7 @@ A survivor is a candidate until reproduced on its own. Two things in this repo c
 Stryker's `mutate` accepts a position range, so confirming one survivor costs seconds rather than the minutes a full run takes:
 
 ```sh
-bunx stryker run --mutate "apps/hono/src/core/utils/net.ts:36:12-36:35"
+bunx stryker run --mutate "apps/hono/src/server/client-address.ts:36:12-36:35"
 ```
 
 - **Still survives** → kill it with a test, or suppress it with a reason.

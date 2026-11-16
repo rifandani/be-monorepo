@@ -91,7 +91,7 @@ So a global middleware — an `HttpRouter.middleware(…, { global: true })` —
 
 A middleware that cannot be made to answer over the composed app — `timeout`, whose duration is 15 seconds — takes its duration by parameter and is built again in the test over a router of its own. That is the same split `withTimeout` already had, one level out.
 
-One v8 quirk is worth knowing before chasing a phantom gap: a ternary between two `await import()` expressions makes v8 lose coverage for every statement after it in the same function, reported as untested lines that demonstrably ran. `net.ts` keeps the conditional import in its own `importGetConnInfo` function for exactly this reason.
+One v8 quirk is worth knowing before chasing a phantom gap: a ternary between two `await import()` expressions makes v8 lose coverage for every statement after it in the same function, reported as untested lines that demonstrably ran. `apps/hono/src/server/client-address.ts` keeps the conditional import in its own `importGetConnInfo` function for exactly this reason.
 
 ## Consequences
 
