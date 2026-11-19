@@ -140,6 +140,7 @@
     "network": {
       "allowLocalBinding": true,
       "allowUnixSockets": ["/var/run/com.apple.launchd.T8oLpfylZL/Listeners"]
+    }
   },
   "skillOverrides": {
     "anthropic-skills:docx": "off",
