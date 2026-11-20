@@ -42,8 +42,10 @@ describe("error handler", () => {
   // This is what the innermost placement buys. Left to Effect, the 500 would
   // travel past `requestId` as a failure and leave without the header.
   it("gives the error response the headers of the middleware outside it", async () => {
+    // Act
     const response = await handler(new Request("http://localhost/die"));
 
+    // Assert
     assert.match(
       response.headers.get("x-request-id") ?? "",
       /^[0-9a-f-]{36}$/u
@@ -53,8 +55,10 @@ describe("error handler", () => {
   // An interrupt fails no error channel either, so it is the third case a catch
   // on the error channel alone would miss.
   it("answers an interrupted request", async () => {
+    // Act
     const response = await handler(new Request("http://localhost/interrupt"));
 
+    // Assert
     assert.strictEqual(response.status, 503);
   });
 

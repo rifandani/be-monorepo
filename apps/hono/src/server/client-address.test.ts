@@ -1,3 +1,4 @@
+import * as fc from "fast-check";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 
@@ -26,6 +27,37 @@ const resolve = async (
 
   return res.text();
 };
+
+/** Every header the resolver reads, in the order it reads them. */
+const RESOLUTION_ORDER = [...clientAddressHeaders, "forwarded"] as const;
+
+/** An IPv4 or IPv6 address. */
+const anyAddress = () => fc.oneof(fc.ipV4(), fc.ipV6());
+
+/**
+ * Any subset of the address headers, each with its own address. `forwarded`
+ * gets an IPv4 address: an IPv6 one needs quotes and brackets there.
+ */
+const sentHeaders = () =>
+  fc.record(
+    {
+      "cf-connecting-ip": anyAddress(),
+      forwarded: fc.ipV4(),
+      "x-client-ip": anyAddress(),
+      "x-forwarded-for": anyAddress(),
+      "x-real-ip": anyAddress(),
+    },
+    { requiredKeys: [] }
+  );
+
+/** The request headers that carry each sent address. */
+const toRequestHeaders = (sent: Partial<Record<string, string>>) =>
+  Object.fromEntries(
+    Object.entries(sent).map(([name, value]) => [
+      name,
+      name === "forwarded" ? `for=${value};proto=https` : `${value}`,
+    ])
+  );
 
 describe(resolveClientAddress, () => {
   describe("from headers", () => {
@@ -109,6 +141,43 @@ describe(resolveClientAddress, () => {
       ).resolves.toBe("anonymous");
     });
   });
+
+  it("should always take the first hop of x-forwarded-for", async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        anyAddress(),
+        anyAddress(),
+        fc.constantFrom("", " ", "  "),
+        async (client, proxy, padding) => {
+          // Arrange
+          const header = `${padding}${client}${padding},${padding}${proxy}`;
+
+          // Act
+          const resolved = await resolve({ "x-forwarded-for": header });
+
+          // Assert
+          expect(resolved).toBe(client);
+        }
+      )
+    );
+  });
+
+  it("should always pick the first header in resolution order that is sent", async () => {
+    await fc.assert(
+      fc.asyncProperty(sentHeaders(), async (sent) => {
+        // Arrange
+        const winner = RESOLUTION_ORDER.find((name) => name in sent);
+
+        // Act
+        const resolved = await resolve(toRequestHeaders(sent));
+
+        // Assert
+        expect(resolved).toBe(
+          winner === undefined ? DEFAULT_SOCKET.remoteAddress : sent[winner]
+        );
+      })
+    );
+  });
 });
 
 describe("the header list for Better Auth", () => {
@@ -122,6 +191,7 @@ describe("the header list for Better Auth", () => {
   });
 
   it("matches the order in which the resolver reads headers", async () => {
+    // Act
     // Step i sends only the headers from position i onward, each with its own
     // address. The resolver must pick the header at position i every time.
     const winners = await Promise.all(
@@ -141,6 +211,7 @@ describe("the header list for Better Auth", () => {
       })
     );
 
+    // Assert
     expect(winners).toStrictEqual([...clientAddressHeaders]);
   });
 

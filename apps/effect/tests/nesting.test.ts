@@ -188,10 +188,12 @@ describe("what a short-circuited response carries", () => {
   // The columns above answer whether a header is there. These two say the
   // values are the real ones, so a row cannot pass on a header set to nothing.
   it("times the 504 it gave up on", async () => {
+    // Act
     const response = await handler(
       new Request("http://localhost/slow?lang=id")
     );
 
+    // Assert
     assert.strictEqual(response.status, 504);
     assert.match(
       response.headers.get("server-timing") ?? "",

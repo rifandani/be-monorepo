@@ -1,4 +1,5 @@
 import { createError } from "evlog";
+import * as fc from "fast-check";
 import { HTTPException } from "hono/http-exception";
 import { HTTPError } from "ky";
 import { describe, expect, it } from "vitest";
@@ -125,6 +126,26 @@ describe("app not-found handling", () => {
 
     expect(res.status).toBe(404);
     await expect(res.text()).resolves.toBe("404 Not found");
+  });
+
+  it("should always answer any path under an unrouted prefix with a 404", async () => {
+    await fc.assert(
+      fc.asyncProperty(fc.array(fc.webSegment()), async (segments) => {
+        // Arrange
+        // The `s-` prefix keeps a `.` or `..` segment from leaving the prefix.
+        const path = [
+          "/no-such-route",
+          ...segments.map((segment) => `s-${encodeURIComponent(segment)}`),
+        ].join("/");
+
+        // Act
+        const res = await app.request(path);
+
+        // Assert
+        expect(res.status).toBe(404);
+        await expect(res.text()).resolves.toBe("404 Not found");
+      })
+    );
   });
 });
 

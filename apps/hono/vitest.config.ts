@@ -29,5 +29,7 @@ export default defineConfig({
     // end-to-end route tests driven through `app.request()`.
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
     name: "hono",
+    // Gives fast-check the shared property budget and seed.
+    setupFiles: ["./vitest.setup.ts"],
   },
 });

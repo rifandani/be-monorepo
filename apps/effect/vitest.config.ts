@@ -14,5 +14,7 @@ export default defineConfig({
     // the composed `app` layer. Same split as `apps/hono`.
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
     name: "effect",
+    // Gives the Effect `Arbitrary` engine the shared property budget and seed.
+    setupFiles: ["./vitest.setup.ts"],
   },
 });

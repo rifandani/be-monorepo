@@ -4,7 +4,7 @@
     "preset": "bulletproof",
     "coverage": {
       "requireAllFiles": true,
-      "allowUnmatched": ["tests/**", "vitest.config.ts"]
+      "allowUnmatched": ["tests/**", "vitest.config.ts", "vitest.setup.ts"]
     }
   }
 }
