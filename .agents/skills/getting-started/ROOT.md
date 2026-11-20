@@ -33,6 +33,6 @@ The **portless name** of an app is `<app>.<project>` (for example `hono.acme-api
 ## GitHub
 
 1. Labels: `.github/settings.yml` holds the labels, and the [Probot Settings app](https://github.com/apps/settings) applies them. The user installs the app, or you make each label with `gh label create`.
-2. Secrets: if the user keeps hono, CI can read the env file from the `HONO_ENV_FILE` secret. The user runs `gh secret set HONO_ENV_FILE < <env file>`. Effect needs no secret.
+2. Env secrets: the local env files of each app are the source of truth, and `.env.example` lists the variables. Effect needs no secret. Hono needs `BETTER_AUTH_SECRET`: CI writes the `HONO_ENV_FILE` secret to `apps/hono/.env.dev`, and copies `.env.example` when the secret is not set. If the user keeps hono, the user runs `gh secret set HONO_ENV_FILE < apps/hono/.env.dev`. Tell the user to run this command again each time the env file changes, and to update the env of each deployment also.
 3. DAST: `dast.yml` skips an app until its repository variable is set. When an app is deployed, set `PROD_HONO_URL` or `PROD_EFFECT_URL` with `gh variable set`. If no app is deployed, record this item as open.
 4. Code scanning: CodeQL uploads SARIF only on a public repository or with GitHub Code Security. The severity gate works without the upload. Tell the user. There is no action.

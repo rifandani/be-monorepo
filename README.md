@@ -2,29 +2,19 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rifandani/be-monorepo)
 
-[![Mintlify Docs](https://img.shields.io/badge/mintlify-docs-green?logo=mintlify)](https://rifandani-be-monorepo.mintlify.app)
-
 ## 🏁 Getting Started
 
-Open your agent and run: `Use /getting-started to set up this repo for my new app`
+Open your agent and run: `/getting-started set up this repo`
 
 ## Maintenance
 
 - /improve-codebase-architecture
 
-## 📝 Environment Variables
-
-Source of truth is local env files. When changing them, update deployment/CI project env too.
-
-Each app has its own env files. The `.env.example` file of each app shows the variables:
-
-- [`@workspace/hono`](./apps/hono/README.md): needs a secret (`BETTER_AUTH_SECRET`). CI can read the env file from the `HONO_ENV_FILE` secret.
-- [`@workspace/effect`](./apps/effect/README.md): needs no secret.
-
 ## 🗒️ Notes
 
 - We have adjusted `/tdd` skills from original Matt Pocock's
 - Our custom skills are: `/bump-deps`, `/delete-wt`, `/getting-started`, `/release`, `/settle-pr`, `/upkeep-implicit-state-machine`, `/upkeep-lint-suppressions`, `/upkeep-storage-space`, `/upkeep-warning-logs`, `/wt`
+- Don't forget to sync local env and CI env
 
 ## 📱 Apps
 
