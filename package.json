@@ -46,7 +46,7 @@
     "check:all": "bun run check:boundaries && fallow --quiet",
     "check:viz": "fallow viz --out .fallow/map.html",
     "check:fix": "fallow fix --yes --no-create-config",
-    "test": "vitest",
+    "test": "vitest run",
     "test:cov": "vitest run --coverage",
     "test:mutate": "stryker run",
     "test:mutate:inc": "stryker run --incremental",

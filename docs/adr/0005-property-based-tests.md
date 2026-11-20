@@ -40,7 +40,7 @@ A value that is set in the environment always wins.
 Every failed test gets one more line in its error message:
 
 ```text
-Replay: PBT_SEED=1656173625 PBT_NUM_RUNS=100 bun run test run apps/hono/src/server/client-address.test.ts -t 'should always take the first hop of x-forwarded-for'
+Replay: PBT_SEED=1656173625 PBT_NUM_RUNS=100 bun run test apps/hono/src/server/client-address.test.ts -t 'should always take the first hop of x-forwarded-for'
 ```
 
 That line is correct for both engines, because both read the same seed and the same run count. The run count is in the line because one seed gives the same inputs only for the same number of runs. Effect also prints its own replay token. fast-check also prints its `seed` and `path`.

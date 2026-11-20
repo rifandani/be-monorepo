@@ -63,7 +63,7 @@ const toPattern = (name: string) =>
  * than a local run.
  */
 const replayLine = (filepath: string, name: string) =>
-  `${REPLAY_PREFIX}${seed} PBT_NUM_RUNS=${numRuns} bun run test run ${path.relative(REPO_ROOT, filepath)} -t '${toPattern(name)}'`;
+  `${REPLAY_PREFIX}${seed} PBT_NUM_RUNS=${numRuns} bun run test ${path.relative(REPO_ROOT, filepath)} -t '${toPattern(name)}'`;
 
 /**
  * Adds the replay line to a message once. The same error can reach the hook
@@ -74,7 +74,7 @@ const withReplay = (message: string, line: string) =>
 
 /**
  * Adds one replay line to the error of each failed test:
- * `Replay: PBT_SEED=<seed> PBT_NUM_RUNS=<runs> bun run test run <file> -t '<name>'`.
+ * `Replay: PBT_SEED=<seed> PBT_NUM_RUNS=<runs> bun run test <file> -t '<name>'`.
  *
  * An agent or a person can run that line as it is. It is on every failure, not
  * only on property failures, because a seed that is not used does no harm.

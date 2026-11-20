@@ -11,7 +11,7 @@
   },
   "scripts": {
     "typerange": "fr",
-    "test": "vitest",
+    "test": "vitest run",
     "dev:server": "bun run --env-file=.env.dev --hot src/app/bun.ts",
     "dev": "portless run --name effect.be-monorepo --script dev:server",
     "node:dev:server": "dotenvx run --env-file=.env.dev -- node --watch src/app/node.ts",

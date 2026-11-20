@@ -27,6 +27,11 @@ Defaults: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `w
 
 Multi-context — root `GLOSSARY-MAP.md` pointing at per-package `GLOSSARY.md` files. See `docs/agents/domain.md`.
 
+## Commands
+
+- Run tests with `bun run test` (Vitest, one run). Do not use `bun test`: it starts the Bun test runner, which does not run these tests.
+- Run app and package scripts through the workspace filters: `bun hono <script>`, `bun effect <script>`, `bun load <script>` (for example, `bun hono dev`). The root has no single `dev` script.
+
 ## Testing
 
 When writing tests, call Skill tool with `/javascript-testing-expert`.
