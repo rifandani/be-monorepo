@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Duration, Effect, Fiber } from "effect";
+import { Arbitrary, Duration, Effect, Fiber, Schema } from "effect";
 import { HttpServerResponse } from "effect/http";
 import { TestClock } from "effect/testing";
 
@@ -18,11 +18,18 @@ import { withTimeout } from "./timeout.ts";
 const DURATION = Duration.seconds(1);
 const OK = HttpServerResponse.text("Hello");
 
+/** Any duration in whole milliseconds, zero included. */
+const Milliseconds = Arbitrary.schema(Schema.Int).pipe(
+  Arbitrary.map((value) => Math.abs(value))
+);
+
 describe(withTimeout, () => {
   it.effect("lets a response through", () =>
     Effect.gen(function* through() {
+      // Act
       const response = yield* withTimeout(DURATION)(Effect.succeed(OK));
 
+      // Assert
       assert.strictEqual(response.status, 200);
     })
   );
@@ -69,5 +76,49 @@ describe(withTimeout, () => {
 
       assert.isTrue(released);
     })
+  );
+
+  it.effect.prop(
+    "should always give the response of a request that ends in time",
+    [Milliseconds, Milliseconds],
+    ([limit, spare]) =>
+      Effect.gen(function* inTime() {
+        // Arrange
+        const duration = Duration.millis(limit + spare + 1);
+        const handler = Effect.as(Effect.sleep(Duration.millis(limit)), OK);
+
+        // Act
+        const fiber = yield* Effect.forkChild(withTimeout(duration)(handler));
+        yield* TestClock.adjust(Duration.millis(limit));
+
+        const response = yield* Fiber.join(fiber);
+
+        // Assert
+        assert.strictEqual(response, OK);
+      })
+  );
+
+  it.effect.prop(
+    "should always answer 504 for a request that ends late",
+    [Milliseconds, Milliseconds],
+    ([limit, late]) =>
+      Effect.gen(function* tooLate() {
+        // Arrange
+        const duration = Duration.millis(limit);
+
+        const handler = Effect.as(
+          Effect.sleep(Duration.millis(limit + late + 1)),
+          OK
+        );
+
+        // Act
+        const fiber = yield* Effect.forkChild(withTimeout(duration)(handler));
+        yield* TestClock.adjust(duration);
+
+        const response = yield* Fiber.join(fiber);
+
+        // Assert
+        assert.strictEqual(response.status, 504);
+      })
   );
 });

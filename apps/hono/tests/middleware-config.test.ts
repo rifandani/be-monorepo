@@ -5,6 +5,7 @@ import { ENV } from "#shared/constants/env.ts";
 
 describe("app middleware configuration", () => {
   it("answers CORS preflight with the configured origin", async () => {
+    // Act
     const res = await app.request("/llms.txt", {
       method: "OPTIONS",
       headers: {
@@ -14,6 +15,7 @@ describe("app middleware configuration", () => {
       },
     });
 
+    // Assert
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(ENV.APP_URL);
     expect(res.headers.get("Access-Control-Allow-Credentials")).toBe("true");
     expect(res.headers.get("Access-Control-Expose-Headers")).toContain(
@@ -22,6 +24,7 @@ describe("app middleware configuration", () => {
   });
 
   it("allows the configured CORS request headers", async () => {
+    // Act
     const res = await app.request("/llms.txt", {
       method: "OPTIONS",
       headers: {
@@ -31,6 +34,7 @@ describe("app middleware configuration", () => {
       },
     });
 
+    // Assert
     expect(res.headers.get("Access-Control-Allow-Headers")).toContain(
       "Content-Type"
     );
@@ -40,6 +44,7 @@ describe("app middleware configuration", () => {
   });
 
   it("allows the configured CORS methods", async () => {
+    // Act
     const res = await app.request("/llms.txt", {
       method: "OPTIONS",
       headers: {
@@ -49,6 +54,7 @@ describe("app middleware configuration", () => {
       },
     });
 
+    // Assert
     expect(res.headers.get("Access-Control-Allow-Methods")).toContain("GET");
     expect(res.headers.get("Access-Control-Allow-Methods")).toContain("POST");
     expect(res.headers.get("Access-Control-Allow-Methods")).toContain(
@@ -57,10 +63,12 @@ describe("app middleware configuration", () => {
   });
 
   it("reflects CORS credentials on a simple cross-origin GET", async () => {
+    // Act
     const res = await app.request("/llms.txt", {
       headers: { Origin: ENV.APP_URL },
     });
 
+    // Assert
     expect(res.status).toBe(200);
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(ENV.APP_URL);
     expect(res.headers.get("Access-Control-Allow-Credentials")).toBe("true");

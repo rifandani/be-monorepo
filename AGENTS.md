@@ -26,3 +26,7 @@ Defaults: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `w
 ### Domain docs
 
 Multi-context — root `GLOSSARY-MAP.md` pointing at per-package `GLOSSARY.md` files. See `docs/agents/domain.md`.
+
+## Tests
+
+- Rules for writing tests: call Skill tool with `/javascript-testing-expert`. Reasons for the budget and seed: `docs/adr/0005-property-based-tests.md`.

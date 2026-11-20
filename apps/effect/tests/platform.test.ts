@@ -65,8 +65,10 @@ layer(served, { timeout: Duration.seconds(30) })(
     // read this one cannot serve any of them.
     it.effect("serves the liveness probe", () =>
       Effect.gen(function* live() {
+        // Act
         const response = yield* HttpClient.get(LIVE_PATH);
 
+        // Assert
         assert.strictEqual(response.status, 200);
         assert.deepStrictEqual(yield* response.json, OK);
       })
@@ -76,8 +78,10 @@ layer(served, { timeout: Duration.seconds(30) })(
     // which is the property `queryLanguage` is written against.
     it.effect("reads the language from the query", () =>
       Effect.gen(function* query() {
+        // Act
         const response = yield* HttpClient.get(`${LIVE_PATH}?lang=id`);
 
+        // Assert
         assert.strictEqual(response.status, 200);
         assert.include(response.headers["set-cookie"] ?? "", "language=id");
       })
@@ -89,10 +93,12 @@ layer(served, { timeout: Duration.seconds(30) })(
     // empty rather than that the negotiation ran.
     it.effect("reads the language from the cookie, over the header", () =>
       Effect.gen(function* cookie() {
+        // Act
         const response = yield* HttpClient.get(LIVE_PATH, {
           headers: { "accept-language": "en", cookie: "language=id" },
         });
 
+        // Assert
         assert.strictEqual(response.status, 200);
         assert.include(response.headers["set-cookie"] ?? "", "language=id");
       })
@@ -102,12 +108,15 @@ layer(served, { timeout: Duration.seconds(30) })(
     // out on the response.
     it.effect("keeps an inbound request id", () =>
       Effect.gen(function* requestId() {
+        // Arrange
         const id = "0a1b2c3d-4e5f-6071-8293-a4b5c6d7e8f9";
 
+        // Act
         const response = yield* HttpClient.get(LIVE_PATH, {
           headers: { "x-request-id": id },
         });
 
+        // Assert
         assert.strictEqual(response.headers["x-request-id"], id);
       })
     );
@@ -152,8 +161,10 @@ layer(served, { timeout: Duration.seconds(30) })(
     // `tests/error.test.ts` mounts.
     it.effect("answers an unknown path with a 404", () =>
       Effect.gen(function* missing() {
+        // Act
         const response = yield* HttpClient.get("/nothing-here");
 
+        // Assert
         assert.strictEqual(response.status, 404);
         assert.strictEqual(yield* response.text, NOT_FOUND_MESSAGE);
       })

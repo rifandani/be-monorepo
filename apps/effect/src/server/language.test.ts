@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Effect } from "effect";
+import { Arbitrary, Effect, Schema } from "effect";
 
 import {
   detectLanguage,
@@ -9,6 +9,47 @@ import {
   parseAcceptLanguage,
   queryLanguage,
 } from "./language.ts";
+
+/** The languages the service speaks. `language.ts` does not export its list. */
+const SUPPORTED = ["en", "id"] as const;
+
+/** The whitespace a client may put around a tag. */
+const Padding = Schema.Literals(["", " ", "\t"]);
+
+/** A realistic language tag. */
+const LanguageTag = Schema.Literals([
+  "en",
+  "en-GB",
+  "id",
+  "fr",
+  "pt-BR",
+  "zh-Hant",
+  "*",
+]);
+
+/** A quality value, from 0 to 1 in steps of 0.001, as `q=` carries it. */
+const Quality = Schema.Int.check(
+  Schema.isBetween({ maximum: 1000, minimum: 0 })
+).pipe(
+  Arbitrary.schema,
+  Arbitrary.map((thousandths) => thousandths / 1000)
+);
+
+/** A path with no query and no fragment. */
+const UrlPath = Schema.String.check(Schema.isPattern(/^\/[^#?]*$/u));
+
+/** Any text a url can carry. A lone surrogate cannot be encoded. */
+const UrlValue = Arbitrary.schema(Schema.String).pipe(
+  Arbitrary.map((value) => value.toWellFormed())
+);
+
+/** A two-letter tag with each letter in upper or lower case. */
+const withCase = (tag: string, upperFirst: boolean, upperSecond: boolean) => {
+  const first = tag.charAt(0);
+  const second = tag.charAt(1);
+
+  return `${upperFirst ? first.toUpperCase() : first}${upperSecond ? second.toUpperCase() : second}`;
+};
 
 // The middleware itself is covered through the composed app in
 // `tests/app.test.ts`. The precedence and the tag matching are pure, so they are
@@ -36,6 +77,39 @@ describe("tag matching", () => {
     assert.isUndefined(normalizeLanguage(absent));
     assert.isUndefined(normalizeLanguage("   "));
   });
+
+  it.prop(
+    "should always give a supported language or nothing",
+    [Schema.String],
+    ([candidate]) => {
+      // Act
+      const language = normalizeLanguage(candidate);
+
+      // Assert
+      assert.include([undefined, ...SUPPORTED], language);
+    }
+  );
+
+  it.prop(
+    "should always find a supported language whatever its case, padding or region",
+    [
+      Schema.Literals(SUPPORTED),
+      Schema.Boolean,
+      Schema.Boolean,
+      Padding,
+      Schema.String,
+    ],
+    ([supported, upperFirst, upperSecond, padding, region]) => {
+      // Arrange
+      const tag = `${padding}${withCase(supported, upperFirst, upperSecond)}-${region}${padding}`;
+
+      // Act
+      const language = normalizeLanguage(tag);
+
+      // Assert
+      assert.strictEqual(language, supported);
+    }
+  );
 });
 
 describe("accept-language parsing", () => {
@@ -60,6 +134,30 @@ describe("accept-language parsing", () => {
       "en",
     ]);
   });
+
+  it.prop(
+    "should always keep every tag the client sent",
+    [
+      Arbitrary.array(Arbitrary.all([Arbitrary.schema(LanguageTag), Quality]), {
+        minLength: 1,
+      }),
+    ],
+    ([entries]) => {
+      // Arrange
+      const header = entries
+        .map(([tag, quality]) => `${tag};q=${quality}`)
+        .join(", ");
+
+      // Act
+      const tags = parseAcceptLanguage(header);
+
+      // Assert
+      assert.deepStrictEqual(
+        tags.toSorted(),
+        entries.map(([tag]) => tag).toSorted()
+      );
+    }
+  );
 });
 
 describe("detection precedence", () => {
@@ -106,6 +204,22 @@ describe("detection precedence", () => {
       detectLanguage({ cookie: undefined, header: undefined, query: undefined })
     );
   });
+
+  it.prop(
+    "should always let a supported query win over the cookie and the header",
+    [
+      Schema.Literals(SUPPORTED),
+      Schema.UndefinedOr(Schema.String),
+      Schema.UndefinedOr(Schema.String),
+    ],
+    ([query, cookie, header]) => {
+      // Act
+      const language = detectLanguage({ cookie, header, query });
+
+      // Assert
+      assert.strictEqual(language, query);
+    }
+  );
 });
 
 describe("language reference", () => {
@@ -147,7 +261,7 @@ describe(queryLanguage, () => {
     assert.isUndefined(queryLanguage("/?other=id"));
   });
 
-  it("returns undefined for an empty value", () => {
+  it("returns an empty string for an empty value", () => {
     assert.strictEqual(queryLanguage("/?lang="), "");
   });
 
@@ -170,4 +284,19 @@ describe(queryLanguage, () => {
       "id"
     );
   });
+
+  it.prop(
+    "should always read back the value a url carries",
+    [UrlPath, UrlValue],
+    ([path, value]) => {
+      // Arrange
+      const url = `${path}?lang=${encodeURIComponent(value)}`;
+
+      // Act
+      const read = queryLanguage(url);
+
+      // Assert
+      assert.strictEqual(read, value);
+    }
+  );
 });

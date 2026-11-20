@@ -1,8 +1,9 @@
+import * as fc from "fast-check";
 import type { ClientRateLimitInfo } from "hono-rate-limiter";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MemoryRateLimitStorage } from "./memory-storage.ts";
-import { RATE_LIMIT_KEY_PREFIX, RateLimitStore } from "./store.ts";
+import { nextWindow, RATE_LIMIT_KEY_PREFIX, RateLimitStore } from "./store.ts";
 import type { RateLimitStorage } from "./store.ts";
 
 const WINDOW_MS = 1000;
@@ -54,9 +55,11 @@ const setupFailing = (failure: unknown) => {
 /**
  * A store over the in-memory adapter and a clock that the test moves by hand.
  */
-const setup = (windowMs = WINDOW_MS) => {
+const setup = (
+  storage: RateLimitStorage = new MemoryRateLimitStorage(),
+  windowMs = WINDOW_MS
+) => {
   let current = START;
-  const storage = new MemoryRateLimitStorage();
   const store = new RateLimitStore({ now: () => current, storage });
   store.init({ windowMs });
 
@@ -66,6 +69,41 @@ const setup = (windowMs = WINDOW_MS) => {
     },
     storage,
     store,
+  };
+};
+
+/** Any stored window. */
+const windowState = () =>
+  fc.record({ count: fc.nat(), windowStart: fc.integer() });
+
+/** How many times `key` occurs in `keys`. */
+const countOf = (keys: readonly string[], key: string) =>
+  keys.filter((candidate) => candidate === key).length;
+
+/** The reset time of a result, in milliseconds since the epoch. */
+const resetOf = (info: ClientRateLimitInfo) => info.resetTime?.getTime() ?? 0;
+
+/** True when two results report the same window. */
+const sameWindow = (left: ClientRateLimitInfo, right: ClientRateLimitInfo) =>
+  resetOf(left) === resetOf(right);
+
+/**
+ * The in-memory adapter, with each `hit` held until the scheduler lets it run.
+ * The scheduler picks the order, so concurrent hits run in every order.
+ */
+const scheduledStorage = (s: fc.Scheduler): RateLimitStorage => {
+  const inner = new MemoryRateLimitStorage();
+
+  return {
+    decrement: async (key) => inner.decrement(key),
+    deleteAll: async (keyPrefix) => inner.deleteAll(keyPrefix),
+    deleteKey: async (key) => inner.deleteKey(key),
+    hit: async (key, now, windowMs) => {
+      await s.schedule(Promise.resolve());
+
+      return inner.hit(key, now, windowMs);
+    },
+    peek: async (key) => inner.peek(key),
   };
 };
 
@@ -198,6 +236,68 @@ describe(RateLimitStore, () => {
       );
       await expect(hits(store.get("new"))).resolves.toBe(total);
     });
+
+    it("should never lose a hit, whatever order the storage calls run in", async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.scheduler(),
+          fc.array(fc.constantFrom("a", "b")),
+          async (s, keys) => {
+            // Arrange
+            const { store } = setup(scheduledStorage(s));
+
+            // Act
+            await s.waitFor(
+              Promise.all(keys.map(async (key) => store.increment(key)))
+            );
+
+            // Assert
+            await expect(hits(store.get("a"))).resolves.toBe(
+              countOf(keys, "a") || undefined
+            );
+            await expect(hits(store.get("b"))).resolves.toBe(
+              countOf(keys, "b") || undefined
+            );
+          }
+        )
+      );
+    });
+  });
+
+  it("should always count up by one in a window and restart at one once it ends", async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        fc.integer({ min: 1 }),
+        fc.array(fc.nat()),
+        async (windowMs, gaps) => {
+          // Arrange
+          const { advance, store } = setup(
+            new MemoryRateLimitStorage(),
+            windowMs
+          );
+
+          let previous = await store.increment("a");
+          let elapsed = 0;
+
+          for (const gap of gaps) {
+            advance(gap);
+            elapsed += gap;
+
+            // Act
+            // Each hit must see the clock after the previous hit.
+            // oxlint-disable-next-line eslint/no-await-in-loop
+            const current = await store.increment("a");
+
+            // Assert
+            const open = START + elapsed < resetOf(previous);
+
+            expect(sameWindow(previous, current)).toBe(open);
+            expect(current.totalHits).toBe(open ? previous.totalHits + 1 : 1);
+            previous = current;
+          }
+        }
+      )
+    );
   });
 
   describe("decrement", () => {
@@ -315,6 +415,7 @@ describe(RateLimitStore, () => {
     });
 
     it("uses the real clock by default", async () => {
+      // Arrange
       const store = new RateLimitStore({
         storage: new MemoryRateLimitStorage(),
       });
@@ -322,8 +423,11 @@ describe(RateLimitStore, () => {
       store.init({ windowMs: WINDOW_MS });
 
       const before = Date.now();
+
+      // Act
       const reset = await resetMs(store.increment("a"));
 
+      // Assert
       expect(reset).toBeGreaterThanOrEqual(before + WINDOW_MS);
       expect(reset).toBeLessThanOrEqual(Date.now() + WINDOW_MS);
     });
@@ -352,5 +456,50 @@ describe(RateLimitStore, () => {
       await expect(store.resetKey("a")).resolves.toBeUndefined();
       await expect(store.resetAll()).resolves.toBeUndefined();
     });
+  });
+});
+
+describe(nextWindow, () => {
+  it("should always add one hit to a window that is still open", () => {
+    fc.assert(
+      fc.property(
+        windowState(),
+        fc.integer({ min: 1 }),
+        fc.nat(),
+        (current, windowMs, elapsed) => {
+          // Arrange
+          const now = current.windowStart + (elapsed % windowMs);
+
+          // Act
+          const next = nextWindow(current, now, windowMs);
+
+          // Assert
+          expect(next).toStrictEqual({
+            count: current.count + 1,
+            windowStart: current.windowStart,
+          });
+        }
+      )
+    );
+  });
+
+  it("should always start a new window at now once the old one is over", () => {
+    fc.assert(
+      fc.property(
+        windowState(),
+        fc.integer({ min: 1 }),
+        fc.nat(),
+        (current, windowMs, late) => {
+          // Arrange
+          const now = current.windowStart + windowMs + late;
+
+          // Act
+          const next = nextWindow(current, now, windowMs);
+
+          // Assert
+          expect(next).toStrictEqual({ count: 1, windowStart: now });
+        }
+      )
+    );
   });
 });

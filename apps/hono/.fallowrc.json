@@ -4,7 +4,12 @@
     "preset": "bulletproof",
     "coverage": {
       "requireAllFiles": true,
-      "allowUnmatched": ["tests/**", "vitest.config.ts", "drizzle.config.ts"]
+      "allowUnmatched": [
+        "tests/**",
+        "vitest.config.ts",
+        "drizzle.config.ts",
+        "vitest.setup.ts"
+      ]
     }
   }
 }

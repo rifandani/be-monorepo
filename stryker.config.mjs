@@ -12,6 +12,16 @@ import vitestConfig from "./vitest.config.ts";
  */
 const { include = [], exclude = [] } = vitestConfig.test.coverage;
 
+// Property tests use a fixed seed and a small budget under Stryker. A random
+// seed would let a mutant survive one run and die in the next, so two reports
+// could not be compared. Each mutant runs the full test set, so 25 runs keep
+// the mutation run near its old length. The test runners that Stryker starts
+// inherit these values. An explicit value in the environment still wins. See
+// `docs/adr/0005-property-based-tests.md`.
+process.env.PBT_SEED ??= "20260101";
+
+process.env.PBT_NUM_RUNS ??= "25";
+
 export default {
   $schema: "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
 
