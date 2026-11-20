@@ -3,7 +3,7 @@
   "hooks": {
     "afterFileEdit": [
       {
-        "command": "bun lint:fix"
+        "command": "bash -c 'bun lint:fix 2>&1 | tail -50 >&2; exit ${PIPESTATUS[0]}'"
       }
     ]
   }
