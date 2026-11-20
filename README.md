@@ -28,23 +28,13 @@ Each app has its own env files. The `.env.example` file of each app shows the va
 
 ## 📱 Apps
 
-### @workspace/hono
-
-[See here](./apps/hono/README.md)
-
-### @workspace/effect
-
-[See here](./apps/effect/README.md)
+- [@workspace/hono](./apps/hono/README.md)
+- [@workspace/effect](./apps/effect/README.md)
 
 ## 📦 Packages
 
-### @workspace/typescript-config
-
-[See here](./packages/typescript-config/README.md)
-
-### @workspace/load
-
-[See here](./packages/load/README.md)
+- [@workspace/typescript-config](./apps/typescript-config/README.md)
+- [@workspace/load](./apps/load/README.md)
 
 ## 📚 References
 
