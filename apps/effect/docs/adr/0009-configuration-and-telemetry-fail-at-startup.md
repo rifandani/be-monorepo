@@ -6,8 +6,6 @@ status: accepted
 
 Every value from the environment is an Effect `Config`, read when the layer that needs it builds. A missing or malformed value fails startup with a typed `ConfigError`. Nothing throws during an import, so the tests need no environment. This ADR extends [ADR-0002](./0002-observability-is-an-effect-layer-not-a-preload.md).
 
-These records came from code comments. [ADR-0006 in the root](../../../../docs/adr/0006-code-has-no-comments.md) moved them here.
-
 ## Configuration (`src/shared/config.ts`)
 
 - **`PORTLESS_URL` wins over `APP_URL`.** portless injects it with the worktree subdomain prefix, which is more accurate than the env file.

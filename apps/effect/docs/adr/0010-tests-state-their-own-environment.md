@@ -6,8 +6,6 @@ status: accepted
 
 The Effect tests run without an env file and without shared ambient state. Each test states the configuration and the registries that it reads. This app has three test idioms, and each one answers a different question. This ADR adds to the root [ADR-0001](../../../../docs/adr/0001-unit-tests-are-pure-module-logic-and-api-routes-only.md).
 
-These records came from code comments. [ADR-0006 in the root](../../../../docs/adr/0006-code-has-no-comments.md) moved them here.
-
 ## No env file
 
 `vitest.config.ts` has no `dotenvx` block, unlike `apps/hono`. Hono validates its environment at module load, so the values must exist before the first import. Here a `Config` resolves when its layer builds, so a test that needs `APP_URL` gives a `ConfigProvider` of its own. Each suite that reads `APP_URL` states it again, so the policy under test stays in the file that asserts against it.

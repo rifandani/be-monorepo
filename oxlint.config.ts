@@ -5,13 +5,13 @@ import vitest from "ultracite/oxlint/vitest";
 
 export default defineConfig({
   extends: [core, antiSlop, vitest],
-  jsPlugins: [{ name: "local", specifier: "./.oxlint-plugins/no-comments.ts" }],
+  jsPlugins: ["./tools/lint/no-comments.ts"],
   options: {
     typeAware: true,
     typeCheck: true,
   },
   rules: {
-    "local/no-comments": "error",
+    "comments/no-comments": "error",
     "typescript/return-await": ["error", "in-try-catch"],
     "typescript/no-confusing-void-expression": "off",
     "typescript/consistent-return": "off",

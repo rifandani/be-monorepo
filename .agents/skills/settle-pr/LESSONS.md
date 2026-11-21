@@ -51,7 +51,7 @@ A formatting lesson lands in `oxfmt.config.ts` — an option, or an `ignorePatte
 
 Write one when the pattern is a single file's syntax and no shipped rule names it. Keep it narrow: one node pattern, one message, no autofix unless the fix is mechanical.
 
-- Put the plugin in `scripts/oxlint-plugins/<name>.ts`; it exports an ESLint-style object, and `meta.name` sets the rule namespace. The plugin API is [oxlint's JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html).
+- Put the plugin in `tools/lint/<name>.ts`; it exports an ESLint-style object, and `meta.name` sets the rule namespace. The plugin API is [oxlint's JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html).
 - Register the file in `jsPlugins` in `oxlint.config.ts`; enable `<name>/<rule>` in `rules`.
 - Add the file to `.fallowrc.json` `dynamicallyLoaded`: fallow sees a config string, not an import, and would report the plugin as unused.
 - Test it: the rule fires on the pattern from the thread, and `bun lint` stays green.

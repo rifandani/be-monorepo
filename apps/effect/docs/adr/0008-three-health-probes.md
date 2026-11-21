@@ -6,8 +6,6 @@ status: accepted
 
 The app answers three Probes: startup, liveness and readiness. `GLOSSARY.md` defines each term. `PROBES` in `src/features/health/api.ts` is the one statement of a Probe: the group builds each endpoint from `segment`, `server/probes.ts` builds both exclusion sets from `path` and `traced`, and the Probe Outcome counter keys on the record key.
 
-These records came from code comments. [ADR-0006 in the root](../../../../docs/adr/0006-code-has-no-comments.md) moved them here.
-
 ## Three endpoints, no bare `/health`
 
 The three answers mean different things to the caller. A startup probe suspends the liveness clock. A liveness failure restarts the process. A readiness failure only removes it from the pool. A single `/health` would answer "whichever of them you assumed", so there is no bare `/health`.

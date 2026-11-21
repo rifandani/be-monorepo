@@ -6,8 +6,6 @@ status: accepted
 
 Effect has no middleware for CORS, CSRF, request id, secure headers, timeout, timing, language or error bodies. Each module in `src/server/` is a port of the `hono/*` middleware that `apps/hono` mounts in `src/app/app.ts`, with the options that app uses. Both apps must answer the same request in the same way. The sections below record each place where a port differs from the obvious implementation, and each place where it differs from `apps/hono` on purpose.
 
-These records came from code comments. [ADR-0006 in the root](../../../../docs/adr/0006-code-has-no-comments.md) moved them here.
-
 ## Rules for every port
 
 - **A rejection is a response, not a failure.** The csrf 403, the timeout 504 and the 404 are success values. A failure would widen the error channel out to whatever serves the app. The client sees the same response.

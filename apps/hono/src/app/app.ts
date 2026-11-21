@@ -98,8 +98,7 @@ app.onError(async (error, c) => {
           message: parsed.message,
           why: parsed.why,
         }),
-        // SAFETY: `parseError` only ever reports an error status (>= 400), and
-        // every such code carries a body, so none of the bodiless `StatusCode`s (101/204/205/304) that `ContentfulStatusCode` excludes can reach here.
+        // SAFETY: `parseError` only ever reports an error status (>= 400), and every such code carries a body, so none of the bodiless `StatusCode`s (101/204/205/304) that `ContentfulStatusCode` excludes can reach here.
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- parseError emits only contentful error status codes.
         parsed.status as ContentfulStatusCode
       );

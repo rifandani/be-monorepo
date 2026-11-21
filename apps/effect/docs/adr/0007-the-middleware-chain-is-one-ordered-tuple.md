@@ -6,8 +6,6 @@ status: accepted
 
 `CHAIN` in `src/app/chain.ts` is the only statement of the Middleware Chain order, outermost first. It was a `Layer.flatMap` staircase with the order written again in prose, and the prose drifted: it said ten entries where there are eleven, and ADR-0003 copied the count. A tuple has a length that nothing must maintain. `tests/middleware.test.ts` asserts that every entry registers. `tests/nesting.test.ts` asserts what each order produces, with its own table ([ADR-0005](./0005-the-nesting-table-is-not-generated-from-the-chain.md)).
 
-These records came from code comments. [ADR-0006 in the root](../../../../docs/adr/0006-code-has-no-comments.md) moved them here.
-
 ## How the chain is built
 
 - **`Layer.flatMap`, not `Layer.mergeAll`.** A global middleware registers when its layer builds, and the registration order is the nesting order. `mergeAll` builds its members concurrently, so the nesting would follow whichever layer won the race.

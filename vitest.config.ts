@@ -6,7 +6,7 @@ export default defineConfig({
     isolate: false,
     passWithNoTests: false,
     pool: "threads",
-    projects: ["apps/hono", "apps/effect"],
+    projects: ["apps/hono", "apps/effect", "tools/lint"],
     coverage: {
       provider: "v8",
       reportOnFailure: true,
@@ -19,7 +19,11 @@ export default defineConfig({
         lines: 90,
         statements: 90,
       },
-      include: ["apps/hono/src/**/*.ts", "apps/effect/src/**/*.ts"],
+      include: [
+        "apps/hono/src/**/*.ts",
+        "apps/effect/src/**/*.ts",
+        "tools/lint/comment-directive.ts",
+      ],
       exclude: [
         "**/*.test.ts",
         "apps/*/src/**/constants/**",

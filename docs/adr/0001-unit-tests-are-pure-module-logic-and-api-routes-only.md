@@ -124,4 +124,4 @@ One v8 quirk is worth knowing before chasing a phantom gap: a ternary between tw
 
 ## Code without unreachable branches
 
-[ADR-0006](./0006-code-has-no-comments.md) moved this record here from code comments. Under `noUncheckedIndexedAccess`, `split(",")[0]` has an optional type, so it needs a `?? ""` or `?? null` branch that no input can reach, and that the 90% per-file gate counts as uncovered. Code in the gate uses a form without the branch instead: `client-address.ts` drops everything after the first comma, and `language.ts` strips the fragment the same way. Both sides of each remaining branch are covered.
+Under `noUncheckedIndexedAccess`, `split(",")[0]` has an optional type, so it needs a `?? ""` or `?? null` branch that no input can reach, and that the 90% per-file gate counts as uncovered. Code in the gate uses a form without the branch instead: `client-address.ts` drops everything after the first comma, and `language.ts` strips the fragment the same way. Both sides of each remaining branch are covered.

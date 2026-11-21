@@ -23,7 +23,6 @@
     "lint": "ultracite check --disable-nested-config",
     "lint:fix": "ultracite fix --disable-nested-config",
     "lint:doctor": "ultracite doctor",
-    "lint:comments": "node scripts/lint-comments.ts",
     "check:health": "fallow health --top 10 --quiet",
     "check:dead-code": "fallow dead-code --quiet",
     "check:dupes": "fallow dupes --mode semantic --quiet",
@@ -64,6 +63,7 @@
   "devDependencies": {
     "@changesets/cli": "3.0.3",
     "@chenglou/freerange": "0.0.5",
+    "@oxlint/plugins": "1.91.0",
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",
     "@types/node": "26.6.6",
