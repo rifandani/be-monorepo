@@ -8,9 +8,6 @@ import { pathOf } from "#server/probes.ts";
 
 import { isUntracedProbe, tracerDisabledForProbes } from "./probes.ts";
 
-// The middleware is covered through the composed app in `tests/app.test.ts`.
-// What is left is the policy: which url is a probe, and which probe is traced.
-
 describe(pathOf, () => {
   it("returns a bare path unchanged", () => {
     assert.strictEqual(pathOf("/health/live"), "/health/live");
@@ -39,8 +36,6 @@ describe(isUntracedProbe, () => {
     assert.isTrue(isUntracedProbe(LIVE_PATH));
   });
 
-  // The readiness probe runs the checks, so its span is the one that describes
-  // something. See the note in `probes.ts`.
   it("keeps the span for the readiness probe", () => {
     assert.isFalse(isUntracedProbe(READY_PATH));
   });
@@ -50,11 +45,6 @@ describe(isUntracedProbe, () => {
   });
 });
 
-// The layer is the only thing standing between the policy above and the tracer,
-// and the tracer is applied by the entrypoints — which no test builds. So the
-// predicate is read back out of the reference the layer provides. A layer wired
-// to the wrong predicate, or to none, is what this catches.
-// Only `url` is read, and only by `isUntracedProbe`.
 const request = (url: string) =>
   ({ url }) as HttpServerRequest.HttpServerRequest;
 

@@ -8,10 +8,6 @@ import type { Variables } from "#server/types/hono.ts";
 const identify = createAuthMiddleware(auth, {
   exclude: ["/api/auth/**", "/api/public/**", "/api/health"],
   include: ["/api/**"],
-  // extend: (session) => ({
-  //   organization: session.user.activeOrganization,
-  //   role: session.user.role,
-  // }),
 });
 
 export const identifyMiddleware =

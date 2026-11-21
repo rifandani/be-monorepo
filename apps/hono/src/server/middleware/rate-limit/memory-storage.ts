@@ -1,12 +1,6 @@
 import { nextWindow } from "./store.ts";
 import type { RateLimitStorage, WindowState } from "./store.ts";
 
-/**
- * A {@link RateLimitStorage} that keeps window states in a `Map`. Tests use it.
- *
- * `hit` has no `await` between the read and the write, so two calls at the same
- * time cannot lose a hit.
- */
 export class MemoryRateLimitStorage implements RateLimitStorage {
   readonly #windows = new Map<string, WindowState>();
 

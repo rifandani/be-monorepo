@@ -3,7 +3,8 @@
   "entry": [
     "src/app/{index,main,node,bun}.{ts,tsx,js,jsx}",
     "packages/load/src/app/run.ts",
-    "packages/load/src/features/*/index.ts"
+    "packages/load/src/features/*/index.ts",
+    "apps/hono/src/server/middleware/rate-limit/index.ts"
   ],
   "workspaces": {
     "patterns": ["apps/*", "packages/*"]

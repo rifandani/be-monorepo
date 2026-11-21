@@ -10,15 +10,12 @@ import {
 import { createSelectSchema } from "drizzle-zod";
 import type { z } from "zod";
 
-// #region COMMON
 const timestamps = {
   createdAt: timestamp().defaultNow().notNull(),
   deletedAt: timestamp(),
   updatedAt: timestamp().$onUpdate(() => new Date()),
 };
-// #endregion COMMON
 
-// #region AUTH
 export const userTable = pgTable("user", {
   email: text().notNull().unique(),
   emailVerified: boolean().default(false).notNull(),
@@ -81,13 +78,10 @@ export const selectVerificationTableSchema =
   createSelectSchema(verificationTable);
 
 export type VerificationTable = z.infer<typeof selectVerificationTableSchema>;
-// #endregion AUTH
 
-// #region RATE LIMIT
 export const rateLimitTable = pgTable("rate_limit", {
-  count: integer("count").default(0).notNull(), // number of requests in current window
+  count: integer("count").default(0).notNull(),
   id: uuid("id").defaultRandom().primaryKey(),
-  key: text("key").notNull().unique(), // unique identifier for each rate limit key
-  lastRequest: bigint("last_request", { mode: "number" }).notNull(), // timestamp of last request
+  key: text("key").notNull().unique(),
+  lastRequest: bigint("last_request", { mode: "number" }).notNull(),
 });
-// #endregion RATE LIMIT

@@ -8,6 +8,5 @@ export const authRoutes = (
     Variables: Variables;
   }>
 ) => {
-  // betterauth handler
   app.on(["POST", "GET"], "/api/auth/**", async (c) => auth.handler(c.req.raw));
 };

@@ -30,12 +30,6 @@ describe("/llms-docs endpoint", () => {
     expect(res.headers.get("Cache-Control")).toBe(
       "public, max-age=3600, immutable"
     );
-    // The route resolves its docs folder against `process.cwd()`, which is the
-    // repo root under a root `vitest` run but `apps/hono` under `bun hono test`.
-    // Asserting on the prose of one of those trees passes in one runner and
-    // fails in the other, so rebuild the expectation from whichever directory
-    // the route actually read. Reproducing the join here is what pins the
-    // separator: an empty string or a Stryker placeholder no longer matches.
     const files = await getAllFiles(path.join(process.cwd(), "./docs"));
 
     const contents = await Promise.all(
@@ -45,8 +39,6 @@ describe("/llms-docs endpoint", () => {
     const expectedText = contents.map((content) => `${content}\n\n`).join("");
 
     expect(files.length).toBeGreaterThan(0);
-    // TOKENS_PER_CHARACTER is 4 — pin the ratio so a mutant flipping the
-    // division cannot hide behind `expect.any(Number)`.
     expect(json).toStrictEqual({
       length: expectedText.length,
       text: expectedText,
@@ -91,8 +83,6 @@ describe(getAllFiles, () => {
     root = await mkdtemp(path.join(tmpdir(), "llms-docs-"));
     const target = path.join(root, "real.md");
     await writeFile(target, "real");
-    // `readdir` reports the link type without resolving it, so the link is
-    // neither a file nor a directory and gets dropped.
     await symlink(target, path.join(root, "link.md"));
     await symlink(root, path.join(root, "loop"));
 

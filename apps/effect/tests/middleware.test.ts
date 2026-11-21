@@ -19,47 +19,12 @@ import { probeAttributes, probeResult } from "#features/health/service.ts";
 import { requestAttributes, requestDuration } from "#server/metrics.ts";
 import { timeoutFor } from "#server/timeout.ts";
 
-/*
- * What the global middleware does, asserted where it runs.
- *
- * `tests/app.test.ts` asks what this app serves and what a response carries.
- * This suite asks a different question — does each entry in the chain in
- * `src/app/chain.ts` actually run — and it exists because coverage cannot
- * ask it. The `metrics`, `timeout` and `quietProbes` layers all read 100% on
- * the per-file gate while nothing asserted them: the requests in the other
- * suites execute them, and a test on the function each one calls says only
- * that the function works. See `docs/adr/0001`.
- *
- * Three collectors make the three answers readable, and each is a fact worth
- * stating because none of them is obvious:
- *
- * - `Layer.provideMerge` and not `Layer.provide`. `HttpRouter.toWebHandler`
- *   uses the built layer's *output* context as the base context of every
- *   request fiber, so a reference only reaches a request if it is merged out.
- *   That is what makes a metric recorded inside a request readable after it.
- * - The framework's per-request log line is applied outside the router by
- *   `HttpRouter.toWebHandler` itself, and `disableLogger: true` — which
- *   `tests/app.test.ts` passes — switches it off. It stays on here, and a
- *   collecting `Logger` replaces the default one, so an absent line is an
- *   assertion rather than a silence.
- * - The tracer needs no wiring at all: `HttpEffect.toHandled` applies
- *   `HttpMiddleware.tracer` unconditionally, so the server span is opened for
- *   a `toWebHandler` request already. Passing `middleware:
- *   HttpMiddleware.tracer` as well opens two.
- */
-
 const ALLOWED_ORIGIN = "https://effect.be-monorepo.localhost";
 
-// The cors layer reads `APP_URL`, and this project deliberately runs its tests
-// without an env file (see `vitest.config.ts`). See `tests/app.test.ts`.
 const configProvider = ConfigProvider.layer(
   ConfigProvider.fromEnvRecord({ APP_URL: `${ALLOWED_ORIGIN}/` })
 );
 
-// `defaultValue()` and not the default itself. `Metric.MetricRegistry` is a
-// `Context.Reference`, and a `Context.Reference` caches what `defaultValue`
-// returns, so the ambient registry is one `Map` shared by every test in the
-// process. Calling the factory gives this file a registry of its own.
 const registry = Metric.MetricRegistry.defaultValue();
 
 const logRecords: {
@@ -76,8 +41,6 @@ const collector = Logger.make((options) => {
   });
 });
 
-// A `NativeSpan` is the span Effect's own default tracer makes, so collecting
-// them changes nothing about what the app does — only that they are kept.
 const collectingTracer = Tracer.make({
   span: (options) => {
     const span = new Tracer.NativeSpan(options);
@@ -102,12 +65,8 @@ const build = (extra: Layer.Layer<never>) =>
     )
   );
 
-// The tracer exclusion is provided the way the entrypoints provide it. Nothing
-// forces it to be entrypoint-only; it is a layer, and a test can hand it over.
 const served = build(tracerDisabledForProbes);
 
-// The same app without it, for the one case below that needs the app as it
-// would be if that layer were forgotten.
 const unguarded = build(Layer.empty);
 
 const get = async (path: string) =>
@@ -127,7 +86,6 @@ const requestCount = (options: {
     )
   );
 
-// One outer describe so the collectors are cleared for every case below.
 describe("the global middleware", () => {
   beforeEach(() => {
     registry.clear();
@@ -147,9 +105,6 @@ describe("the global middleware", () => {
       assert.strictEqual(requestCount({ method: "GET", status: 200 }).count, 1);
     });
 
-    // `metrics` sits outside `csrf`, `onError` and `notFound` in the chain, so
-    // the status it records is the one the client got and not the one the router
-    // would have answered. These two are what that placement is for.
     it("counts a rejection with the status it sent", async () => {
       await served.handler(
         new Request("http://localhost/", { method: "POST" })
@@ -167,11 +122,6 @@ describe("the global middleware", () => {
       assert.strictEqual(requestCount({ method: "GET", status: 404 }).count, 1);
     });
 
-    // The recording converts a clock difference in milliseconds to the seconds
-    // the metric's boundaries are written in. A probe answers in single-figure
-    // milliseconds, so a sum below one second is a statement that the conversion
-    // happened; without it this request would record about 3, and land in the
-    // last bucket of a histogram that goes to 10 seconds.
     it("records the duration in seconds, not milliseconds", async () => {
       await get(LIVE_PATH);
 
@@ -189,8 +139,6 @@ describe("the global middleware", () => {
       assert.deepStrictEqual(logRecords, []);
     });
 
-    // The other half of the same assertion: the line exists, and the probes are
-    // the exception. Without this one, a logger that never ran would pass above.
     it("logs an ordinary request", async () => {
       await get("/openapi");
 
@@ -205,8 +153,6 @@ describe("the global middleware", () => {
       assert.deepStrictEqual(spans, []);
     });
 
-    // The readiness probe runs the Checks, so its span describes work. Both the
-    // server span and the handler's own span survive.
     it("keeps the spans for the readiness probe", async () => {
       await get(READY_PATH);
 
@@ -225,11 +171,6 @@ describe("the global middleware", () => {
       );
     });
 
-    // `probes.ts` claims neither half of the policy is sufficient alone, and
-    // this is that claim. The server span is opened outside the router, before
-    // `quietProbes` runs, so nothing the middleware does can prevent it — only
-    // the layer the entrypoints provide can. Drop the layer and the liveness
-    // probe is traced again, while the middleware is untouched.
     it("needs its layer as well as its middleware", async () => {
       await unguarded.handler(new Request(`http://localhost${LIVE_PATH}`));
 
@@ -240,9 +181,6 @@ describe("the global middleware", () => {
     });
   });
 
-  // The service test in `src/features/health/service.test.ts` asserts every outcome this
-  // counter records. What it cannot say is that a call over the mount point
-  // reaches it at all, which is what this one adds.
   describe("Probe Outcome", () => {
     it("counts an outcome for a real probe call", async () => {
       await get(LIVE_PATH);
@@ -264,29 +202,11 @@ describe("the global middleware", () => {
     });
   });
 
-  // Every entry of the Middleware Chain reaches the router.
-  //
-  // `CHAIN` is the declaration and the count below is observed behaviour, so
-  // the two are independent accounts and a fold that drops an entry makes them
-  // disagree. That is the failure this catches: a `slice`, a filter, or a
-  // second copy of a layer already in the chain — `Layer` memoizes on the layer
-  // instance, so a duplicated entry registers once and comes up short here.
-  //
-  // It does not assert the *order*. `tests/nesting.test.ts` does, from its own
-  // hand-written table, and `docs/adr/0005` says why that table must not be
-  // generated from `CHAIN`.
-  //
-  // The registrations are counted by substituting the router: `HttpRouter.make`
-  // is exported and the service is an ordinary `Context.Service`, so a spread
-  // of the real one with a counting `addGlobalMiddleware` is a drop-in. The
-  // identities are anonymous closures, which is why this counts rather than
-  // naming them.
   describe("the Middleware Chain", () => {
     it("registers one global middleware per declared entry", async () => {
       const registrations: unknown[] = [];
 
       const counting = Layer.effect(HttpRouter.HttpRouter)(
-        // See `cors.ts` for why this is `pipe` and not the two-argument form.
         HttpRouter.make.pipe(
           Effect.map((router) =>
             HttpRouter.HttpRouter.of({
@@ -316,10 +236,6 @@ describe("the global middleware", () => {
     });
   });
 
-  // No route in this app answers slowly enough to time out, so the layer is
-  // built here with a duration of its own over a router of its own — the same
-  // thing `timeout.test.ts` does with the combinator, one level out. What this
-  // adds is that the layer wraps a router with it and a real 504 leaves.
   describe("the timeout middleware", () => {
     const slow = HttpRouter.add(
       "GET",

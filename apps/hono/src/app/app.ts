@@ -7,7 +7,6 @@ import { cors } from "hono/cors";
 import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { languageDetector } from "hono/language";
-// import { logger as loggerMiddleware } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { requestId } from "hono/request-id";
 import { secureHeaders } from "hono/secure-headers";
@@ -30,47 +29,35 @@ import { languageDetectorOptions } from "#shared/constants/language.ts";
 
 import { routes } from "./routes.ts";
 
-const TIMEOUT = 15_000; // 15 seconds
+const TIMEOUT = 15_000;
 const NOT_FOUND_MESSAGE = "404 Not found";
 
 const app = new OpenAPIHono<{
   Variables: Variables;
-}>(); // .basePath('/api/v1');
+}>();
 
 app.use(
   "*",
-  /**
-   * instruments the entire request-response lifecycle and metrics.
-   * it doesn't provide fine-grained instrumentation for individual middleware.
-   */
-  // Stryker disable next-line ObjectLiteral: static middleware wiring at module init; perTest attributes no covering tests
   httpInstrumentationMiddleware({
     serviceName: SERVICE_NAME,
     serviceVersion: SERVICE_VERSION,
   }),
-  /**
-   * using `AsyncLocalStorage` under the hood
-   */
   contextStorage(),
   requestId(),
   evlog(evlogMiddlewareOptions),
   identifyMiddleware(),
-  // loggerMiddleware(),
   cors({
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: ["GET", "POST", "OPTIONS"],
     credentials: true,
     exposeHeaders: ["Content-Length"],
-    // Stryker disable next-line ArrayDeclaration: static middleware wiring at module init; perTest attributes no covering tests
     origin: [ENV.APP_URL],
   }),
   authContextMiddleware(),
   timing(),
   timeout(TIMEOUT),
   languageDetector(languageDetectorOptions),
-  // Stryker disable next-line ObjectLiteral: static middleware wiring at module init; perTest attributes no covering tests
   csrf({
-    // Stryker disable next-line ArrayDeclaration: static middleware wiring at module init; perTest attributes no covering tests
     origin: [ENV.APP_URL],
   }),
   secureHeaders(),
@@ -78,18 +65,10 @@ app.use(
 );
 
 await routes(app);
-// showRoutes(app, {
-//   colorize: true,
-// });
 
 app.onError(async (error, c) => {
-  // evlog always mounts `log` ahead of routes; optional chain is defensive for
-  // the rare case a test mounts onError without that middleware.
-  // Stryker disable next-line OptionalChaining,StringLiteral: log is always set under the real middleware stack; missing-key and ?. vs . are observationally identical there
   c.get("log")?.error(error);
 
-  // `otherwise` rather than `exhaustive`: hono hands us an open `Error`, so
-  // there is no union for ts-pattern to close over.
   return match(error)
     .with(P.instanceOf(ZodError), (zodError) =>
       c.json(
@@ -112,8 +91,6 @@ app.onError(async (error, c) => {
     .otherwise((unknownError) => {
       const parsed = parseError(unknownError);
 
-      // `shake` drops the hints the parsed error did not supply, in place of
-      // three conditional spreads.
       return c.json(
         shake({
           fix: parsed.fix,
@@ -121,8 +98,7 @@ app.onError(async (error, c) => {
           message: parsed.message,
           why: parsed.why,
         }),
-        // SAFETY: `parseError` only ever reports an error status (>= 400), and
-        // every such code carries a body, so none of the bodiless `StatusCode`s (101/204/205/304) that `ContentfulStatusCode` excludes can reach here.
+        // SAFETY: `parseError` only ever reports an error status (>= 400), and every such code carries a body, so none of the bodiless `StatusCode`s (101/204/205/304) that `ContentfulStatusCode` excludes can reach here.
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- parseError emits only contentful error status codes.
         parsed.status as ContentfulStatusCode
       );
@@ -130,7 +106,6 @@ app.onError(async (error, c) => {
 });
 
 app.notFound((c) => {
-  // Stryker disable next-line OptionalChaining,StringLiteral: log is always set under the real middleware stack; missing-key and ?. vs . are observationally identical there
   c.get("log")?.warn(NOT_FOUND_MESSAGE);
 
   return c.text(NOT_FOUND_MESSAGE, HTTP_STATUS_CODES.NOT_FOUND);

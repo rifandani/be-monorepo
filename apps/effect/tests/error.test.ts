@@ -5,18 +5,12 @@ import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import { onError, SERVER_ERROR_MESSAGE } from "#server/error.ts";
 import { requestId } from "#server/request-id.ts";
 
-// `app` has no route that fails, so the catch-all in `src/server/error.ts` has
-// nothing to catch there. This suite mounts routes that do, over the same
-// middleware, and it mounts `requestId` outside `onError` to check the other
-// half of the placement: an error response is a success value by the time the
-// outer middleware sees it, so it carries their headers.
 const failing = Layer.mergeAll(
   HttpRouter.add("GET", "/die", Effect.die(new Error("connect ECONNREFUSED"))),
   HttpRouter.add("GET", "/interrupt", Effect.interrupt),
   HttpRouter.add(
     "GET",
     "/teapot",
-    // Dying with a response is how a handler answers a failure itself.
     Effect.die(HttpServerResponse.text("I am a teapot", { status: 418 }))
   ),
   requestId.pipe(Layer.flatMap(() => onError))
@@ -39,26 +33,18 @@ describe("error handler", () => {
     });
   });
 
-  // This is what the innermost placement buys. Left to Effect, the 500 would
-  // travel past `requestId` as a failure and leave without the header.
   it("gives the error response the headers of the middleware outside it", async () => {
-    // Act
     const response = await handler(new Request("http://localhost/die"));
 
-    // Assert
     assert.match(
       response.headers.get("x-request-id") ?? "",
       /^[0-9a-f-]{36}$/u
     );
   });
 
-  // An interrupt fails no error channel either, so it is the third case a catch
-  // on the error channel alone would miss.
   it("answers an interrupted request", async () => {
-    // Act
     const response = await handler(new Request("http://localhost/interrupt"));
 
-    // Assert
     assert.strictEqual(response.status, 503);
   });
 

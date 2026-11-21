@@ -7,13 +7,12 @@ import { db } from "#server/db/index.ts";
 import * as schema from "#server/db/schema.ts";
 import { ENV } from "#shared/constants/env.ts";
 
-const RATE_LIMIT_WINDOW_SECONDS = 15; // 15 seconds
-const RATE_LIMIT_MAX_REQUESTS = 10 * RATE_LIMIT_WINDOW_SECONDS; // 10 req/s
+const RATE_LIMIT_WINDOW_SECONDS = 15;
+const RATE_LIMIT_MAX_REQUESTS = 10 * RATE_LIMIT_WINDOW_SECONDS;
 
 export const auth = betterAuth({
   advanced: {
     ipAddress: {
-      // same headers, same order as the rate limiter
       ipAddressHeaders: [...clientAddressHeaders],
     },
   },
@@ -31,24 +30,17 @@ export const auth = betterAuth({
   }),
   emailAndPassword: { enabled: true },
   plugins: [
-    bearer(), // enables authentication using Bearer tokens as an alternative to browser cookies
+    bearer(),
     openAPI({
-      path: "/docs", // at /api/auth/docs
+      path: "/docs",
       theme: "bluePlanet",
     }),
   ],
-  /**
-   * server-side requests made using `auth.api` aren't affected by rate limiting.
-   * rate limits only apply to client-initiated requests.
-   *
-   * @see https://better-auth.com/docs/concepts/rate-limit
-   */
   rateLimit: {
-    // enabled: true, // by default disabled in development mode
-    max: RATE_LIMIT_MAX_REQUESTS, // max requests in the window (10 req/s)
-    modelName: "rate_limit", // optional, by default "rateLimit" is used
+    max: RATE_LIMIT_MAX_REQUESTS,
+    modelName: "rate_limit",
     storage: "database",
-    window: RATE_LIMIT_WINDOW_SECONDS, // time window in seconds
+    window: RATE_LIMIT_WINDOW_SECONDS,
   },
   secret: ENV.BETTER_AUTH_SECRET,
   telemetry: {

@@ -121,3 +121,7 @@ One v8 quirk is worth knowing before chasing a phantom gap: a ternary between tw
 ## Bulletproof folder migration
 
 [ADR-0004](./0004-follow-the-default-bulletproof-boundaries.md) moves source files to the default Bulletproof folders. The coverage exclusions in `vitest.config.ts` follow the new paths and keep the same scope and 90% per-file thresholds. Hono database, auth configuration, instrumentation, evlog configuration, and global middleware now live under `src/server/`; common constants and helpers live under `src/shared/`. Effect entrypoints now live under `src/app/`, configuration under `src/shared/`, observability under `src/server/`, and health code under `src/features/health/`. Handler and middleware composition live in `src/app/` and remain covered by the route tests. Earlier paths in this ADR describe the structure when those decisions were made.
+
+## Code without unreachable branches
+
+Under `noUncheckedIndexedAccess`, `split(",")[0]` has an optional type, so it needs a `?? ""` or `?? null` branch that no input can reach, and that the 90% per-file gate counts as uncovered. Code in the gate uses a form without the branch instead: `client-address.ts` drops everything after the first comma, and `language.ts` strips the fragment the same way. Both sides of each remaining branch are covered.

@@ -1,18 +1,3 @@
-/**
- * Load profiles — the five test types, and the k6 options each one runs with.
- *
- * k6 code, not Node code: it runs inside the k6 runtime, which reads `__ENV`
- * and the `k6/*` modules. `run.ts` is the only Node side, and it passes every
- * value below in as `-e KEY=value`.
- *
- * Every type but smoke uses an arrival-rate executor (an open model). A VU
- * executor sends less when the app slows down, which hides exactly the latency
- * a load test is meant to find.
- *
- * Env (all optional):
- *   LOAD_RATE   peak requests per second. Smoke ignores it.
- *   LOAD_HOLD   how long the peak is held. For breakpoint, the length of the ramp.
- */
 import type { SummaryData } from "https://jslib.k6.io/k6-summary/0.1.0/index.js";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.1.0/index.js";
 import { check } from "k6";
@@ -24,14 +9,8 @@ const PROFILES = ["smoke", "load", "stress", "spike", "breakpoint"] as const;
 
 type Profile = (typeof PROFILES)[number];
 
-/**
- * A 429 means the test hit a rate limiter, not the app's limit. Its own
- * counter, held at zero, says so in the summary instead of folding it into
- * `http_req_failed`.
- */
 const rateLimited = new Counter("rate_limited");
 
-/** Asserts a 200, and counts a 429 against `rate_limited`. */
 export const expectOk = (response: RefinedResponse<ResponseType>) => {
   if (response.status === 429) {
     rateLimited.add(1);
@@ -41,13 +20,9 @@ export const expectOk = (response: RefinedResponse<ResponseType>) => {
 };
 
 interface Budget {
-  /** Upper bound for `http_req_failed`, as a rate. */
   failed: number;
-  /** p95 latency in ms, for the whole run and for each route. */
   p95: number;
-  /** p99 latency in ms, when the type has one. */
   p99?: number;
-  /** Lower bound for the `checks` pass rate, when the type has one. */
   checks?: number;
 }
 
@@ -56,14 +31,9 @@ interface Plan {
   scenario: (rate: number, hold: string) => Scenario;
   defaultHold: string;
   defaultRate: number;
-  /** Stop the run at the first failed threshold. */
   abortOnFail?: boolean;
 }
 
-/**
- * Enough VUs to keep the offered rate when each request takes up to about
- * one second. k6 warns, and counts `dropped_iterations`, when it runs out.
- */
 const vuPool = (rate: number) => ({
   maxVUs: Math.max(rate * 2, 50),
   preAllocatedVUs: Math.max(Math.ceil(rate / 10), 10),
@@ -146,14 +116,12 @@ const PLANS: Record<Profile, Plan> = {
 const isProfile = (value: string | undefined): value is Profile =>
   PROFILES.some((profile) => profile === value);
 
-/** `__ENV` value, or the profile default when the variable is unset. */
 const envOr = (key: string, fallback: string): string => {
   const value = __ENV[key];
 
   return value !== undefined && value.length > 0 ? value : fallback;
 };
 
-/** A threshold expression, or an aborting threshold when the plan says so. */
 const limit = (plan: Plan, expression: string) =>
   plan.abortOnFail === true
     ? { abortOnFail: true, delayAbortEval: "30s", threshold: expression }
@@ -195,11 +163,6 @@ const thresholdsFor = (
   return thresholds;
 };
 
-/**
- * The k6 options for the profile named in `LOAD_PROFILE`, with one p95
- * threshold for each route name. A route's requests must carry the same
- * value in their `name` tag, or its threshold has no samples.
- */
 export const profileOptions = (routes: readonly string[]): Options => {
   const profile = __ENV.LOAD_PROFILE;
 
@@ -219,11 +182,6 @@ export const profileOptions = (routes: readonly string[]): Options => {
   };
 };
 
-/**
- * Prints the usual text summary, and writes the same data as JSON to
- * `LOAD_SUMMARY_PATH` when `run.ts` gives one. Exporting `handleSummary` turns
- * k6's own summary off, which is why the text one is rebuilt here.
- */
 export const handleSummary = (data: SummaryData) => {
   const stdout = textSummary(data, { enableColors: true, indent: " " });
   const path = __ENV.LOAD_SUMMARY_PATH;

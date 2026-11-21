@@ -144,7 +144,7 @@ oxlint rule (existing)
    the bot flagged the reduce.
 
 oxlint rule (custom)
-2. `scripts/oxlint-plugins/local.ts` — `local/no-date-now`: the bot flagged
+2. `tools/lint/local.ts` — `local/no-date-now`: the bot flagged
    `Date.now()` outside `core/clock`.
 
 fallow policy
