@@ -1,19 +1,3 @@
-/**
- * Hono app scenario. `get-session` with a bearer token is the only route that
- * reaches Postgres on every call; the other two are anonymous, so they skip
- * the session lookup the auth context middleware does for credentialed calls.
- *
- * Sign-in runs once, in `setup()`, and never in the loop: it is mostly
- * password-hash CPU, and in production better-auth allows 3 of them per 10 s.
- *
- * Run it through `run.ts` (e.g. `bun load:hono:smoke http://localhost:3000`),
- * which sets the env below.
- *
- * Env:
- *   LOAD_TARGET          base URL of the app, no trailing slash
- *   LOAD_USER_EMAIL      the user `setup()` signs in as
- *   LOAD_USER_PASSWORD
- */
 import { check } from "k6";
 import exec from "k6/execution";
 import http from "k6/http";
@@ -48,7 +32,6 @@ export const setup = (): SetupData => {
     { headers: { "Content-Type": "application/json" } }
   );
 
-  // The bearer plugin returns the session token in this header.
   const token = response.headers["Set-Auth-Token"] ?? "";
 
   if (response.status !== 200 || token.length === 0) {
@@ -87,9 +70,7 @@ export default function hono(data: SetupData) {
   expectOk(response);
 
   if (route === "get-session") {
-    // An unknown token still answers 200, with a `null` body.
     check(response, {
-      // An error body may not be JSON, and `json()` throws on that.
       "session is present": (r) =>
         r.status === 200 && r.json("session") !== null,
     });

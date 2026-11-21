@@ -12,7 +12,6 @@ export const routes = async (
     Variables: Variables;
   }>
 ) => {
-  // OpenAPI docs
   app.doc("/openapi", {
     info: {
       description: "API documentation for the Hono app",
@@ -36,7 +35,6 @@ export const routes = async (
           title: ENV.APP_TITLE,
           url: "/openapi",
         },
-        // Better Auth schema generation endpoint
         {
           title: `${ENV.APP_TITLE} (Auth)`,
           url: "/api/auth/open-api/generate-schema",
@@ -46,9 +44,7 @@ export const routes = async (
     })
   );
 
-  // betterauth routes
   authRoutes(app);
 
-  // our routes
   await llmsDocsRoutes(app);
 };

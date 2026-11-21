@@ -11,14 +11,12 @@ const START = 1_000_000;
 
 type Pending = Promise<ClientRateLimitInfo | undefined>;
 
-/** The hit count of a result. */
 const hits = async (pending: Pending) => {
   const info = await pending;
 
   return info?.totalHits;
 };
 
-/** The reset time of a result, in milliseconds since the epoch. */
 const resetMs = async (pending: Pending) => {
   const info = await pending;
 
@@ -38,7 +36,6 @@ const failing = (failure: unknown): RateLimitStorage => {
 };
 
 const setupFailing = (failure: unknown) => {
-  // evlog prints through the console; the failure is expected here.
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "log").mockImplementation(() => {});
 
@@ -52,9 +49,6 @@ const setupFailing = (failure: unknown) => {
   return store;
 };
 
-/**
- * A store over the in-memory adapter and a clock that the test moves by hand.
- */
 const setup = (
   storage: RateLimitStorage = new MemoryRateLimitStorage(),
   windowMs = WINDOW_MS
@@ -72,25 +66,17 @@ const setup = (
   };
 };
 
-/** Any stored window. */
 const windowState = () =>
   fc.record({ count: fc.nat(), windowStart: fc.integer() });
 
-/** How many times `key` occurs in `keys`. */
 const countOf = (keys: readonly string[], key: string) =>
   keys.filter((candidate) => candidate === key).length;
 
-/** The reset time of a result, in milliseconds since the epoch. */
 const resetOf = (info: ClientRateLimitInfo) => info.resetTime?.getTime() ?? 0;
 
-/** True when two results report the same window. */
 const sameWindow = (left: ClientRateLimitInfo, right: ClientRateLimitInfo) =>
   resetOf(left) === resetOf(right);
 
-/**
- * The in-memory adapter, with each `hit` held until the scheduler lets it run.
- * The scheduler picks the order, so concurrent hits run in every order.
- */
 const scheduledStorage = (s: fc.Scheduler): RateLimitStorage => {
   const inner = new MemoryRateLimitStorage();
 
@@ -135,7 +121,6 @@ describe(RateLimitStore, () => {
     it("resets after windowMs from the first hit, even with steady traffic", async () => {
       const { advance, store } = setup();
 
-      // A hit every 400 ms. A sliding window would never reset.
       const firstReset = await resetMs(store.increment("a"));
       advance(400);
       await store.increment("a");
@@ -145,11 +130,11 @@ describe(RateLimitStore, () => {
       await expect(hits(third)).resolves.toBe(3);
       await expect(resetMs(third)).resolves.toBe(firstReset);
 
-      advance(199); // 999 ms after the first hit: the window is still open
+      advance(199);
 
       await expect(hits(store.increment("a"))).resolves.toBe(4);
 
-      advance(1); // 1000 ms after the first hit: the window is over
+      advance(1);
       const next = store.increment("a");
 
       await expect(hits(next)).resolves.toBe(1);
@@ -160,7 +145,7 @@ describe(RateLimitStore, () => {
       const { advance, store } = setup();
 
       await store.increment("a");
-      advance(5000); // long after the window ended
+      advance(5000);
 
       const next = store.increment("a");
 
@@ -221,7 +206,6 @@ describe(RateLimitStore, () => {
       const { store } = setup();
       const total = 20;
 
-      // No `await` between the calls: all of them start before any one ends.
       const pending: ReturnType<typeof store.increment>[] = [];
 
       for (let call = 0; call < total; call += 1) {
@@ -243,15 +227,12 @@ describe(RateLimitStore, () => {
           fc.scheduler(),
           fc.array(fc.constantFrom("a", "b")),
           async (s, keys) => {
-            // Arrange
             const { store } = setup(scheduledStorage(s));
 
-            // Act
             await s.waitFor(
               Promise.all(keys.map(async (key) => store.increment(key)))
             );
 
-            // Assert
             await expect(hits(store.get("a"))).resolves.toBe(
               countOf(keys, "a") || undefined
             );
@@ -270,7 +251,6 @@ describe(RateLimitStore, () => {
         fc.integer({ min: 1 }),
         fc.array(fc.nat()),
         async (windowMs, gaps) => {
-          // Arrange
           const { advance, store } = setup(
             new MemoryRateLimitStorage(),
             windowMs
@@ -283,12 +263,9 @@ describe(RateLimitStore, () => {
             advance(gap);
             elapsed += gap;
 
-            // Act
-            // Each hit must see the clock after the previous hit.
             // oxlint-disable-next-line eslint/no-await-in-loop
             const current = await store.increment("a");
 
-            // Assert
             const open = START + elapsed < resetOf(previous);
 
             expect(sameWindow(previous, current)).toBe(open);
@@ -314,7 +291,6 @@ describe(RateLimitStore, () => {
       await expect(hits(read)).resolves.toBe(1);
       await expect(resetMs(read)).resolves.toBe(firstReset);
 
-      // The window still ends 1000 ms after the first hit.
       advance(500);
 
       await expect(hits(store.increment("a"))).resolves.toBe(1);
@@ -369,7 +345,6 @@ describe(RateLimitStore, () => {
     it("does not read, change or delete a key of another owner", async () => {
       const { storage, store } = setup();
 
-      // Better Auth keeps keys such as `1.2.3.4/sign-in/email` in the same table.
       await storage.hit("1.2.3.4/sign-in/email", START, WINDOW_MS);
 
       await expect(store.get("1.2.3.4/sign-in/email")).resolves.toBeUndefined();
@@ -415,7 +390,6 @@ describe(RateLimitStore, () => {
     });
 
     it("uses the real clock by default", async () => {
-      // Arrange
       const store = new RateLimitStore({
         storage: new MemoryRateLimitStorage(),
       });
@@ -424,10 +398,8 @@ describe(RateLimitStore, () => {
 
       const before = Date.now();
 
-      // Act
       const reset = await resetMs(store.increment("a"));
 
-      // Assert
       expect(reset).toBeGreaterThanOrEqual(before + WINDOW_MS);
       expect(reset).toBeLessThanOrEqual(Date.now() + WINDOW_MS);
     });
@@ -467,13 +439,10 @@ describe(nextWindow, () => {
         fc.integer({ min: 1 }),
         fc.nat(),
         (current, windowMs, elapsed) => {
-          // Arrange
           const now = current.windowStart + (elapsed % windowMs);
 
-          // Act
           const next = nextWindow(current, now, windowMs);
 
-          // Assert
           expect(next).toStrictEqual({
             count: current.count + 1,
             windowStart: current.windowStart,
@@ -490,13 +459,10 @@ describe(nextWindow, () => {
         fc.integer({ min: 1 }),
         fc.nat(),
         (current, windowMs, late) => {
-          // Arrange
           const now = current.windowStart + windowMs + late;
 
-          // Act
           const next = nextWindow(current, now, windowMs);
 
-          // Assert
           expect(next).toStrictEqual({ count: 1, windowStart: now });
         }
       )

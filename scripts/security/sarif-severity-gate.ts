@@ -1,14 +1,7 @@
 #!/usr/bin/env bun
-/**
- * Fail if any CodeQL SARIF result has security-severity >= threshold (default 7.0 = High).
- *
- * Usage: bun scripts/security/sarif-severity-gate.ts <sarif-dir-or-file>
- * Env: SAST_MIN_SECURITY_SEVERITY (default: 7.0)
- */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-// SARIF's `properties` is an open property bag by spec — the producer decides what goes in it — so an unknown value type is the accurate contract here.
 // oxlint-disable anti-slop/no-unsafe-dictionary-type
 
 interface SarifRule {
@@ -111,8 +104,6 @@ for (const file of files) {
       const loc =
         result.locations?.[0]?.physicalLocation?.artifactLocation?.uri;
 
-      // Vendored reference trees are not product code; ignore even if a scan
-      // config missed them.
       if (loc !== undefined && loc.length > 0 && /(?:^|\/)repos\//u.test(loc)) {
         continue;
       }

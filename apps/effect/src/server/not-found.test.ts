@@ -3,10 +3,6 @@ import { HttpServerError, HttpServerRequest } from "effect/http";
 
 import { isRouteNotFound } from "./not-found.ts";
 
-// The middleware itself is covered end to end by `tests/app.test.ts`, which is
-// the only place a real route miss happens. What is worth testing here is the
-// predicate that decides what the middleware claims — every other failure has
-// to travel on to `error.ts`.
 const request = HttpServerRequest.fromWeb(new Request("http://localhost/nope"));
 
 const httpServerError = (reason: HttpServerError.HttpServerErrorReason) =>
@@ -21,8 +17,6 @@ describe(isRouteNotFound, () => {
     );
   });
 
-  // The router reports every request level problem as one `HttpServerError`, so
-  // reading the outer tag alone would swallow a 400 and answer it as a 404.
   it("leaves another HttpServerError reason alone", () => {
     assert.isFalse(
       isRouteNotFound(

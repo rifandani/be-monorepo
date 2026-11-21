@@ -1,16 +1,4 @@
 #!/usr/bin/env node
-/**
- * SCA gate via Google OSV-Scanner.
- * Fails on high/critical findings unless temporarily allowlisted.
- * Critical severities cannot be allowlisted.
- *
- * Usage: node scripts/security/sca-gate.ts
- * Env:
- *   SCA_ALLOWLIST_PATH   default: .github/security/sca-allowlist.json
- *   SCA_AUDIT_LEVEL      default: high  (low|moderate|high|critical)
- *   OSV_SCANNER_BIN      path to osv-scanner (default: osv-scanner on PATH)
- *   OSV_SCANNER_VERSION  pinned download version if binary missing (default: 2.4.0)
- */
 import { spawnSync } from "node:child_process";
 import {
   accessSync,
@@ -133,7 +121,6 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-// SAFETY-adjacent note: `bandFromCvss` and `normalizeBand` are the parse step for osv-scanner's loosely typed severity fields — taking `unknown` and returning a `SeverityBand | null` is what makes the rest of this file typed.
 // oxlint-disable-next-line anti-slop/no-unknown-parameters
 const bandFromCvss = (score: unknown): SeverityBand | null => {
   const n = Number(score);
@@ -190,6 +177,16 @@ const maxBand = (
   return LEVEL_RANK[a] >= LEVEL_RANK[b] ? a : b;
 };
 
+const isExecutable = (file: string): boolean => {
+  try {
+    accessSync(file, fsConstants.X_OK);
+
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const which = (cmd: string): string | null => {
   for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
     if (!dir) {
@@ -198,12 +195,8 @@ const which = (cmd: string): string | null => {
 
     const candidate = path.join(dir, cmd);
 
-    try {
-      accessSync(candidate, fsConstants.X_OK);
-
+    if (isExecutable(candidate)) {
       return candidate;
-    } catch {
-      // not found / not executable
     }
   }
 
@@ -225,7 +218,6 @@ const ensureOsvScanner = (): string => {
 
   const version = process.env.OSV_SCANNER_VERSION ?? "2.4.0";
 
-  // Maps rather than object literals: the keys are the Node platform/arch names this project builds for, and `.get` returns `undefined` for anything else without needing the lookup key asserted into range.
   const platforms = new Map([
     ["darwin", "darwin"],
     ["linux", "linux"],
@@ -286,7 +278,6 @@ const writeConfig = (activeEntries: AllowEntry[]) => {
     lines.push(
       "[[IgnoredVulns]]",
       `id = ${JSON.stringify(e.id)}`,
-      // Bare TOML date (not a quoted string) — osv-scanner expects LocalDate.
       `ignoreUntil = ${e.expires}`
     );
 
@@ -313,7 +304,6 @@ const writeConfig = (activeEntries: AllowEntry[]) => {
   return { configDir, configPath };
 };
 
-/** The per-id and per-package severity view `buildIdBands` derives. */
 interface IdBands {
   idBand: Map<string, SeverityBand>;
   pkgMax: SeverityBand | null;
@@ -360,7 +350,6 @@ const resolveVulnSeverity = (
     }
   }
 
-  // Fail closed: unclassified advisory treated as high
   return sev ?? pkgMax ?? "high";
 };
 
@@ -455,7 +444,6 @@ try {
 const stdout = String(proc.stdout ?? "");
 const code = proc.status ?? 1;
 
-// 0 = no vulns, 1 = vulns found, other = scanner/tool failure
 if (code !== 0 && code !== 1) {
   console.error(`::error::osv-scanner exited with unexpected code ${code}`);
   process.exit(code === 0 ? 1 : code);

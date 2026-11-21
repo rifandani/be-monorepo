@@ -23,6 +23,7 @@
     "lint": "ultracite check --disable-nested-config",
     "lint:fix": "ultracite fix --disable-nested-config",
     "lint:doctor": "ultracite doctor",
+    "lint:comments": "node scripts/lint-comments.ts",
     "check:health": "fallow health --top 10 --quiet",
     "check:dead-code": "fallow dead-code --quiet",
     "check:dupes": "fallow dupes --mode semantic --quiet",

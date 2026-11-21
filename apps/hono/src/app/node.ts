@@ -33,8 +33,6 @@ const shutdown = async (exitCode: number) => {
   });
 };
 
-// `void shutdown(0)` used to discard the promise here; oxlint 1.79 turns
-// `no-void` on, and a rejection had nowhere to go anyway.
 const handleSignal = () => {
   // oxlint-disable-next-line anti-slop/no-unknown-parameters -- errors caught from a promise are unknown by TypeScript; narrow before logging.
   void shutdown(0).catch((error: unknown) => {

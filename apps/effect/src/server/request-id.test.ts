@@ -3,9 +3,6 @@ import { Effect } from "effect";
 
 import { RequestId } from "./request-id.ts";
 
-// The middleware itself is covered through the composed app in
-// `tests/app.test.ts`. What is left is the reference a handler reads, and the
-// only part of it a request never exercises is its default.
 const read = Effect.gen(function* read() {
   return yield* RequestId;
 });

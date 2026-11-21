@@ -42,7 +42,6 @@ const seedRandomUsers = async (db: Db) => {
   );
 };
 
-/** Gives every seeded user the same credential account, so they are loggable in. */
 const linkCredentialAccounts = async (db: Db) => {
   const [users, bulkPasswordHash] = await Promise.all([
     db.select({ id: userTable.id }).from(userTable),

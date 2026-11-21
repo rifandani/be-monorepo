@@ -46,10 +46,8 @@ const fetchOpenApi = async () => {
 
 describe("/openapi document", () => {
   it("exposes openapi version, info, and servers", async () => {
-    // Act
     const doc = await fetchOpenApi();
 
-    // Assert
     expect(doc.openapi).toBe("3.1.0");
     expect(doc.info).toStrictEqual({
       description: "API documentation for the Hono app",

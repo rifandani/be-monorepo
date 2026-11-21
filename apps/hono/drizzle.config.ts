@@ -7,7 +7,6 @@ if (
   throw new Error("DATABASE_URL is not set");
 }
 
-// config for drizzle-kit
 export default defineConfig({
   casing: "snake_case",
   dbCredentials: {

@@ -8,16 +8,8 @@ import { healthHandlers } from "#app/health.ts";
 import { Unhealthy } from "#features/health/schema.ts";
 import { Health } from "#features/health/service.ts";
 
-// `HttpApiTest.groups` builds a typed client wired straight to the handlers,
-// using the real request encoding, routing and response decoding — but without
-// binding a port. `HttpServer.layerServices` supplies the platform services
-// that pipeline needs (FileSystem, Path, Etag, HttpPlatform).
 const makeClient = HttpApiTest.groups(Api, ["health"]);
 
-// The handlers are taken without their dependencies, which is the seam that
-// matters here: this app depends on nothing, so its real `Health` can never
-// report a failed check, and the 503 half of the readiness contract would be
-// untestable without swapping the service.
 const withHealth = (health: Health["Service"]) =>
   Layer.mergeAll(
     healthHandlers.pipe(Layer.provide(Layer.succeed(Health)(health))),
@@ -52,10 +44,6 @@ layer(withHealth(Health.make([])))("health probes", (it) => {
   );
 });
 
-// A readiness probe that cannot serve traffic answers 503, and says which check
-// failed in the body rather than leaving the caller to infer it from the status.
-// `Unhealthy` carries the same fields as the success report, so both halves of
-// the contract decode into the same shape.
 layer(
   withHealth(
     Health.make([{ name: "db", verify: Effect.fail(new Error("down")) }])
@@ -67,10 +55,6 @@ layer(
 
       const error = yield* Effect.flip(client.health.ready());
 
-      // A throw rather than an assertion, because the field assertions below
-      // need the narrowing and `assert.isTrue` does not narrow. The client's
-      // error channel also carries transport and decode failures, so this
-      // states that the readiness failure arrived as the declared one.
       if (!(error instanceof Unhealthy)) {
         throw new TypeError(`expected Unhealthy, got ${String(error)}`);
       }
@@ -80,9 +64,6 @@ layer(
     })
   );
 
-  // The startup and liveness probes answer for the process, so a dependency
-  // being down must not reach them: a liveness failure means "restart me",
-  // which a down database is not a reason for.
   it.effect("does not affect the other two probes", () =>
     Effect.gen(function* others() {
       const client = yield* makeClient;

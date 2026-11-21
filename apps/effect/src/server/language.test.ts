@@ -10,13 +10,10 @@ import {
   queryLanguage,
 } from "./language.ts";
 
-/** The languages the service speaks. `language.ts` does not export its list. */
 const SUPPORTED = ["en", "id"] as const;
 
-/** The whitespace a client may put around a tag. */
 const Padding = Schema.Literals(["", " ", "\t"]);
 
-/** A realistic language tag. */
 const LanguageTag = Schema.Literals([
   "en",
   "en-GB",
@@ -27,7 +24,6 @@ const LanguageTag = Schema.Literals([
   "*",
 ]);
 
-/** A quality value, from 0 to 1 in steps of 0.001, as `q=` carries it. */
 const Quality = Schema.Int.check(
   Schema.isBetween({ maximum: 1000, minimum: 0 })
 ).pipe(
@@ -35,15 +31,12 @@ const Quality = Schema.Int.check(
   Arbitrary.map((thousandths) => thousandths / 1000)
 );
 
-/** A path with no query and no fragment. */
 const UrlPath = Schema.String.check(Schema.isPattern(/^\/[^#?]*$/u));
 
-/** Any text a url can carry. A lone surrogate cannot be encoded. */
 const UrlValue = Arbitrary.schema(Schema.String).pipe(
   Arbitrary.map((value) => value.toWellFormed())
 );
 
-/** A two-letter tag with each letter in upper or lower case. */
 const withCase = (tag: string, upperFirst: boolean, upperSecond: boolean) => {
   const first = tag.charAt(0);
   const second = tag.charAt(1);
@@ -51,9 +44,6 @@ const withCase = (tag: string, upperFirst: boolean, upperSecond: boolean) => {
   return `${upperFirst ? first.toUpperCase() : first}${upperSecond ? second.toUpperCase() : second}`;
 };
 
-// The middleware itself is covered through the composed app in
-// `tests/app.test.ts`. The precedence and the tag matching are pure, so they are
-// cheaper to pin down here, one case per rule.
 describe("tag matching", () => {
   it("accepts a supported tag whatever its case or padding", () => {
     assert.strictEqual(normalizeLanguage(" ID "), "id");
@@ -82,10 +72,8 @@ describe("tag matching", () => {
     "should always give a supported language or nothing",
     [Schema.String],
     ([candidate]) => {
-      // Act
       const language = normalizeLanguage(candidate);
 
-      // Assert
       assert.include([undefined, ...SUPPORTED], language);
     }
   );
@@ -100,13 +88,10 @@ describe("tag matching", () => {
       Schema.String,
     ],
     ([supported, upperFirst, upperSecond, padding, region]) => {
-      // Arrange
       const tag = `${padding}${withCase(supported, upperFirst, upperSecond)}-${region}${padding}`;
 
-      // Act
       const language = normalizeLanguage(tag);
 
-      // Assert
       assert.strictEqual(language, supported);
     }
   );
@@ -143,15 +128,12 @@ describe("accept-language parsing", () => {
       }),
     ],
     ([entries]) => {
-      // Arrange
       const header = entries
         .map(([tag, quality]) => `${tag};q=${quality}`)
         .join(", ");
 
-      // Act
       const tags = parseAcceptLanguage(header);
 
-      // Assert
       assert.deepStrictEqual(
         tags.toSorted(),
         entries.map(([tag]) => tag).toSorted()
@@ -213,10 +195,8 @@ describe("detection precedence", () => {
       Schema.UndefinedOr(Schema.String),
     ],
     ([query, cookie, header]) => {
-      // Act
       const language = detectLanguage({ cookie, header, query });
 
-      // Assert
       assert.strictEqual(language, query);
     }
   );
@@ -239,11 +219,6 @@ describe("language reference", () => {
   });
 });
 
-// `request.url` is a path with a query under both runtimes. It was
-// `new URL(request.originalUrl)` here, which is absolute for a `toWebHandler`
-// request and a bare path under `NodeHttpServer` — so it threw
-// `TypeError: Invalid URL` on the real Node server for *every* request, while
-// every test kept passing. These cases are that bug's fence.
 describe(queryLanguage, () => {
   it("reads the language from a path with a query", () => {
     assert.strictEqual(queryLanguage("/health/live?lang=id"), "id");
@@ -269,15 +244,10 @@ describe(queryLanguage, () => {
     assert.strictEqual(queryLanguage("/?a=1&lang=id&b=2"), "id");
   });
 
-  // A fragment never reaches a server, but it must not end up inside the value
-  // if one ever does.
   it("does not let a fragment into the value", () => {
     assert.strictEqual(queryLanguage("/?lang=id#section"), "id");
   });
 
-  // The absolute form is what `originalUrl` carries under `toWebHandler`, and
-  // it has to keep working: `request.url` is host-stripped, but nothing stops a
-  // caller passing the other one.
   it("also handles an absolute url", () => {
     assert.strictEqual(
       queryLanguage("http://localhost/health/live?lang=id"),
@@ -289,13 +259,10 @@ describe(queryLanguage, () => {
     "should always read back the value a url carries",
     [UrlPath, UrlValue],
     ([path, value]) => {
-      // Arrange
       const url = `${path}?lang=${encodeURIComponent(value)}`;
 
-      // Act
       const read = queryLanguage(url);
 
-      // Assert
       assert.strictEqual(read, value);
     }
   );

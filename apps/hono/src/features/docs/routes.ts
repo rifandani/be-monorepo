@@ -23,23 +23,11 @@ const llmsCacheControl: MiddlewareHandler = async (c, next) => {
   return next();
 };
 
-/**
- * Get all files in a directory
- *
- * `readdir` reports link types without resolving them, so recursing on
- * `isDirectory()` and collecting on `isFile()` drops symlinks — the only way an
- * entry under `dir` could point outside of it.
- *
- * @param dir - The directory to get the files from
- * @returns An array of file paths, all contained within `dir`
- */
 export const getAllFiles = async (dir: string): Promise<string[]> => {
   const entries = await readdir(dir, { withFileTypes: true });
 
   const nested = await Promise.all(
     entries.map(async (entry) => {
-      // `entry.name` is a single path segment from the filesystem, never `..`
-      // or absolute, so the join cannot escape `dir`.
       // fallow-ignore-next-line security-sink
       const fullPath = path.join(dir, entry.name);
 
@@ -58,16 +46,6 @@ type DocsApp = OpenAPIHono<{
   Variables: Variables;
 }>;
 
-/**
- * `GET /llms-docs` — the concatenated contents of the `docs` folder resolved
- * against `process.cwd()`.
- *
- * That is `apps/hono/docs` for every way the server is actually started (each
- * script runs inside the package), and the repo-root `docs` only when a process
- * is launched from the repo root — a root `vitest` run, or Stryker's sandbox,
- * whose cwd is the sandbox root. The tests rebuild their expectation from the
- * same directory rather than assuming either one.
- */
 const registerDocsFolderRoute = (app: DocsApp) => {
   app.openapi(
     createRoute({
@@ -97,19 +75,14 @@ const registerDocsFolderRoute = (app: DocsApp) => {
       summary: "LLMs Docs",
     }),
     async (c) => {
-      // get the content from the docs folder. The route takes no parameters, so
-      // both join operands are fixed — nothing request-controlled reaches here.
       // fallow-ignore-next-line security-sink
       const contentDir = path.join(process.cwd(), "./docs");
       const files = await getAllFiles(contentDir);
 
-      // read all the files and combine them into a single string
       const contents = await Promise.all(
         files.map(async (file) => readFile(file, "utf-8"))
       );
 
-      // Each file gets its own trailing separator, which makes the empty-docs
-      // case fall out as `""` without a branch on `contents.length`.
       const fullContent = contents.map((content) => `${content}\n\n`).join("");
 
       return c.json({
@@ -121,12 +94,6 @@ const registerDocsFolderRoute = (app: DocsApp) => {
   );
 };
 
-/**
- * `GET /llms-auth.txt` — the BetterAuth OpenAPI docs as Markdown.
- *
- * Must be registered after the routes it documents so the BetterAuth routes are
- * already indexed.
- */
 const registerAuthMarkdownRoute = async (app: DocsApp) => {
   const betterauthOpenapiObject = await auth.api.generateOpenAPISchema();
 
@@ -160,16 +127,6 @@ const registerAuthMarkdownRoute = async (app: DocsApp) => {
   );
 };
 
-/**
- * `GET /llms.txt` — the app's own OpenAPI docs as Markdown.
- *
- * Q: Why /llms.txt?
- * A: It's a proposal to standardise on using an /llms.txt file.
- *
- * Must be registered last so every other route is already indexed.
- *
- * @see https://llmstxt.org/
- */
 const registerOpenApiMarkdownRoute = async (app: DocsApp) => {
   const openapiObject = app.getOpenAPI31Document({
     info: {
@@ -208,12 +165,6 @@ const registerOpenApiMarkdownRoute = async (app: DocsApp) => {
   );
 };
 
-/**
- * Registers the LLM-facing documentation routes.
- *
- * Registration order matters: the Markdown routes snapshot the OpenAPI document
- * at registration time, so they go last.
- */
 export const llmsDocsRoutes = async (app: DocsApp) => {
   app.use("/llms-docs", llmsCacheControl);
   app.use("/llms.txt", llmsCacheControl);

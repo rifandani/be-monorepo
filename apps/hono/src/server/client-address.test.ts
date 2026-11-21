@@ -13,9 +13,6 @@ const DEFAULT_SOCKET = {
   remotePort: 51_000,
 };
 
-// The resolver reads the connection off node's `incoming` binding, so it needs
-// a genuine Context. Driving it through a real Hono app is the only way to get
-// one.
 const resolve = async (
   headers: Record<string, string> = {},
   socket: Record<string, unknown> | null = DEFAULT_SOCKET
@@ -28,16 +25,10 @@ const resolve = async (
   return res.text();
 };
 
-/** Every header the resolver reads, in the order it reads them. */
 const RESOLUTION_ORDER = [...clientAddressHeaders, "forwarded"] as const;
 
-/** An IPv4 or IPv6 address. */
 const anyAddress = () => fc.oneof(fc.ipV4(), fc.ipV6());
 
-/**
- * Any subset of the address headers, each with its own address. `forwarded`
- * gets an IPv4 address: an IPv6 one needs quotes and brackets there.
- */
 const sentHeaders = () =>
   fc.record(
     {
@@ -50,7 +41,6 @@ const sentHeaders = () =>
     { requiredKeys: [] }
   );
 
-/** The request headers that carry each sent address. */
 const toRequestHeaders = (sent: Partial<Record<string, string>>) =>
   Object.fromEntries(
     Object.entries(sent).map(([name, value]) => [
@@ -149,13 +139,10 @@ describe(resolveClientAddress, () => {
         anyAddress(),
         fc.constantFrom("", " ", "  "),
         async (client, proxy, padding) => {
-          // Arrange
           const header = `${padding}${client}${padding},${padding}${proxy}`;
 
-          // Act
           const resolved = await resolve({ "x-forwarded-for": header });
 
-          // Assert
           expect(resolved).toBe(client);
         }
       )
@@ -165,13 +152,10 @@ describe(resolveClientAddress, () => {
   it("should always pick the first header in resolution order that is sent", async () => {
     await fc.assert(
       fc.asyncProperty(sentHeaders(), async (sent) => {
-        // Arrange
         const winner = RESOLUTION_ORDER.find((name) => name in sent);
 
-        // Act
         const resolved = await resolve(toRequestHeaders(sent));
 
-        // Assert
         expect(resolved).toBe(
           winner === undefined ? DEFAULT_SOCKET.remoteAddress : sent[winner]
         );
@@ -191,9 +175,6 @@ describe("the header list for Better Auth", () => {
   });
 
   it("matches the order in which the resolver reads headers", async () => {
-    // Act
-    // Step i sends only the headers from position i onward, each with its own
-    // address. The resolver must pick the header at position i every time.
     const winners = await Promise.all(
       clientAddressHeaders.map(async (_, index) => {
         const sent = clientAddressHeaders.slice(index);
@@ -211,7 +192,6 @@ describe("the header list for Better Auth", () => {
       })
     );
 
-    // Assert
     expect(winners).toStrictEqual([...clientAddressHeaders]);
   });
 

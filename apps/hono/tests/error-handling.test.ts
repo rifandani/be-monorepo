@@ -7,9 +7,6 @@ import { z } from "zod";
 
 import { app } from "#app/app.ts";
 
-// Routes registered with `get` rather than `openapi` stay out of the OpenAPI
-// document, so they cannot leak into the /openapi or /llms.txt assertions in
-// the sibling test files that share this app instance.
 app.get("/__test/zod", () => {
   z.object({ name: z.string() }).parse({ name: 42 });
 
@@ -20,7 +17,6 @@ app.get("/__test/ky", () => {
   throw new HTTPError(
     Response.json({ detail: "upstream rejected it" }, { status: 400 }),
     new Request("https://upstream.example/resource"),
-    // ky only reads `method` off the options when building its message.
     { method: "get" } as never
   );
 });
@@ -33,9 +29,6 @@ app.get("/__test/unknown", () => {
   throw new Error("something unhandled");
 });
 
-// `parseError` lifts `why`/`fix`/`link` to the top level only for an
-// `EvlogError`; a plain Error leaves them undefined, which is why the
-// `/__test/unknown` case above never reaches the hint-carrying branches.
 app.get("/__test/hinted", () => {
   throw createError({
     code: "PAYMENT_DECLINED",
@@ -98,9 +91,6 @@ describe("app error handling", () => {
     const res = await app.request("/__test/hinted");
 
     expect(res.status).toBe(402);
-    // `toStrictEqual` rather than per-key assertions: the point is that the
-    // body holds these keys and no others, so a refactor cannot start leaking
-    // `code` or `raw` from the parsed error into the response unnoticed.
     await expect(res.json()).resolves.toStrictEqual({
       fix: "Try a different payment method",
       link: "https://docs.example.test/payments",
@@ -131,17 +121,13 @@ describe("app not-found handling", () => {
   it("should always answer any path under an unrouted prefix with a 404", async () => {
     await fc.assert(
       fc.asyncProperty(fc.array(fc.webSegment()), async (segments) => {
-        // Arrange
-        // The `s-` prefix keeps a `.` or `..` segment from leaving the prefix.
         const path = [
           "/no-such-route",
           ...segments.map((segment) => `s-${encodeURIComponent(segment)}`),
         ].join("/");
 
-        // Act
         const res = await app.request(path);
 
-        // Assert
         expect(res.status).toBe(404);
         await expect(res.text()).resolves.toBe("404 Not found");
       })
