@@ -2,32 +2,54 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-// oxlint-disable anti-slop/no-unsafe-dictionary-type
+import { z } from "zod";
 
-interface SarifRule {
-  id: string;
-  properties?: Record<string, unknown>;
-  defaultConfiguration?: { level?: string };
-}
+const SecurityPropertiesSchema = z.object({
+  "security-severity": z.unknown().optional(),
+});
 
-interface SarifResult {
-  ruleId?: string;
-  level?: string;
-  message?: { text?: string };
-  properties?: Record<string, unknown>;
-  locations?: {
-    physicalLocation?: { artifactLocation?: { uri?: string } };
-  }[];
-}
+const SarifRuleSchema = z.object({
+  id: z.string(),
+  properties: SecurityPropertiesSchema.optional(),
+  defaultConfiguration: z.object({ level: z.string().optional() }).optional(),
+});
 
-interface SarifRun {
-  tool?: { driver?: { rules?: SarifRule[] } };
-  results?: SarifResult[];
-}
+const SarifResultSchema = z.object({
+  ruleId: z.string().optional(),
+  level: z.string().optional(),
+  message: z.object({ text: z.string().optional() }).optional(),
+  properties: SecurityPropertiesSchema.optional(),
+  locations: z
+    .array(
+      z.object({
+        physicalLocation: z
+          .object({
+            artifactLocation: z
+              .object({ uri: z.string().optional() })
+              .optional(),
+          })
+          .optional(),
+      })
+    )
+    .optional(),
+});
 
-interface SarifLog {
-  runs?: SarifRun[];
-}
+const SarifRunSchema = z.object({
+  tool: z
+    .object({
+      driver: z
+        .object({ rules: z.array(SarifRuleSchema).optional() })
+        .optional(),
+    })
+    .optional(),
+  results: z.array(SarifResultSchema).optional(),
+});
+
+const SarifLogSchema = z.object({
+  runs: z.array(SarifRunSchema).optional(),
+});
+
+type SarifLog = z.infer<typeof SarifLogSchema>;
 
 interface Blocker {
   ruleId: string;
@@ -69,11 +91,37 @@ if (files.length === 0) {
   process.exit(0);
 }
 
+const failParse = (message: string): never => {
+  console.error(`::error::SAST gate: ${message}`);
+  process.exit(1);
+};
+
+const readSarif = (file: string): SarifLog => {
+  let json: unknown;
+
+  try {
+    json = JSON.parse(readFileSync(file, "utf-8"));
+  } catch (error) {
+    return failParse(
+      `${file} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+
+  const parsed = SarifLogSchema.safeParse(json);
+
+  if (!parsed.success) {
+    return failParse(
+      `${file} is not a valid SARIF log:\n${z.prettifyError(parsed.error)}`
+    );
+  }
+
+  return parsed.data;
+};
+
 const blockers: Blocker[] = [];
 
 for (const file of files) {
-  // SAFETY: `JSON.parse` returns `any`; `SarifLog` describes only the fields this gate reads and marks every one of them optional, so a file that is not SARIF degrades to "no runs, no results" instead of throwing.
-  const sarif = JSON.parse(readFileSync(file, "utf-8")) as SarifLog;
+  const sarif = readSarif(file);
 
   for (const run of sarif.runs ?? []) {
     const rules = new Map(

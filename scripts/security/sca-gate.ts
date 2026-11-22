@@ -14,35 +14,58 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-interface AllowEntry {
-  id: string;
-  package?: string;
-  severity?: string;
-  expires: string;
-  reason?: string;
-}
+import { z } from "zod";
 
-interface OsvVuln {
-  id: string;
-  summary?: string;
-  aliases?: string[];
-  database_specific?: { severity?: string };
-}
+import { isSeverityBand, LEVEL_RANK } from "./severity-band.ts";
+import type { SeverityBand } from "./severity-band.ts";
 
-interface OsvGroup {
-  ids?: string[];
-  max_severity?: string;
-}
+const AllowEntrySchema = z.object({
+  id: z.string(),
+  package: z.string().optional(),
+  severity: z.string().optional(),
+  expires: z.string(),
+  reason: z.string().optional(),
+});
 
-interface OsvPackage {
-  package?: { name?: string; version?: string };
-  vulnerabilities?: OsvVuln[];
-  groups?: OsvGroup[];
-}
+const AllowlistSchema = z.object({
+  entries: z.array(AllowEntrySchema).optional(),
+});
 
-interface OsvDocument {
-  results?: { packages?: OsvPackage[] }[];
-}
+const OsvVulnSchema = z.object({
+  id: z.string(),
+  summary: z.string().optional(),
+  aliases: z.array(z.string()).optional(),
+  database_specific: z.object({ severity: z.string().optional() }).optional(),
+});
+
+const OsvGroupSchema = z.object({
+  ids: z.array(z.string()).optional(),
+  max_severity: z.string().optional(),
+});
+
+const OsvPackageSchema = z.object({
+  package: z
+    .object({ name: z.string().optional(), version: z.string().optional() })
+    .optional(),
+  vulnerabilities: z.array(OsvVulnSchema).optional(),
+  groups: z.array(OsvGroupSchema).optional(),
+});
+
+const OsvDocumentSchema = z.object({
+  results: z
+    .array(z.object({ packages: z.array(OsvPackageSchema).optional() }))
+    .optional(),
+});
+
+type AllowEntry = z.infer<typeof AllowEntrySchema>;
+
+type OsvVuln = z.infer<typeof OsvVulnSchema>;
+
+type OsvGroup = z.infer<typeof OsvGroupSchema>;
+
+type OsvPackage = z.infer<typeof OsvPackageSchema>;
+
+type OsvDocument = z.infer<typeof OsvDocumentSchema>;
 
 interface Finding {
   id: string;
@@ -51,15 +74,6 @@ interface Finding {
   severity: SeverityBand;
   summary: string;
 }
-
-type SeverityBand = "low" | "moderate" | "high" | "critical";
-
-const LEVEL_RANK = {
-  low: 1,
-  moderate: 2,
-  high: 3,
-  critical: 4,
-} satisfies Record<SeverityBand, number>;
 
 const root = path.resolve(import.meta.dirname, "../..");
 
@@ -72,28 +86,49 @@ const auditLevel = (process.env.SCA_AUDIT_LEVEL ?? "high").toLowerCase();
 const today = new Date().toISOString().slice(0, 10);
 const lockfile = "bun.lock";
 
-// SAFETY: `auditLevel` comes from the environment, so it may not be a band at all; the lookup then yields `undefined` and the guard below exits. The assertion only lets an arbitrary string index the map.
-const minRank = LEVEL_RANK[auditLevel as SeverityBand];
-
-if (!minRank) {
+if (!isSeverityBand(auditLevel)) {
   console.error(
     `::error::invalid SCA_AUDIT_LEVEL=${auditLevel} (use low|moderate|high|critical)`
   );
   process.exit(2);
 }
 
-// SAFETY: `JSON.parse` returns `any`; `entries` is optional here and each entry is re-validated field by field in the loop below, so a malformed allowlist surfaces as a reported error rather than a bad gate decision.
-const raw = JSON.parse(readFileSync(allowlistPath, "utf-8")) as {
-  entries?: AllowEntry[];
+const minRank = LEVEL_RANK[auditLevel];
+
+const failAllowlist = (message: string): never => {
+  console.error(`::error::sca-allowlist: ${message}`);
+  process.exit(1);
 };
 
-const entries = raw.entries ?? [];
+const readAllowlist = (): AllowEntry[] => {
+  let json: unknown;
+
+  try {
+    json = JSON.parse(readFileSync(allowlistPath, "utf-8"));
+  } catch (error) {
+    return failAllowlist(
+      `${allowlistPath} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+
+  const parsed = AllowlistSchema.safeParse(json);
+
+  if (!parsed.success) {
+    return failAllowlist(
+      `${allowlistPath} does not match the allowlist schema:\n${z.prettifyError(parsed.error)}`
+    );
+  }
+
+  return parsed.data.entries ?? [];
+};
+
+const entries = readAllowlist();
 
 const errors: string[] = [];
 const active: AllowEntry[] = [];
 
 for (const entry of entries) {
-  if (!entry?.id || !entry?.expires) {
+  if (entry.id.length === 0 || entry.expires.length === 0) {
     errors.push(`invalid allowlist entry: ${JSON.stringify(entry)}`);
     continue;
   }
@@ -152,12 +187,7 @@ const normalizeBand = (
     return "moderate";
   }
 
-  if (v in LEVEL_RANK) {
-    // SAFETY: the `in` check just confirmed `v` is one of `LEVEL_RANK`'s keys, which are exactly the `SeverityBand` members.
-    return v as SeverityBand;
-  }
-
-  return null;
+  return isSeverityBand(v) ? v : null;
 };
 
 const maxBand = (
@@ -447,16 +477,26 @@ if (code !== 0 && code !== 1) {
   process.exit(code === 0 ? 1 : code);
 }
 
-let doc: OsvDocument;
+let json: unknown;
 
 try {
-  // SAFETY: `JSON.parse` returns `any`, and unparseable output is caught below; `OsvDocument` describes osv-scanner's documented result shape with every field this gate reads treated as optional.
-  doc = JSON.parse(stdout || "{}") as OsvDocument;
+  json = JSON.parse(stdout || "{}");
 } catch {
   console.error("::error::failed to parse osv-scanner JSON output");
   console.error(stdout.slice(0, 2000));
   process.exit(1);
 }
+
+const parsedDoc = OsvDocumentSchema.safeParse(json);
+
+if (!parsedDoc.success) {
+  console.error(
+    `::error::osv-scanner JSON output does not match the expected schema:\n${z.prettifyError(parsedDoc.error)}`
+  );
+  process.exit(1);
+}
+
+const doc: OsvDocument = parsedDoc.data;
 
 const blockers = collectBlockers(doc);
 

@@ -43,7 +43,7 @@ export default defineConfig({
       },
     },
     {
-      files: ["scripts/security/**", "stryker.config.mjs"],
+      files: ["stryker.config.mjs"],
       rules: {
         "typescript/no-unsafe-assignment": "off",
         "typescript/no-unsafe-call": "off",
