@@ -1,0 +1,7 @@
+[
+  {
+    "schema_version": "fallow-security-verdict/v1",
+    "finding_id": "26ab960d9348da69",
+    "verdict": "dismissed"
+  }
+]

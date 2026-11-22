@@ -78,7 +78,8 @@ export default defineConfig({
     "**/.cursor",
     "**/.repos",
     "**/repos",
-    "**/docs",
+    "docs/**",
+    "apps/*/docs/**",
     "apps/hono/src/server/db/migrations/**",
   ],
 });

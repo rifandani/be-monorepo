@@ -20,7 +20,7 @@ stryker.log
 # one per worker, and does not always clean them up.
 stryker-setup-*.js
 .evlog
-.fallow/
+.fallow/*
 
 # misc
 .DS_Store

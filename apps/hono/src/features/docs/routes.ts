@@ -28,7 +28,6 @@ export const getAllFiles = async (dir: string): Promise<string[]> => {
 
   const nested = await Promise.all(
     entries.map(async (entry) => {
-      // fallow-ignore-next-line security-sink
       const fullPath = path.join(dir, entry.name);
 
       if (entry.isDirectory()) {
@@ -75,7 +74,6 @@ const registerDocsFolderRoute = (app: DocsApp) => {
       summary: "LLMs Docs",
     }),
     async (c) => {
-      // fallow-ignore-next-line security-sink
       const contentDir = path.join(process.cwd(), "./docs");
       const files = await getAllFiles(contentDir);
 
