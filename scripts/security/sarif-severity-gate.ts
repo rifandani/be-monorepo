@@ -2,54 +2,60 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-import { z } from "zod";
+import { Result, Schema } from "effect";
 
-const SecurityPropertiesSchema = z.object({
-  "security-severity": z.unknown().optional(),
+const SecurityPropertiesSchema = Schema.Struct({
+  "security-severity": Schema.optionalKey(Schema.Unknown),
 });
 
-const SarifRuleSchema = z.object({
-  id: z.string(),
-  properties: SecurityPropertiesSchema.optional(),
-  defaultConfiguration: z.object({ level: z.string().optional() }).optional(),
+const SarifRuleSchema = Schema.Struct({
+  id: Schema.String,
+  properties: Schema.optionalKey(SecurityPropertiesSchema),
+  defaultConfiguration: Schema.optionalKey(
+    Schema.Struct({ level: Schema.optionalKey(Schema.String) })
+  ),
 });
 
-const SarifResultSchema = z.object({
-  ruleId: z.string().optional(),
-  level: z.string().optional(),
-  message: z.object({ text: z.string().optional() }).optional(),
-  properties: SecurityPropertiesSchema.optional(),
-  locations: z
-    .array(
-      z.object({
-        physicalLocation: z
-          .object({
-            artifactLocation: z
-              .object({ uri: z.string().optional() })
-              .optional(),
+const SarifResultSchema = Schema.Struct({
+  ruleId: Schema.optionalKey(Schema.String),
+  level: Schema.optionalKey(Schema.String),
+  message: Schema.optionalKey(
+    Schema.Struct({ text: Schema.optionalKey(Schema.String) })
+  ),
+  properties: Schema.optionalKey(SecurityPropertiesSchema),
+  locations: Schema.optionalKey(
+    Schema.Array(
+      Schema.Struct({
+        physicalLocation: Schema.optionalKey(
+          Schema.Struct({
+            artifactLocation: Schema.optionalKey(
+              Schema.Struct({ uri: Schema.optionalKey(Schema.String) })
+            ),
           })
-          .optional(),
+        ),
       })
     )
-    .optional(),
+  ),
 });
 
-const SarifRunSchema = z.object({
-  tool: z
-    .object({
-      driver: z
-        .object({ rules: z.array(SarifRuleSchema).optional() })
-        .optional(),
+const SarifRunSchema = Schema.Struct({
+  tool: Schema.optionalKey(
+    Schema.Struct({
+      driver: Schema.optionalKey(
+        Schema.Struct({
+          rules: Schema.optionalKey(Schema.Array(SarifRuleSchema)),
+        })
+      ),
     })
-    .optional(),
-  results: z.array(SarifResultSchema).optional(),
+  ),
+  results: Schema.optionalKey(Schema.Array(SarifResultSchema)),
 });
 
-const SarifLogSchema = z.object({
-  runs: z.array(SarifRunSchema).optional(),
+const SarifLogSchema = Schema.Struct({
+  runs: Schema.optionalKey(Schema.Array(SarifRunSchema)),
 });
 
-type SarifLog = z.infer<typeof SarifLogSchema>;
+type SarifLog = typeof SarifLogSchema.Type;
 
 interface Blocker {
   ruleId: string;
@@ -107,15 +113,15 @@ const readSarif = (file: string): SarifLog => {
     );
   }
 
-  const parsed = SarifLogSchema.safeParse(json);
+  const parsed = Schema.decodeUnknownResult(SarifLogSchema)(json);
 
-  if (!parsed.success) {
+  if (Result.isFailure(parsed)) {
     return failParse(
-      `${file} is not a valid SARIF log:\n${z.prettifyError(parsed.error)}`
+      `${file} is not a valid SARIF log:\n${parsed.failure.message}`
     );
   }
 
-  return parsed.data;
+  return parsed.success;
 };
 
 const blockers: Blocker[] = [];

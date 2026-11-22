@@ -14,58 +14,67 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { z } from "zod";
+import { Result, Schema } from "effect";
 
 import { isSeverityBand, LEVEL_RANK } from "./severity-band.ts";
 import type { SeverityBand } from "./severity-band.ts";
 
-const AllowEntrySchema = z.object({
-  id: z.string(),
-  package: z.string().optional(),
-  severity: z.string().optional(),
-  expires: z.string(),
-  reason: z.string().optional(),
+const AllowEntrySchema = Schema.Struct({
+  id: Schema.String,
+  package: Schema.optionalKey(Schema.String),
+  severity: Schema.optionalKey(Schema.String),
+  expires: Schema.String,
+  reason: Schema.optionalKey(Schema.String),
 });
 
-const AllowlistSchema = z.object({
-  entries: z.array(AllowEntrySchema).optional(),
+type AllowEntry = typeof AllowEntrySchema.Type;
+
+const AllowlistSchema = Schema.Struct({
+  entries: Schema.optionalKey(Schema.Array(AllowEntrySchema)),
 });
 
-const OsvVulnSchema = z.object({
-  id: z.string(),
-  summary: z.string().optional(),
-  aliases: z.array(z.string()).optional(),
-  database_specific: z.object({ severity: z.string().optional() }).optional(),
+const OsvVulnSchema = Schema.Struct({
+  id: Schema.String,
+  summary: Schema.optionalKey(Schema.String),
+  aliases: Schema.optionalKey(Schema.Array(Schema.String)),
+  database_specific: Schema.optionalKey(
+    Schema.Struct({ severity: Schema.optionalKey(Schema.String) })
+  ),
 });
 
-const OsvGroupSchema = z.object({
-  ids: z.array(z.string()).optional(),
-  max_severity: z.string().optional(),
+type OsvVuln = typeof OsvVulnSchema.Type;
+
+const OsvGroupSchema = Schema.Struct({
+  ids: Schema.optionalKey(Schema.Array(Schema.String)),
+  max_severity: Schema.optionalKey(Schema.String),
 });
 
-const OsvPackageSchema = z.object({
-  package: z
-    .object({ name: z.string().optional(), version: z.string().optional() })
-    .optional(),
-  vulnerabilities: z.array(OsvVulnSchema).optional(),
-  groups: z.array(OsvGroupSchema).optional(),
+type OsvGroup = typeof OsvGroupSchema.Type;
+
+const OsvPackageSchema = Schema.Struct({
+  package: Schema.optionalKey(
+    Schema.Struct({
+      name: Schema.optionalKey(Schema.String),
+      version: Schema.optionalKey(Schema.String),
+    })
+  ),
+  vulnerabilities: Schema.optionalKey(Schema.Array(OsvVulnSchema)),
+  groups: Schema.optionalKey(Schema.Array(OsvGroupSchema)),
 });
 
-const OsvDocumentSchema = z.object({
-  results: z
-    .array(z.object({ packages: z.array(OsvPackageSchema).optional() }))
-    .optional(),
+type OsvPackage = typeof OsvPackageSchema.Type;
+
+const OsvDocumentSchema = Schema.Struct({
+  results: Schema.optionalKey(
+    Schema.Array(
+      Schema.Struct({
+        packages: Schema.optionalKey(Schema.Array(OsvPackageSchema)),
+      })
+    )
+  ),
 });
 
-type AllowEntry = z.infer<typeof AllowEntrySchema>;
-
-type OsvVuln = z.infer<typeof OsvVulnSchema>;
-
-type OsvGroup = z.infer<typeof OsvGroupSchema>;
-
-type OsvPackage = z.infer<typeof OsvPackageSchema>;
-
-type OsvDocument = z.infer<typeof OsvDocumentSchema>;
+type OsvDocument = typeof OsvDocumentSchema.Type;
 
 interface Finding {
   id: string;
@@ -100,7 +109,7 @@ const failAllowlist = (message: string): never => {
   process.exit(1);
 };
 
-const readAllowlist = (): AllowEntry[] => {
+const readAllowlist = (): readonly AllowEntry[] => {
   let json: unknown;
 
   try {
@@ -111,15 +120,15 @@ const readAllowlist = (): AllowEntry[] => {
     );
   }
 
-  const parsed = AllowlistSchema.safeParse(json);
+  const parsed = Schema.decodeUnknownResult(AllowlistSchema)(json);
 
-  if (!parsed.success) {
+  if (Result.isFailure(parsed)) {
     return failAllowlist(
-      `${allowlistPath} does not match the allowlist schema:\n${z.prettifyError(parsed.error)}`
+      `${allowlistPath} does not match the allowlist schema:\n${parsed.failure.message}`
     );
   }
 
-  return parsed.data.entries ?? [];
+  return parsed.success.entries ?? [];
 };
 
 const entries = readAllowlist();
@@ -337,7 +346,7 @@ interface IdBands {
   pkgMax: SeverityBand | null;
 }
 
-const buildIdBands = (groups: OsvGroup[]): IdBands => {
+const buildIdBands = (groups: readonly OsvGroup[]): IdBands => {
   const idBand = new Map<string, SeverityBand>();
   let pkgMax: SeverityBand | null = null;
 
@@ -487,16 +496,16 @@ try {
   process.exit(1);
 }
 
-const parsedDoc = OsvDocumentSchema.safeParse(json);
+const parsedDoc = Schema.decodeUnknownResult(OsvDocumentSchema)(json);
 
-if (!parsedDoc.success) {
+if (Result.isFailure(parsedDoc)) {
   console.error(
-    `::error::osv-scanner JSON output does not match the expected schema:\n${z.prettifyError(parsedDoc.error)}`
+    `::error::osv-scanner JSON output does not match the expected schema:\n${parsedDoc.failure.message}`
   );
   process.exit(1);
 }
 
-const doc: OsvDocument = parsedDoc.data;
+const doc: OsvDocument = parsedDoc.success;
 
 const blockers = collectBlockers(doc);
 
