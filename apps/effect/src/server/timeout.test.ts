@@ -8,8 +8,8 @@ import { withTimeout } from "./timeout.ts";
 const DURATION = Duration.seconds(1);
 const OK = HttpServerResponse.text("Hello");
 
-const Milliseconds = Arbitrary.schema(Schema.Int).pipe(
-  Arbitrary.map((value) => Math.abs(value))
+const Milliseconds = Arbitrary.map(Arbitrary.schema(Schema.Int), (value) =>
+  Math.abs(value)
 );
 
 describe(withTimeout, () => {

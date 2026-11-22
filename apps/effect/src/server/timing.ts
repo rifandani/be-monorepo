@@ -14,15 +14,13 @@ export const timing = HttpRouter.middleware(
     Effect.suspend(() => {
       const start = now();
 
-      return httpEffect.pipe(
-        Effect.map((response) =>
-          HttpServerResponse.setHeader(
-            response,
-            HEADER,
-            `${TOTAL};dur=${(now() - start).toFixed(
-              PRECISION
-            )};desc="${TOTAL_DESCRIPTION}"`
-          )
+      return Effect.map(httpEffect, (response) =>
+        HttpServerResponse.setHeader(
+          response,
+          HEADER,
+          `${TOTAL};dur=${(now() - start).toFixed(
+            PRECISION
+          )};desc="${TOTAL_DESCRIPTION}"`
         )
       );
     }),

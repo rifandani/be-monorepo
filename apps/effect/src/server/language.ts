@@ -105,33 +105,26 @@ export const queryLanguage = (url: string): string | undefined => {
 
 export const language = HttpRouter.middleware(
   (httpEffect) =>
-    HttpServerRequest.HttpServerRequest.pipe(
-      Effect.flatMap((request) => {
-        const detected = detectLanguage({
-          cookie: request.cookies[COOKIE],
-          header: request.headers[HEADER],
-          query: queryLanguage(request.url),
-        });
+    Effect.flatMap(HttpServerRequest.HttpServerRequest, (request) => {
+      const detected = detectLanguage({
+        cookie: request.cookies[COOKIE],
+        header: request.headers[HEADER],
+        query: queryLanguage(request.url),
+      });
 
-        const resolved = detected ?? FALLBACK_LANGUAGE;
+      const resolved = detected ?? FALLBACK_LANGUAGE;
 
-        const served = httpEffect.pipe(
-          Effect.provideService(Language, resolved),
-          Effect.annotateLogs("language", resolved)
-        );
+      const served = httpEffect.pipe(
+        Effect.provideService(Language, resolved),
+        Effect.annotateLogs("language", resolved)
+      );
 
-        return detected === undefined
-          ? served
-          : served.pipe(
-              Effect.map(
-                HttpServerResponse.setCookieUnsafe(
-                  COOKIE,
-                  detected,
-                  COOKIE_OPTIONS
-                )
-              )
-            );
-      })
-    ),
+      return detected === undefined
+        ? served
+        : Effect.map(
+            served,
+            HttpServerResponse.setCookieUnsafe(COOKIE, detected, COOKIE_OPTIONS)
+          );
+    }),
   { global: true }
 );

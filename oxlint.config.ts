@@ -60,6 +60,12 @@ export default defineConfig({
         "anti-slop/require-safety-comment-for-type-assertion": "off",
       },
     },
+    {
+      files: ["apps/effect/**"],
+      rules: {
+        "unicorn/no-array-method-this-argument": "off",
+      },
+    },
   ],
   ignorePatterns: [
     ...(core.ignorePatterns ?? []),

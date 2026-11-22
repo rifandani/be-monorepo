@@ -20,12 +20,10 @@ const POWERED_BY = "x-powered-by";
 
 export const secureHeaders = HttpRouter.middleware(
   (httpEffect) =>
-    httpEffect.pipe(
-      Effect.map((response) =>
-        HttpServerResponse.removeHeader(
-          HttpServerResponse.setHeaders(response, SECURE_HEADERS),
-          POWERED_BY
-        )
+    Effect.map(httpEffect, (response) =>
+      HttpServerResponse.removeHeader(
+        HttpServerResponse.setHeaders(response, SECURE_HEADERS),
+        POWERED_BY
       )
     ),
   { global: true }

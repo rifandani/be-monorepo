@@ -33,8 +33,8 @@ const Quality = Schema.Int.check(
 
 const UrlPath = Schema.String.check(Schema.isPattern(/^\/[^#?]*$/u));
 
-const UrlValue = Arbitrary.schema(Schema.String).pipe(
-  Arbitrary.map((value) => value.toWellFormed())
+const UrlValue = Arbitrary.map(Arbitrary.schema(Schema.String), (value) =>
+  value.toWellFormed()
 );
 
 const withCase = (tag: string, upperFirst: boolean, upperSecond: boolean) => {

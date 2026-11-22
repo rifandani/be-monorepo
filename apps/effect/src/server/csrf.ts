@@ -12,40 +12,34 @@ const ASSUMED_CONTENT_TYPE = "text/plain";
 const FORBIDDEN = HttpServerResponse.text("Forbidden", { status: 403 });
 
 export const csrf = Layer.unwrap(
-  ALLOWED_ORIGIN.pipe(
-    Effect.map((allowedOrigin) => {
-      const isCrossSiteFormPost = (
-        request: HttpServerRequest.HttpServerRequest
-      ) => {
-        if (SAFE_METHOD.test(request.method)) {
-          return false;
-        }
+  Effect.map(ALLOWED_ORIGIN, (allowedOrigin) => {
+    const isCrossSiteFormPost = (
+      request: HttpServerRequest.HttpServerRequest
+    ) => {
+      if (SAFE_METHOD.test(request.method)) {
+        return false;
+      }
 
-        const contentType =
-          request.headers["content-type"] ?? ASSUMED_CONTENT_TYPE;
+      const contentType =
+        request.headers["content-type"] ?? ASSUMED_CONTENT_TYPE;
 
-        if (!FORM_CONTENT_TYPE.test(contentType)) {
-          return false;
-        }
+      if (!FORM_CONTENT_TYPE.test(contentType)) {
+        return false;
+      }
 
-        if (request.headers["sec-fetch-site"] === "same-origin") {
-          return false;
-        }
+      if (request.headers["sec-fetch-site"] === "same-origin") {
+        return false;
+      }
 
-        return request.headers.origin !== allowedOrigin;
-      };
+      return request.headers.origin !== allowedOrigin;
+    };
 
-      return HttpRouter.middleware(
-        (httpEffect) =>
-          HttpServerRequest.HttpServerRequest.pipe(
-            Effect.flatMap((request) =>
-              isCrossSiteFormPost(request)
-                ? Effect.succeed(FORBIDDEN)
-                : httpEffect
-            )
-          ),
-        { global: true }
-      );
-    })
-  )
+    return HttpRouter.middleware(
+      (httpEffect) =>
+        Effect.flatMap(HttpServerRequest.HttpServerRequest, (request) =>
+          isCrossSiteFormPost(request) ? Effect.succeed(FORBIDDEN) : httpEffect
+        ),
+      { global: true }
+    );
+  })
 );
