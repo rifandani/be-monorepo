@@ -1,9 +1,5 @@
 import { Schema } from "effect";
 
-// oxlint-disable no-redeclare
-// oxlint-disable typescript/no-empty-interface
-// oxlint-disable typescript/no-empty-object-type
-
 export const Check = Schema.Struct({
   name: Schema.String,
   status: Schema.Literals(["pass", "fail"]),
@@ -26,7 +22,6 @@ export const HealthReport = Schema.Struct({
 
 export interface HealthReport extends Schema.Schema.Type<typeof HealthReport> {}
 
-// oxlint-disable-next-line unicorn/throw-new-error
 export class Unhealthy extends Schema.TaggedError<Unhealthy>()(
   "Unhealthy",
   { status: Schema.Literal("unhealthy"), ...checksField },

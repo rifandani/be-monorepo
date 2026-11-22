@@ -64,6 +64,10 @@ export default defineConfig({
       files: ["apps/effect/**"],
       rules: {
         "unicorn/no-array-method-this-argument": "off",
+        "no-redeclare": "off",
+        "typescript/no-empty-interface": "off",
+        "typescript/no-empty-object-type": "off",
+        "unicorn/throw-new-error": "off",
       },
     },
   ],

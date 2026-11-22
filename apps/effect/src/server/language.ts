@@ -1,8 +1,6 @@
 import { Context, Duration, Effect } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 
-// oxlint-disable no-redeclare
-
 const SUPPORTED_LANGUAGES = ["en", "id"] as const;
 export const FALLBACK_LANGUAGE = "en";
 
