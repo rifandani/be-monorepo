@@ -45,7 +45,7 @@ export default {
     ".github",
     "docker",
     "coverage",
-    "**/docs/**",
+    "/docs",
     "**/dist/**",
     "**/build/**",
     "**/.evlog/**",

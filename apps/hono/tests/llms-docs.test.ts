@@ -1,11 +1,4 @@
-import {
-  mkdir,
-  mkdtemp,
-  readFile,
-  rm,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -17,33 +10,46 @@ import { getAllFiles } from "#features/docs/routes.ts";
 import { parseServerTimingHeader } from "./util.ts";
 
 describe("/llms-docs endpoint", () => {
-  it("returns docs content with length, tokens, and separators", async () => {
+  const appDatabaseDoc = `# Database
+
+- Use \`snake_case\` for table and column names.
+- On schema changes: \`bun hono db:gen\` then \`bun hono db:migrate\`; commit migration files.
+`;
+
+  const appObservabilityDoc = `# Observability
+
+- Request handlers: \`c.get('log').set()\` / \`.error()\` (evlog middleware)
+- Outside request scope: \`log\` from \`evlog\` (startup, shutdown, stores)
+- Errors: \`throw createError({ message, status, why, fix })\`; handle with \`parseError()\` in \`app.onError\`
+- Traces: \`@hono/otel\` + OTEL SDK in \`instrumentation.ts\`
+`;
+
+  it("returns the app docs folder, each file followed by a blank line", async () => {
     const res = await app.request("/llms-docs");
 
-    const json = (await res.json()) as {
-      length: number;
-      text: string;
-      tokens: number;
-    };
-
     expect(res.status).toBe(200);
+
+    const bodyInEitherReaddirOrder = [
+      `${appDatabaseDoc}\n\n${appObservabilityDoc}\n\n`,
+      `${appObservabilityDoc}\n\n${appDatabaseDoc}\n\n`,
+    ].map((text) => ({ length: 480, text, tokens: 120 }));
+
+    expect(bodyInEitherReaddirOrder).toContainEqual(await res.json());
+  });
+
+  it("marks the docs response as cacheable for one hour", async () => {
+    const res = await app.request("/llms-docs");
+
     expect(res.headers.get("Cache-Control")).toBe(
       "public, max-age=3600, immutable"
     );
-    const files = await getAllFiles(path.join(process.cwd(), "./docs"));
+  });
 
-    const contents = await Promise.all(
-      files.map(async (file) => readFile(file, "utf-8"))
-    );
+  it("never serves the repo-root docs folder, such as the ADR-0002 title", async () => {
+    const res = await app.request("/llms-docs");
+    const { text } = (await res.json()) as { text: string };
 
-    const expectedText = contents.map((content) => `${content}\n\n`).join("");
-
-    expect(files.length).toBeGreaterThan(0);
-    expect(json).toStrictEqual({
-      length: expectedText.length,
-      text: expectedText,
-      tokens: expectedText.length / 4,
-    });
+    expect(text).not.toContain("# Mutation testing is advisory");
   });
 
   it("includes Server-Timing under 1s", async () => {
