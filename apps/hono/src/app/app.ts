@@ -67,7 +67,7 @@ app.use(
 await routes(app);
 
 app.onError(async (error, c) => {
-  c.get("log")?.error(error);
+  c.get("log").error(error);
 
   return match(error)
     .with(P.instanceOf(ZodError), (zodError) =>
@@ -106,7 +106,7 @@ app.onError(async (error, c) => {
 });
 
 app.notFound((c) => {
-  c.get("log")?.warn(NOT_FOUND_MESSAGE);
+  c.get("log").warn(NOT_FOUND_MESSAGE);
 
   return c.text(NOT_FOUND_MESSAGE, HTTP_STATUS_CODES.NOT_FOUND);
 });
