@@ -166,7 +166,7 @@ The plan limits concurrency so a local dev server is not overwhelmed:
 
 That is the main reason the scan is slow. 
 In-scope routes have no rate limit today. 
-If you mount `rateLimit` in `app.ts`, raise `delayInMs` when you see `429`s.
+If you add a request rate limiter to `app.ts`, raise `delayInMs` when you see `429`s.
 
 ## Step 6 — read the active report
 

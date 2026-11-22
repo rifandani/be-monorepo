@@ -40,8 +40,6 @@ export default defineConfig({
         "apps/hono/src/server/observability/evlog.ts",
         "apps/hono/src/server/db/**",
         "apps/hono/src/server/middleware/auth.ts",
-        "apps/hono/src/server/middleware/rate-limit/index.ts",
-        "apps/hono/src/server/middleware/rate-limit/postgres-storage.ts",
         "apps/hono/src/server/auth.ts",
       ],
     },

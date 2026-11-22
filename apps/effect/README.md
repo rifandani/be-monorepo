@@ -13,7 +13,7 @@ These features are in `apps/hono`, but not in this app.
 - [ ] Better Auth: session auth with email and password, the `bearer` and `openAPI` plugins, and the routes at `/api/auth/**`.
 - [ ] Auth context middleware: put `user` and `session` on each request.
 - [ ] PostgreSQL with Drizzle: the `user`, `session`, `account`, `verification` and `rate_limit` tables, with migrations and seeds.
-- [ ] Rate limiting: the Better Auth rate limit (stored in `rate_limit`), and a request rate limit with a Postgres or memory store. The key is the session id or the client IP. Note: in `apps/hono`, the `hono-rate-limiter` middleware is defined, but it is not mounted.
+- [ ] Rate limiting: the Better Auth rate limit (stored in `rate_limit`), and a request rate limit with a Postgres or memory store. The key is the session id or the client IP. Note: `apps/hono` has only the Better Auth rate limit. It has no request rate limit (removed in #97).
 - [ ] Client address resolution: get the client IP for the rate-limit key.
 - [ ] References for implementing better-auth: https://github.com/kitlangton/effect-better-auth-example, https://github.com/devx-op/effectify
 

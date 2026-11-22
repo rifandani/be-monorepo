@@ -48,7 +48,6 @@
     "drizzle-zod": "0.8.3",
     "evlog": "2.34.0",
     "hono": "4.13.16",
-    "hono-rate-limiter": "0.5.4",
     "ky": "2.2.0",
     "pg": "8.23.1",
     "radashi": "13.0.1",
