@@ -48,11 +48,6 @@ const readFromHeaders = (headers: Headers): string | null => {
   return null;
 };
 
-const importGetConnInfo = async () =>
-  getRuntimeKey() === "node"
-    ? import("@hono/node-server/conninfo")
-    : import("hono/bun");
-
 const readFromConnection = async <
   E extends Env,
   P extends string,
@@ -60,7 +55,10 @@ const readFromConnection = async <
 >(
   c: Context<E, P, I>
 ): Promise<string | null> => {
-  const { getConnInfo } = await importGetConnInfo();
+  const { getConnInfo } = await (getRuntimeKey() === "node"
+    ? import("@hono/node-server/conninfo")
+    : import("hono/bun"));
+
   const connInfo: ConnInfo = getConnInfo(c);
 
   return connInfo.remote.address ?? null;
