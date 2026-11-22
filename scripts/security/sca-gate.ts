@@ -320,7 +320,7 @@ const writeConfig = (activeEntries: AllowEntry[]) => {
   const configPath = path.join(configDir, "config.toml");
 
   try {
-    writeFileSync(configPath, `${lines.join("\n")}`, {
+    writeFileSync(configPath, lines.join("\n"), {
       flag: "wx",
       mode: 0o600,
     });

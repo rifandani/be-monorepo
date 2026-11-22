@@ -56,7 +56,7 @@ app.get("/__test/contentless", () => {
   });
 });
 
-app.get("/__test/lang", (c) => c.text(String(c.get("language"))));
+app.get("/__test/lang", (c) => c.text(c.get("language")));
 
 describe("app error handling", () => {
   it("turns a ZodError into a 400 with the prettified issues", async () => {
