@@ -24,6 +24,7 @@ Example tests document behaviour. Property tests look for the inputs that nobody
 
 - `apps/hono` uses `fast-check` directly: `await fc.assert(fc.asyncProperty(...))` inside a normal vitest `it`. Synchronous properties use `fc.assert(fc.property(...))` without `await`. fast-check v4 returns `void` for them, and the `await-thenable` rule refuses an `await` there.
 - `apps/effect` uses the Effect `Arbitrary` engine through `it.prop` and `it.effect.prop` of `@effect/vitest`, with `Schema` values as arbitraries. Effect code runs inside the test fiber, with `TestClock` and layers.
+- `tools/lint` and `scripts` are not apps, but they use fast-check the same way as `apps/hono`. Each has a `vitest.setup.ts` that gives the shared budget to fast-check.
 
 ## One budget for both
 

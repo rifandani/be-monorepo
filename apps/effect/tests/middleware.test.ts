@@ -207,17 +207,15 @@ describe("the global middleware", () => {
       const registrations: unknown[] = [];
 
       const counting = Layer.effect(HttpRouter.HttpRouter)(
-        HttpRouter.make.pipe(
-          Effect.map((router) =>
-            HttpRouter.HttpRouter.of({
-              ...router,
-              addGlobalMiddleware: (fn) => {
-                registrations.push(fn);
+        Effect.map(HttpRouter.make, (router) =>
+          HttpRouter.HttpRouter.of({
+            ...router,
+            addGlobalMiddleware: (fn) => {
+              registrations.push(fn);
 
-                return router.addGlobalMiddleware(fn);
-              },
-            })
-          )
+              return router.addGlobalMiddleware(fn);
+            },
+          })
         )
       );
 

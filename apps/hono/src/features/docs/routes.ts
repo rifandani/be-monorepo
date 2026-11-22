@@ -13,6 +13,7 @@ import type { Variables } from "#server/types/hono.ts";
 
 const TOKENS_PER_CHARACTER = 4;
 const LLMS_CACHE_MAX_AGE_SECONDS = 3600;
+const APP_DOCS_DIR = path.join(import.meta.dirname, "../../../docs");
 
 const llmsCacheControl: MiddlewareHandler = async (c, next) => {
   c.header(
@@ -28,7 +29,6 @@ export const getAllFiles = async (dir: string): Promise<string[]> => {
 
   const nested = await Promise.all(
     entries.map(async (entry) => {
-      // fallow-ignore-next-line security-sink
       const fullPath = path.join(dir, entry.name);
 
       if (entry.isDirectory()) {
@@ -75,9 +75,7 @@ const registerDocsFolderRoute = (app: DocsApp) => {
       summary: "LLMs Docs",
     }),
     async (c) => {
-      // fallow-ignore-next-line security-sink
-      const contentDir = path.join(process.cwd(), "./docs");
-      const files = await getAllFiles(contentDir);
+      const files = await getAllFiles(APP_DOCS_DIR);
 
       const contents = await Promise.all(
         files.map(async (file) => readFile(file, "utf-8"))

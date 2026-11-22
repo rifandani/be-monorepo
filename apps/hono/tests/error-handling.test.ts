@@ -48,7 +48,15 @@ app.get("/__test/partly-hinted", () => {
   });
 });
 
-app.get("/__test/lang", (c) => c.text(String(c.get("language"))));
+app.get("/__test/contentless", () => {
+  throw createError({
+    message: "Nothing to see",
+    status: 204,
+    why: "a bodiless status on an error",
+  });
+});
+
+app.get("/__test/lang", (c) => c.text(c.get("language")));
 
 describe("app error handling", () => {
   it("turns a ZodError into a 400 with the prettified issues", async () => {
@@ -106,6 +114,16 @@ describe("app error handling", () => {
     await expect(res.json()).resolves.toStrictEqual({
       message: "Half hinted",
       why: "just because",
+    });
+  });
+
+  it("answers 500 with the hints when the error's status cannot carry a body", async () => {
+    const res = await app.request("/__test/contentless");
+
+    expect(res.status).toBe(500);
+    await expect(res.json()).resolves.toStrictEqual({
+      message: "Nothing to see",
+      why: "a bodiless status on an error",
     });
   });
 });

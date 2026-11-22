@@ -114,7 +114,7 @@ Check these in order:
 The active plan uses `threadPerHost: 1` and `delayInMs: 200` so ZAP does not overwhelm a local dev server. 
 In-scope routes have no rate limit today; auth routes are excluded, so better-auth's limiter does not apply to the scan.
 
-If you mount `rateLimit` in `app.ts` and see many `429`s, raise the delay:
+If you add a request rate limiter to `app.ts` and see many `429`s, raise the delay:
 
 ```yaml
 - type: activeScan

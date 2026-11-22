@@ -13,14 +13,7 @@ export default defineConfig({
   rules: {
     "comments/no-comments": "error",
     "typescript/return-await": ["error", "in-try-catch"],
-    "typescript/no-confusing-void-expression": "off",
-    "typescript/consistent-return": "off",
-    "typescript/no-unnecessary-type-parameters": "off",
-    "typescript/no-unnecessary-type-conversion": "off",
-    "typescript/no-unnecessary-template-expression": "off",
-    "typescript/no-base-to-string": "off",
     "eslint/require-await": "off",
-    "typescript/strict-void-return": "off",
     "sort-keys": "off",
     "no-inline-comments": "off",
     "unicorn/no-array-reduce": "off",
@@ -43,7 +36,7 @@ export default defineConfig({
       },
     },
     {
-      files: ["scripts/security/**", "stryker.config.mjs"],
+      files: ["stryker.config.mjs"],
       rules: {
         "typescript/no-unsafe-assignment": "off",
         "typescript/no-unsafe-call": "off",
@@ -60,6 +53,16 @@ export default defineConfig({
         "anti-slop/require-safety-comment-for-type-assertion": "off",
       },
     },
+    {
+      files: ["apps/effect/**"],
+      rules: {
+        "unicorn/no-array-method-this-argument": "off",
+        "no-redeclare": "off",
+        "typescript/no-empty-interface": "off",
+        "typescript/no-empty-object-type": "off",
+        "unicorn/throw-new-error": "off",
+      },
+    },
   ],
   ignorePatterns: [
     ...(core.ignorePatterns ?? []),
@@ -68,7 +71,8 @@ export default defineConfig({
     "**/.cursor",
     "**/.repos",
     "**/repos",
-    "**/docs",
+    "docs/**",
+    "apps/*/docs/**",
     "apps/hono/src/server/db/migrations/**",
   ],
 });

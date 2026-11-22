@@ -5,8 +5,11 @@ export const NOT_FOUND_MESSAGE = "404 Not found";
 
 const NOT_FOUND = HttpServerResponse.text(NOT_FOUND_MESSAGE, { status: 404 });
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters
-export const isRouteNotFound = (error: unknown): boolean =>
+export const isRouteNotFound = (
+  error: unknown
+): error is HttpServerError.HttpServerError & {
+  readonly reason: HttpServerError.RouteNotFound;
+} =>
   HttpServerError.isHttpServerError(error) &&
   error.reason._tag === "RouteNotFound";
 

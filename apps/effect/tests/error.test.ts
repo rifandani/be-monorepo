@@ -13,7 +13,7 @@ const failing = Layer.mergeAll(
     "/teapot",
     Effect.die(HttpServerResponse.text("I am a teapot", { status: 418 }))
   ),
-  requestId.pipe(Layer.flatMap(() => onError))
+  Layer.flatMap(requestId, () => onError)
 );
 
 const { dispose, handler } = HttpRouter.toWebHandler(

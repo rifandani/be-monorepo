@@ -2,32 +2,60 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
-// oxlint-disable anti-slop/no-unsafe-dictionary-type
+import { Result, Schema } from "effect";
 
-interface SarifRule {
-  id: string;
-  properties?: Record<string, unknown>;
-  defaultConfiguration?: { level?: string };
-}
+const SecurityPropertiesSchema = Schema.Struct({
+  "security-severity": Schema.optionalKey(Schema.Unknown),
+});
 
-interface SarifResult {
-  ruleId?: string;
-  level?: string;
-  message?: { text?: string };
-  properties?: Record<string, unknown>;
-  locations?: {
-    physicalLocation?: { artifactLocation?: { uri?: string } };
-  }[];
-}
+const SarifRuleSchema = Schema.Struct({
+  id: Schema.String,
+  properties: Schema.optionalKey(SecurityPropertiesSchema),
+  defaultConfiguration: Schema.optionalKey(
+    Schema.Struct({ level: Schema.optionalKey(Schema.String) })
+  ),
+});
 
-interface SarifRun {
-  tool?: { driver?: { rules?: SarifRule[] } };
-  results?: SarifResult[];
-}
+const SarifResultSchema = Schema.Struct({
+  ruleId: Schema.optionalKey(Schema.String),
+  level: Schema.optionalKey(Schema.String),
+  message: Schema.optionalKey(
+    Schema.Struct({ text: Schema.optionalKey(Schema.String) })
+  ),
+  properties: Schema.optionalKey(SecurityPropertiesSchema),
+  locations: Schema.optionalKey(
+    Schema.Array(
+      Schema.Struct({
+        physicalLocation: Schema.optionalKey(
+          Schema.Struct({
+            artifactLocation: Schema.optionalKey(
+              Schema.Struct({ uri: Schema.optionalKey(Schema.String) })
+            ),
+          })
+        ),
+      })
+    )
+  ),
+});
 
-interface SarifLog {
-  runs?: SarifRun[];
-}
+const SarifRunSchema = Schema.Struct({
+  tool: Schema.optionalKey(
+    Schema.Struct({
+      driver: Schema.optionalKey(
+        Schema.Struct({
+          rules: Schema.optionalKey(Schema.Array(SarifRuleSchema)),
+        })
+      ),
+    })
+  ),
+  results: Schema.optionalKey(Schema.Array(SarifResultSchema)),
+});
+
+const SarifLogSchema = Schema.Struct({
+  runs: Schema.optionalKey(Schema.Array(SarifRunSchema)),
+});
+
+type SarifLog = typeof SarifLogSchema.Type;
 
 interface Blocker {
   ruleId: string;
@@ -69,11 +97,37 @@ if (files.length === 0) {
   process.exit(0);
 }
 
+const failParse = (message: string): never => {
+  console.error(`::error::SAST gate: ${message}`);
+  process.exit(1);
+};
+
+const readSarif = (file: string): SarifLog => {
+  let json: unknown;
+
+  try {
+    json = JSON.parse(readFileSync(file, "utf-8"));
+  } catch (error) {
+    return failParse(
+      `${file} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+
+  const parsed = Schema.decodeUnknownResult(SarifLogSchema)(json);
+
+  if (Result.isFailure(parsed)) {
+    return failParse(
+      `${file} is not a valid SARIF log:\n${parsed.failure.message}`
+    );
+  }
+
+  return parsed.success;
+};
+
 const blockers: Blocker[] = [];
 
 for (const file of files) {
-  // SAFETY: `JSON.parse` returns `any`; `SarifLog` describes only the fields this gate reads and marks every one of them optional, so a file that is not SARIF degrades to "no runs, no results" instead of throwing.
-  const sarif = JSON.parse(readFileSync(file, "utf-8")) as SarifLog;
+  const sarif = readSarif(file);
 
   for (const run of sarif.runs ?? []) {
     const rules = new Map(

@@ -34,17 +34,15 @@ export const makeProbePolicy = (probes: readonly ProbePolicyInput[]) => {
       const quiet = HttpMiddleware.withLoggerDisabled(httpEffect);
       const quietAndUntraced = Effect.withTracerEnabled(quiet, false);
 
-      return HttpServerRequest.HttpServerRequest.pipe(
-        Effect.flatMap((request) => {
-          const path = pathOf(request.url);
+      return Effect.flatMap(HttpServerRequest.HttpServerRequest, (request) => {
+        const path = pathOf(request.url);
 
-          if (untracedProbePaths.has(path)) {
-            return quietAndUntraced;
-          }
+        if (untracedProbePaths.has(path)) {
+          return quietAndUntraced;
+        }
 
-          return probePaths.has(path) ? quiet : httpEffect;
-        })
-      );
+        return probePaths.has(path) ? quiet : httpEffect;
+      });
     },
     { global: true }
   );

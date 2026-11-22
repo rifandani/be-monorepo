@@ -49,7 +49,7 @@ export const chain = (overrides: Overrides): MiddlewareLayer => {
   const [outermost, ...rest] = CHAIN;
 
   return rest.reduce<MiddlewareLayer>(
-    (composed, entry) => composed.pipe(Layer.flatMap(() => layerOf(entry))),
+    (composed, entry) => Layer.flatMap(composed, () => layerOf(entry)),
     layerOf(outermost)
   );
 };

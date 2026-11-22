@@ -12,7 +12,6 @@ import { requestId } from "hono/request-id";
 import { secureHeaders } from "hono/secure-headers";
 import { timeout } from "hono/timeout";
 import { timing } from "hono/timing";
-import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { HTTPError } from "ky";
 import { shake } from "radashi";
 import { match, P } from "ts-pattern";
@@ -26,6 +25,7 @@ import { ENV } from "#shared/constants/env.ts";
 import { SERVICE_NAME, SERVICE_VERSION } from "#shared/constants/global.ts";
 import { HTTP_STATUS_CODES } from "#shared/constants/http.ts";
 import { languageDetectorOptions } from "#shared/constants/language.ts";
+import { isContentfulStatusCode } from "#shared/utils/http-status.ts";
 
 import { routes } from "./routes.ts";
 
@@ -67,7 +67,7 @@ app.use(
 await routes(app);
 
 app.onError(async (error, c) => {
-  c.get("log")?.error(error);
+  c.get("log").error(error);
 
   return match(error)
     .with(P.instanceOf(ZodError), (zodError) =>
@@ -98,15 +98,15 @@ app.onError(async (error, c) => {
           message: parsed.message,
           why: parsed.why,
         }),
-        // SAFETY: `parseError` only ever reports an error status (>= 400), and every such code carries a body, so none of the bodiless `StatusCode`s (101/204/205/304) that `ContentfulStatusCode` excludes can reach here.
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- parseError emits only contentful error status codes.
-        parsed.status as ContentfulStatusCode
+        isContentfulStatusCode(parsed.status)
+          ? parsed.status
+          : HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR
       );
     });
 });
 
 app.notFound((c) => {
-  c.get("log")?.warn(NOT_FOUND_MESSAGE);
+  c.get("log").warn(NOT_FOUND_MESSAGE);
 
   return c.text(NOT_FOUND_MESSAGE, HTTP_STATUS_CODES.NOT_FOUND);
 });
