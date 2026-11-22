@@ -46,6 +46,12 @@ jobs:
         with:
           node-version-file: .node-version
 
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install deps
+        run: bun ci
+
       - name: Install osv-scanner
         env:
           OSV_SCANNER_VERSION: "2.4.0"
@@ -103,6 +109,9 @@ jobs:
 
       - name: Install bun
         uses: oven-sh/setup-bun@v2
+
+      - name: Install deps
+        run: bun ci
 
       - name: Fail on High/Critical CodeQL findings
         env:
