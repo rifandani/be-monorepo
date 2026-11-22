@@ -42,7 +42,7 @@ mutate: [...include, ...exclude.map((pattern) => `!${pattern}`)]
 
 The scope is the **coverage denominator** — `coverage.include` *minus* `coverage.exclude` — and not `include` alone. Mutating the layers ADR-0001 excludes would emit survivors by construction, since those layers are untested on purpose; a report that is mostly expected noise is a report nobody reads.
 
-Deriving it also makes ADR-0001's two **conditional** exclusions self-healing. When CI gains a database and `middlewares/auth.ts` leaves the exclude list, the same commit pulls it into the mutation scope. There is no second list to remember, and no way for the two to drift.
+Deriving it also makes ADR-0001's **conditional** exclusion self-healing. When CI gains a database and `middlewares/auth.ts` leaves the exclude list, the same commit pulls it into the mutation scope. There is no second list to remember, and no way for the two to drift.
 
 `apps/hono/tests/**` sits outside both `coverage.include` globs, so route tests are killers only, never targets. That is correct and deliberate.
 
