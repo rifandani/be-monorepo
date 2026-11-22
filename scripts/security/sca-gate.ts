@@ -121,8 +121,7 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters
-const bandFromCvss = (score: unknown): SeverityBand | null => {
+const bandFromCvss = (score: OsvGroup["max_severity"]): SeverityBand | null => {
   const n = Number(score);
 
   if (!Number.isFinite(n) || n <= 0) {
@@ -144,11 +143,10 @@ const bandFromCvss = (score: unknown): SeverityBand | null => {
   return "low";
 };
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters
-const normalizeBand = (value: unknown): SeverityBand | null => {
-  const v = String(value ?? "")
-    .trim()
-    .toLowerCase();
+const normalizeBand = (
+  value: NonNullable<OsvVuln["database_specific"]>["severity"]
+): SeverityBand | null => {
+  const v = (value ?? "").trim().toLowerCase();
 
   if (v === "medium") {
     return "moderate";

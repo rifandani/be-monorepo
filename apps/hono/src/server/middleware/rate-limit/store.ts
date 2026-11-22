@@ -1,6 +1,8 @@
 import { log } from "evlog";
 import type { ClientRateLimitInfo, Store } from "hono-rate-limiter";
 
+import { messageOf } from "#shared/utils/message-of.ts";
+
 const LOG_TAG = "rate-limit-store";
 
 export const RATE_LIMIT_KEY_PREFIX = "hono-rate-limit:";
@@ -31,10 +33,6 @@ export const nextWindow = (
     ? { count: 1, windowStart: now }
     : { count: current.count + 1, windowStart: current.windowStart };
 
-// oxlint-disable-next-line anti-slop/no-unknown-parameters
-const reason = (error: unknown) =>
-  error instanceof Error ? error.message : String(error);
-
 const safely = async <T>(
   operation: string,
   fallback: T,
@@ -43,7 +41,7 @@ const safely = async <T>(
   try {
     return await run();
   } catch (error) {
-    log.error(LOG_TAG, `${operation} failed: ${reason(error)}`);
+    log.error(LOG_TAG, `${operation} failed: ${messageOf(error)}`);
 
     return fallback;
   }
