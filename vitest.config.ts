@@ -23,6 +23,7 @@ export default defineConfig({
         "apps/hono/src/**/*.ts",
         "apps/effect/src/**/*.ts",
         "tools/lint/comment-directive.ts",
+        "scripts/hooks/*.ts",
         "scripts/security/severity-band.ts",
       ],
       exclude: [
@@ -32,6 +33,7 @@ export default defineConfig({
         "apps/hono/src/app/bun.ts",
         "apps/hono/src/app/node.ts",
         "apps/hono/src/server/instrumentation.ts",
+        "scripts/hooks/block-git-hook-bypass.ts",
         "apps/effect/src/app/main.ts",
         "apps/effect/src/app/bun.ts",
         "apps/effect/src/app/node.ts",

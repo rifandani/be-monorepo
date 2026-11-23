@@ -1,4 +1,4 @@
-import { Cause, Effect } from "effect";
+import { Cause, Effect, Predicate } from "effect";
 import type { Types } from "effect";
 import {
   HttpBody,
@@ -24,7 +24,7 @@ export const toErrorResponse = Effect.fn("toErrorResponse")(
 
     yield* Effect.logError("Request failed", cause);
 
-    return response.body._tag === "Empty"
+    return Predicate.isTagged(response.body, "Empty")
       ? HttpServerResponse.setBody(
           response,
           HttpBody.jsonUnsafe({

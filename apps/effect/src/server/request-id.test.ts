@@ -8,14 +8,17 @@ const read = Effect.gen(function* read() {
 });
 
 describe(RequestId, () => {
-  it("is empty outside a request", () => {
-    assert.strictEqual(Effect.runSync(read), "");
-  });
+  it.effect("is empty outside a request", () =>
+    Effect.map(read, (id) => {
+      assert.strictEqual(id, "");
+    })
+  );
 
-  it("reads what the middleware provided", () => {
-    assert.strictEqual(
-      Effect.runSync(read.pipe(Effect.provideService(RequestId, "abc"))),
-      "abc"
-    );
-  });
+  it.effect("reads what the middleware provided", () =>
+    Effect.gen(function* provided() {
+      const id = yield* Effect.provideService(read, RequestId, "abc");
+
+      assert.strictEqual(id, "abc");
+    })
+  );
 });

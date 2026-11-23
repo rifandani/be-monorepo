@@ -32,7 +32,11 @@ describe(isRouteNotFound, () => {
 
   it("leaves anything that is not an HttpServerError alone", () => {
     assert.isFalse(isRouteNotFound(new Error("RouteNotFound")));
-    assert.isFalse(isRouteNotFound({ reason: { _tag: "RouteNotFound" } }));
+    assert.isFalse(
+      isRouteNotFound({
+        reason: new HttpServerError.RouteNotFound({ request }),
+      })
+    );
     assert.isFalse(isRouteNotFound("RouteNotFound"));
   });
 });

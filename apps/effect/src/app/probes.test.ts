@@ -48,21 +48,31 @@ describe(isUntracedProbe, () => {
 const request = (url: string) =>
   ({ url }) as HttpServerRequest.HttpServerRequest;
 
-describe("the tracer-disabled layer", () => {
-  const disabled = Effect.runSync(
-    Effect.provide(HttpMiddleware.TracerDisabledWhen, tracerDisabledForProbes)
+const isDisabled = (url: string) =>
+  Effect.provide(
+    Effect.map(HttpMiddleware.TracerDisabledWhen, (disabled) =>
+      disabled(request(url))
+    ),
+    tracerDisabledForProbes
   );
 
-  it("disables the tracer for the startup and liveness probes", () => {
-    assert.isTrue(disabled(request(STARTUP_PATH)));
-    assert.isTrue(disabled(request(LIVE_PATH)));
-  });
+describe("the tracer-disabled layer", () => {
+  it.effect("disables the tracer for the startup and liveness probes", () =>
+    Effect.gen(function* probes() {
+      assert.isTrue(yield* isDisabled(STARTUP_PATH));
+      assert.isTrue(yield* isDisabled(LIVE_PATH));
+    })
+  );
 
-  it("leaves the tracer on for the readiness probe", () => {
-    assert.isFalse(disabled(request(READY_PATH)));
-  });
+  it.effect("leaves the tracer on for the readiness probe", () =>
+    Effect.gen(function* readiness() {
+      assert.isFalse(yield* isDisabled(READY_PATH));
+    })
+  );
 
-  it("leaves the tracer on for ordinary traffic", () => {
-    assert.isFalse(disabled(request("/openapi")));
-  });
+  it.effect("leaves the tracer on for ordinary traffic", () =>
+    Effect.gen(function* ordinary() {
+      assert.isFalse(yield* isDisabled("/openapi"));
+    })
+  );
 });

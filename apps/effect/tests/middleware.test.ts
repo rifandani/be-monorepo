@@ -76,15 +76,15 @@ const requestCount = (options: {
   readonly method: string;
   readonly status: number;
 }) =>
-  Effect.runSync(
-    Effect.provideService(
-      Metric.value(
-        Metric.withAttributes(requestDuration, requestAttributes(options))
-      ),
-      Metric.MetricRegistry,
-      registry
-    )
+  Effect.provideService(
+    Metric.value(
+      Metric.withAttributes(requestDuration, requestAttributes(options))
+    ),
+    Metric.MetricRegistry,
+    registry
   );
+
+const fetchPath = (path: string) => Effect.promise(async () => get(path));
 
 describe("the global middleware", () => {
   beforeEach(() => {
@@ -99,37 +99,48 @@ describe("the global middleware", () => {
   });
 
   describe("the metrics middleware", () => {
-    it("counts the request it served", async () => {
-      await get(LIVE_PATH);
+    it.effect("counts the request it served", () =>
+      Effect.gen(function* served200() {
+        yield* fetchPath(LIVE_PATH);
 
-      assert.strictEqual(requestCount({ method: "GET", status: 200 }).count, 1);
-    });
+        const state = yield* requestCount({ method: "GET", status: 200 });
 
-    it("counts a rejection with the status it sent", async () => {
-      await served.handler(
-        new Request("http://localhost/", { method: "POST" })
-      );
+        assert.strictEqual(state.count, 1);
+      })
+    );
 
-      assert.strictEqual(
-        requestCount({ method: "POST", status: 403 }).count,
-        1
-      );
-    });
+    it.effect("counts a rejection with the status it sent", () =>
+      Effect.gen(function* rejected() {
+        yield* Effect.promise(async () =>
+          served.handler(new Request("http://localhost/", { method: "POST" }))
+        );
 
-    it("counts a 404", async () => {
-      await get("/nope");
+        const state = yield* requestCount({ method: "POST", status: 403 });
 
-      assert.strictEqual(requestCount({ method: "GET", status: 404 }).count, 1);
-    });
+        assert.strictEqual(state.count, 1);
+      })
+    );
 
-    it("records the duration in seconds, not milliseconds", async () => {
-      await get(LIVE_PATH);
+    it.effect("counts a 404", () =>
+      Effect.gen(function* missing() {
+        yield* fetchPath("/nope");
 
-      const state = requestCount({ method: "GET", status: 200 });
+        const state = yield* requestCount({ method: "GET", status: 404 });
 
-      assert.isAbove(state.sum, 0);
-      assert.isBelow(state.sum, 1);
-    });
+        assert.strictEqual(state.count, 1);
+      })
+    );
+
+    it.effect("records the duration in seconds, not milliseconds", () =>
+      Effect.gen(function* duration() {
+        yield* fetchPath(LIVE_PATH);
+
+        const state = yield* requestCount({ method: "GET", status: 200 });
+
+        assert.isAbove(state.sum, 0);
+        assert.isBelow(state.sum, 1);
+      })
+    );
   });
 
   describe("Probe Silence", () => {
@@ -182,11 +193,11 @@ describe("the global middleware", () => {
   });
 
   describe("Probe Outcome", () => {
-    it("counts an outcome for a real probe call", async () => {
-      await get(LIVE_PATH);
+    it.effect("counts an outcome for a real probe call", () =>
+      Effect.gen(function* probeOutcome() {
+        yield* fetchPath(LIVE_PATH);
 
-      const state = Effect.runSync(
-        Effect.provideService(
+        const state = yield* Effect.provideService(
           Metric.value(
             Metric.withAttributes(
               probeResult,
@@ -195,15 +206,15 @@ describe("the global middleware", () => {
           ),
           Metric.MetricRegistry,
           registry
-        )
-      );
+        );
 
-      assert.strictEqual(state.count, 1);
-    });
+        assert.strictEqual(state.count, 1);
+      })
+    );
   });
 
   describe("the Middleware Chain", () => {
-    it("registers one global middleware per declared entry", async () => {
+    it.effect("registers one global middleware per declared entry", () => {
       const registrations: unknown[] = [];
 
       const counting = Layer.effect(HttpRouter.HttpRouter)(
@@ -219,18 +230,18 @@ describe("the global middleware", () => {
         )
       );
 
-      await Effect.runPromise(
-        Effect.scoped(
+      return Effect.gen(function* chain() {
+        yield* Effect.scoped(
           Layer.build(
             app.pipe(
               Layer.provideMerge(counting),
               Layer.provide([HttpServer.layerServices, configProvider])
             )
           )
-        )
-      );
+        );
 
-      assert.strictEqual(registrations.length, CHAIN.length);
+        assert.strictEqual(registrations.length, CHAIN.length);
+      });
     });
   });
 

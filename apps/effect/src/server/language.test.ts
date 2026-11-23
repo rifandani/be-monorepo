@@ -207,16 +207,19 @@ describe("language reference", () => {
     return yield* Language;
   });
 
-  it("falls back outside a request", () => {
-    assert.strictEqual(Effect.runSync(read), FALLBACK_LANGUAGE);
-  });
+  it.effect("falls back outside a request", () =>
+    Effect.map(read, (language) => {
+      assert.strictEqual(language, FALLBACK_LANGUAGE);
+    })
+  );
 
-  it("reads what the middleware provided", () => {
-    assert.strictEqual(
-      Effect.runSync(read.pipe(Effect.provideService(Language, "id"))),
-      "id"
-    );
-  });
+  it.effect("reads what the middleware provided", () =>
+    Effect.gen(function* provided() {
+      const language = yield* Effect.provideService(read, Language, "id");
+
+      assert.strictEqual(language, "id");
+    })
+  );
 });
 
 describe(queryLanguage, () => {
