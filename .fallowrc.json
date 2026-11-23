@@ -14,7 +14,8 @@
       "files": [
         "oxfmt.config.ts",
         "stryker.config.mjs",
-        "scripts/security/sarif-severity-gate.ts"
+        "scripts/security/sarif-severity-gate.ts",
+        "scripts/hooks/block-git-hook-bypass.ts"
       ],
       "rules": {
         "unused-files": "off"
@@ -28,7 +29,9 @@
     "ignore": [
       "oxlint.config.ts",
       "**/*.{test,spec}.{ts,tsx}",
-      "scripts/security/**"
+      "scripts/security/**",
+      "tools/lint/anti-slop-effect/**",
+      "tools/lint/landmines/**"
     ]
   },
   "ignoreDependencies": [

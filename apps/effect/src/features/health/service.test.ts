@@ -9,10 +9,8 @@ import {
   probeResult,
 } from "./service.ts";
 
-const run = async <A, E>(effect: Effect.Effect<A, E>): Promise<A> =>
-  Effect.runPromise(
-    Effect.provideService(effect, Metric.MetricRegistry, new Map())
-  );
+const withRegistry = <A, E>(effect: Effect.Effect<A, E>) =>
+  Effect.provideService(effect, Metric.MetricRegistry, new Map());
 
 const passing = (name: string) => ({ name, verify: Effect.void });
 
@@ -22,85 +20,101 @@ const failing = (name: string) => ({
 });
 
 describe("startup probe", () => {
-  it("reports ok with no checks", async () => {
-    const report = await run(Health.make([]).startup());
+  it.effect("reports ok with no checks", () =>
+    Effect.map(withRegistry(Health.make([]).startup()), (report) => {
+      assert.deepStrictEqual(report, { checks: [], status: "ok" });
+    })
+  );
 
-    assert.deepStrictEqual(report, { checks: [], status: "ok" });
-  });
-
-  it("reports ok even when a readiness check would fail", async () => {
-    const report = await run(Health.make([failing("db")]).startup());
-
-    assert.deepStrictEqual(report, { checks: [], status: "ok" });
-  });
+  it.effect("reports ok even when a readiness check would fail", () =>
+    Effect.map(
+      withRegistry(Health.make([failing("db")]).startup()),
+      (report) => {
+        assert.deepStrictEqual(report, { checks: [], status: "ok" });
+      }
+    )
+  );
 });
 
 describe("liveness probe", () => {
-  it("reports ok with no checks", async () => {
-    const report = await run(Health.make([]).live());
+  it.effect("reports ok with no checks", () =>
+    Effect.map(withRegistry(Health.make([]).live()), (report) => {
+      assert.deepStrictEqual(report, { checks: [], status: "ok" });
+    })
+  );
 
-    assert.deepStrictEqual(report, { checks: [], status: "ok" });
-  });
-
-  it("reports ok even when a readiness check would fail", async () => {
-    const report = await run(Health.make([failing("db")]).live());
-
-    assert.deepStrictEqual(report, { checks: [], status: "ok" });
-  });
+  it.effect("reports ok even when a readiness check would fail", () =>
+    Effect.map(withRegistry(Health.make([failing("db")]).live()), (report) => {
+      assert.deepStrictEqual(report, { checks: [], status: "ok" });
+    })
+  );
 });
 
 describe("readiness probe", () => {
-  it("reports ok when there is nothing to check", async () => {
-    const report = await run(Health.make([]).ready());
+  it.effect("reports ok when there is nothing to check", () =>
+    Effect.map(withRegistry(Health.make([]).ready()), (report) => {
+      assert.deepStrictEqual(report, { checks: [], status: "ok" });
+    })
+  );
 
-    assert.deepStrictEqual(report, { checks: [], status: "ok" });
-  });
+  it.effect("lists a check that passed", () =>
+    Effect.map(withRegistry(Health.make([passing("db")]).ready()), (report) => {
+      assert.deepStrictEqual(report, {
+        checks: [{ name: "db", status: "pass" }],
+        status: "ok",
+      });
+    })
+  );
 
-  it("lists a check that passed", async () => {
-    const report = await run(Health.make([passing("db")]).ready());
+  it.effect("fails with Unhealthy when a check fails", () =>
+    Effect.map(
+      withRegistry(Effect.flip(Health.make([failing("db")]).ready())),
+      (error) => {
+        assert.isTrue(error instanceof Unhealthy);
+        assert.strictEqual(error.status, "unhealthy");
+        assert.deepStrictEqual(error.checks, [{ name: "db", status: "fail" }]);
+      }
+    )
+  );
 
-    assert.deepStrictEqual(report, {
-      checks: [{ name: "db", status: "pass" }],
-      status: "ok",
-    });
-  });
+  it.effect("reports every check, passed and failed", () =>
+    Effect.map(
+      withRegistry(
+        Effect.flip(
+          Health.make([
+            passing("db"),
+            failing("cache"),
+            failing("queue"),
+          ]).ready()
+        )
+      ),
+      (error) => {
+        assert.deepStrictEqual(error.checks, [
+          { name: "db", status: "pass" },
+          { name: "cache", status: "fail" },
+          { name: "queue", status: "fail" },
+        ]);
+      }
+    )
+  );
 
-  it("fails with Unhealthy when a check fails", async () => {
-    const error = await run(Effect.flip(Health.make([failing("db")]).ready()));
-
-    assert.isTrue(error instanceof Unhealthy);
-    assert.strictEqual(error.status, "unhealthy");
-    assert.deepStrictEqual(error.checks, [{ name: "db", status: "fail" }]);
-  });
-
-  it("reports every check, passed and failed", async () => {
-    const error = await run(
-      Effect.flip(
-        Health.make([passing("db"), failing("cache"), failing("queue")]).ready()
-      )
-    );
-
-    assert.deepStrictEqual(error.checks, [
-      { name: "db", status: "pass" },
-      { name: "cache", status: "fail" },
-      { name: "queue", status: "fail" },
-    ]);
-  });
-
-  it("treats a check that dies as a check that failed", async () => {
-    const error = await run(
-      Effect.flip(
-        Health.make([
-          {
-            name: "db",
-            verify: Effect.die(new Error("client blew up")),
-          },
-        ]).ready()
-      )
-    );
-
-    assert.deepStrictEqual(error.checks, [{ name: "db", status: "fail" }]);
-  });
+  it.effect("treats a check that dies as a check that failed", () =>
+    Effect.map(
+      withRegistry(
+        Effect.flip(
+          Health.make([
+            {
+              name: "db",
+              verify: Effect.die(new Error("client blew up")),
+            },
+          ]).ready()
+        )
+      ),
+      (error) => {
+        assert.deepStrictEqual(error.checks, [{ name: "db", status: "fail" }]);
+      }
+    )
+  );
 });
 
 describe(probeAttributes, () => {
@@ -116,59 +130,67 @@ describe(probeAttributes, () => {
 });
 
 describe("probe metric", () => {
-  it("counts a readiness success and a readiness failure apart", async () => {
-    const [ok, unhealthy] = await run(
-      Effect.gen(function* probe() {
-        yield* Health.make([]).ready();
-        yield* Effect.ignore(Health.make([failing("db")]).ready());
+  it.effect("counts a readiness success and a readiness failure apart", () =>
+    Effect.map(
+      withRegistry(
+        Effect.gen(function* probe() {
+          yield* Health.make([]).ready();
+          yield* Effect.ignore(Health.make([failing("db")]).ready());
 
-        return [
-          yield* Metric.value(
-            Metric.withAttributes(
-              probeResult,
-              probeAttributes({ outcome: "ok", probe: "ready" })
-            )
-          ),
-          yield* Metric.value(
-            Metric.withAttributes(
-              probeResult,
-              probeAttributes({ outcome: "unhealthy", probe: "ready" })
-            )
-          ),
-        ] as const;
-      })
-    );
+          return [
+            yield* Metric.value(
+              Metric.withAttributes(
+                probeResult,
+                probeAttributes({ outcome: "ok", probe: "ready" })
+              )
+            ),
+            yield* Metric.value(
+              Metric.withAttributes(
+                probeResult,
+                probeAttributes({ outcome: "unhealthy", probe: "ready" })
+              )
+            ),
+          ] as const;
+        })
+      ),
+      ([ok, unhealthy]) => {
+        assert.strictEqual(ok.count, 1);
+        assert.strictEqual(unhealthy.count, 1);
+      }
+    )
+  );
 
-    assert.strictEqual(ok.count, 1);
-    assert.strictEqual(unhealthy.count, 1);
-  });
+  it.effect(
+    "counts the startup and liveness probes under their own names",
+    () =>
+      Effect.map(
+        withRegistry(
+          Effect.gen(function* probe() {
+            yield* Health.make([]).startup();
+            yield* Health.make([]).live();
 
-  it("counts the startup and liveness probes under their own names", async () => {
-    const [startup, live] = await run(
-      Effect.gen(function* probe() {
-        yield* Health.make([]).startup();
-        yield* Health.make([]).live();
-
-        return [
-          yield* Metric.value(
-            Metric.withAttributes(
-              probeResult,
-              probeAttributes({ outcome: "ok", probe: "startup" })
-            )
-          ),
-          yield* Metric.value(
-            Metric.withAttributes(
-              probeResult,
-              probeAttributes({ outcome: "ok", probe: "live" })
-            )
-          ),
-        ] as const;
-      })
-    );
-
-    assert.strictEqual(startup.count, 1);
-    assert.strictEqual(live.count, 1);
-  });
+            return [
+              yield* Metric.value(
+                Metric.withAttributes(
+                  probeResult,
+                  probeAttributes({ outcome: "ok", probe: "startup" })
+                )
+              ),
+              yield* Metric.value(
+                Metric.withAttributes(
+                  probeResult,
+                  probeAttributes({ outcome: "ok", probe: "live" })
+                )
+              ),
+            ] as const;
+          })
+        ),
+        ([startup, live]) => {
+          assert.strictEqual(startup.count, 1);
+          assert.strictEqual(live.count, 1);
+        }
+      )
+  );
 });
 
 describe("this app's checks", () => {

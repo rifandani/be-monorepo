@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Predicate } from "effect";
 import { HttpRouter, HttpServerError, HttpServerResponse } from "effect/http";
 
 export const NOT_FOUND_MESSAGE = "404 Not found";
@@ -11,7 +11,7 @@ export const isRouteNotFound = (
   readonly reason: HttpServerError.RouteNotFound;
 } =>
   HttpServerError.isHttpServerError(error) &&
-  error.reason._tag === "RouteNotFound";
+  Predicate.isTagged(error.reason, "RouteNotFound");
 
 export const notFound = HttpRouter.middleware(
   (httpEffect) =>

@@ -3,10 +3,8 @@ import { Effect, Metric } from "effect";
 
 import { requestAttributes, requestDuration } from "./metrics.ts";
 
-const run = <A>(effect: Effect.Effect<A>): A =>
-  Effect.runSync(
-    Effect.provideService(effect, Metric.MetricRegistry, new Map())
-  );
+const withRegistry = <A>(effect: Effect.Effect<A>) =>
+  Effect.provideService(effect, Metric.MetricRegistry, new Map());
 
 describe(requestAttributes, () => {
   it("states the method before the status", () => {
@@ -21,22 +19,21 @@ describe(requestAttributes, () => {
 });
 
 describe("the request duration histogram", () => {
-  it("buckets a duration by seconds", () => {
+  it.effect("buckets a duration by seconds", () => {
     const series = Metric.withAttributes(
       requestDuration,
       requestAttributes({ method: "GET", status: 200 })
     );
 
-    const state = run(
+    return withRegistry(
       Effect.gen(function* record() {
         yield* Metric.update(series, 0.25);
 
-        return yield* Metric.value(series);
+        const state = yield* Metric.value(series);
+        const bucket = state.buckets.find(([boundary]) => boundary === 0.25);
+
+        assert.deepStrictEqual(bucket, [0.25, 1]);
       })
     );
-
-    const bucket = state.buckets.find(([boundary]) => boundary === 0.25);
-
-    assert.deepStrictEqual(bucket, [0.25, 1]);
   });
 });
