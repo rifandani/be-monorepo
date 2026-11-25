@@ -9,13 +9,12 @@ import {
   makeGenerator,
   moduleCallName,
   moduleMemberName,
-  ownReturns,
   pipeReceiver,
   resolveInitializer,
   returnedExpressions,
+  returnedObjects,
   serviceClass,
   serviceMakes,
-  unwrapExpression,
   unwrapNode,
 } from "../shared/effect-modules.ts";
 import type {
@@ -130,53 +129,6 @@ function operationOf(
   const resolved = unwrapNode(initializer);
 
   return isOperation(resolved, names) ? resolved : null;
-}
-
-function returnedObjects(
-  generator: ESTree.Function,
-  sourceCode: SourceCode
-): readonly ESTree.ObjectExpression[] {
-  if (generator.body === null) {
-    return [];
-  }
-  const objects: ESTree.ObjectExpression[] = [];
-
-  for (const statement of ownReturns(generator.body)) {
-    if (statement.argument === null) {
-      continue;
-    }
-    let expression = unwrapExpression(statement.argument);
-
-    if (expression.type === "CallExpression") {
-      const callee = unwrapNode(expression.callee);
-      const [argument] = expression.arguments;
-
-      if (
-        callee.type === "MemberExpression" &&
-        !callee.computed &&
-        callee.property.type === "Identifier" &&
-        callee.property.name === "of" &&
-        argument !== undefined &&
-        argument.type !== "SpreadElement"
-      ) {
-        expression = unwrapExpression(argument);
-      }
-    }
-
-    if (expression.type === "Identifier") {
-      const initializer = resolveInitializer(sourceCode, expression);
-
-      if (initializer !== null && initializer.type !== "FunctionDeclaration") {
-        expression = unwrapExpression(initializer);
-      }
-    }
-
-    if (expression.type === "ObjectExpression") {
-      objects.push(expression);
-    }
-  }
-
-  return objects;
 }
 
 export const requireOperationSpanRule = defineRule({

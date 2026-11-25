@@ -41,6 +41,7 @@ export default defineConfig({
     "anti-slop-effect/prefer-tagged-error-handling": "error",
     "anti-slop-effect/require-cause-when-narrowing": "error",
     "anti-slop-effect/require-operation-span": "error",
+    "anti-slop-effect/resolve-dependencies-at-construction": "error",
     "landmines/no-fixed-sleep": "error",
     "landmines/no-flake-masking": "error",
     "landmines/no-flake-masking-timeout": ["warn", { check: "timeout" }],

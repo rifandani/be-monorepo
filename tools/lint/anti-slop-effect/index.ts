@@ -10,6 +10,7 @@ import { preferEffectMatchRule } from "./rules/prefer-effect-match.ts";
 import { preferTaggedErrorHandlingRule } from "./rules/prefer-tagged-error-handling.ts";
 import { requireCauseWhenNarrowingRule } from "./rules/require-cause-when-narrowing.ts";
 import { requireOperationSpanRule } from "./rules/require-operation-span.ts";
+import { resolveDependenciesAtConstructionRule } from "./rules/resolve-dependencies-at-construction.ts";
 
 const antiSlopEffectPlugin = eslintCompatPlugin({
   meta: { name: "anti-slop-effect" },
@@ -23,6 +24,8 @@ const antiSlopEffectPlugin = eslintCompatPlugin({
     "no-manual-tagged-type": noManualTaggedTypeRule,
     "prefer-tagged-error-handling": preferTaggedErrorHandlingRule,
     "require-operation-span": requireOperationSpanRule,
+    "resolve-dependencies-at-construction":
+      resolveDependenciesAtConstructionRule,
     "require-cause-when-narrowing": requireCauseWhenNarrowingRule,
   },
 });
