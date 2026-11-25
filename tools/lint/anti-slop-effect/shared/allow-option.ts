@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import type { Options, RuleOptionsSchema } from "@oxlint/plugins";
 import { Schema } from "effect";
 
@@ -25,3 +27,12 @@ export const decodeAllowOption = (
 
 export const normalizePath = (file: string): string =>
   file.replaceAll("\\", "/");
+
+export function isAllowed(filename: string, globs: readonly string[]): boolean {
+  const segments = normalizePath(filename).split("/");
+  const suffixes = segments.map((_, index) => segments.slice(index).join("/"));
+
+  return globs.some((glob) =>
+    suffixes.some((suffix) => path.matchesGlob(suffix, glob))
+  );
+}

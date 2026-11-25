@@ -1,12 +1,10 @@
-import path from "node:path";
-
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree, SourceCode } from "@oxlint/plugins";
 
 import {
   allowOptionSchema,
   decodeAllowOption,
-  normalizePath,
+  isAllowed,
 } from "../shared/allow-option.ts";
 import {
   collectEffectModuleNames,
@@ -27,15 +25,6 @@ const OUTPUT_PRESERVING_STEPS: ReadonlySet<string> = new Set([
   "provide",
   "provideMerge",
 ]);
-
-function isAllowed(filename: string, globs: readonly string[]): boolean {
-  const segments = normalizePath(filename).split("/");
-  const suffixes = segments.map((_, index) => segments.slice(index).join("/"));
-
-  return globs.some((glob) =>
-    suffixes.some((suffix) => path.matchesGlob(suffix, glob))
-  );
-}
 
 function compositionOperator(
   node: ESTree.Node,

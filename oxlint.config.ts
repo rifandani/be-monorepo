@@ -95,6 +95,7 @@ export default defineConfig({
     {
       files: ["apps/effect/**"],
       rules: {
+        "anti-slop-effect/require-scoped-resource": "error",
         "unicorn/no-array-method-this-argument": "off",
         "no-redeclare": "off",
         "typescript/no-empty-interface": "off",

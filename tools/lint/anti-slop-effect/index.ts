@@ -11,6 +11,7 @@ import { preferTaggedErrorHandlingRule } from "./rules/prefer-tagged-error-handl
 import { provideLayersAtCompositionRule } from "./rules/provide-layers-at-composition.ts";
 import { requireCauseWhenNarrowingRule } from "./rules/require-cause-when-narrowing.ts";
 import { requireOperationSpanRule } from "./rules/require-operation-span.ts";
+import { requireScopedResourceRule } from "./rules/require-scoped-resource.ts";
 import { resolveDependenciesAtConstructionRule } from "./rules/resolve-dependencies-at-construction.ts";
 
 const antiSlopEffectPlugin = eslintCompatPlugin({
@@ -26,6 +27,7 @@ const antiSlopEffectPlugin = eslintCompatPlugin({
     "prefer-tagged-error-handling": preferTaggedErrorHandlingRule,
     "provide-layers-at-composition": provideLayersAtCompositionRule,
     "require-operation-span": requireOperationSpanRule,
+    "require-scoped-resource": requireScopedResourceRule,
     "resolve-dependencies-at-construction":
       resolveDependenciesAtConstructionRule,
     "require-cause-when-narrowing": requireCauseWhenNarrowingRule,
