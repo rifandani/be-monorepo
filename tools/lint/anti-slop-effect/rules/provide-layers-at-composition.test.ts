@@ -61,10 +61,19 @@ tester.run(
 			export const live = Layer.mergeAll(a, b).pipe(Layer.provide(c));`,
       },
       {
+        filename: "C:\\repo\\apps\\effect\\tests\\layers.ts",
+        code: `${imports}
+			export const served = app.pipe(Layer.provide(configProvider));`,
+      },
+      {
         filename: "/repo/apps/effect/src/app/main.ts",
         code: `${imports}
-			export const kept = Layer.launch(Layer.provideMerge(app, collectors).pipe(Layer.provide(platform)));
-			export const used = app.pipe(Layer.provideMerge(collectors));`,
+			export const used = app.pipe(Layer.provideMerge(collectors));
+			export const live = app.pipe(Layer.provideMerge(observability));
+			export const main = Layer.launch(live);
+			const shared = app.pipe(Layer.provideMerge(observability));
+			export const both = Layer.mergeAll(Layer.launch(shared), probes.pipe(Layer.provide(shared)));
+			export const unknownStep = Layer.launch(app.pipe(Layer.provideMerge(observability), Layer.flatMap(build)));`,
       },
     ],
     invalid: [
@@ -103,14 +112,22 @@ tester.run(
 			const live = app.pipe(Layer.provide(platform), Layer.provideMerge(observability));
 			export const direct = Layer.launch(Layer.provideMerge(app, observability));
 			export const indirect = Layer.launch(live);
-			export const piped = app.pipe(Layer.provideMerge(observability), Layer.launch);`,
-        errors: [mergeDiscarded, mergeDiscarded, mergeDiscarded],
+			export const piped = app.pipe(Layer.provideMerge(observability), Layer.launch);
+			export const thenProvided = Layer.launch(Layer.provideMerge(app, collectors).pipe(Layer.provide(platform)));
+			export const inMerge = Layer.launch(Layer.mergeAll(probes, app.pipe(Layer.provideMerge(collectors), Layer.provide(platform))));`,
+        errors: [
+          mergeDiscarded,
+          mergeDiscarded,
+          mergeDiscarded,
+          mergeDiscarded,
+          mergeDiscarded,
+        ],
       },
       {
         filename: "/repo/apps/effect/src/features/users/live.ts",
         code: `${imports}
 			export const main = Layer.launch(app.pipe(Layer.provideMerge(platform)));`,
-        errors: [outsideComposition("Layer.provideMerge"), mergeDiscarded],
+        errors: [mergeDiscarded, outsideComposition("Layer.provideMerge")],
       },
     ],
   }

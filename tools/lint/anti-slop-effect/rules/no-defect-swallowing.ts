@@ -1,7 +1,11 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree, SourceCode } from "@oxlint/plugins";
-import { Schema } from "effect";
 
+import {
+  allowOptionSchema,
+  decodeAllowOption,
+  normalizePath,
+} from "../shared/allow-option.ts";
 import {
   collectEffectModuleNames,
   genFunction,
@@ -46,16 +50,6 @@ const successConstructors: ReadonlySet<string> = new Set([
 const successValues: ReadonlySet<string> = new Set(["void", "asVoid"]);
 
 const isLogCall = (member: string): boolean => /^log(?:[A-Z]|$)/u.test(member);
-
-const decodeOptions = Schema.decodeUnknownSync(
-  Schema.Tuple([
-    Schema.optionalKey(
-      Schema.Struct({
-        allow: Schema.optionalKey(Schema.Array(Schema.String)),
-      })
-    ),
-  ])
-);
 
 function isFailure(node: ESTree.Node, names: EffectModuleNames): boolean {
   const expression = unwrapNode(node);
@@ -249,18 +243,10 @@ function resolvedHandlerSucceeds(
   return generator !== null && generatorSucceeds(generator, names, sourceCode);
 }
 
-const normalize = (path: string): string => path.replaceAll("\\", "/");
-
 export const noDefectSwallowingRule = defineRule({
   meta: {
     type: "problem",
-    schema: [
-      {
-        type: "object",
-        properties: { allow: { type: "array", items: { type: "string" } } },
-        additionalProperties: false,
-      },
-    ],
+    schema: allowOptionSchema,
     docs: {
       description:
         "Disallow broad Effect recovery that turns a failure or a defect into a success outside the error boundary files.",
@@ -271,11 +257,12 @@ export const noDefectSwallowingRule = defineRule({
     },
   },
   create(context) {
-    const [options] = decodeOptions(context.options);
-    const filename = normalize(context.filename);
+    const filename = normalizePath(context.filename);
 
     if (
-      (options?.allow ?? []).some((path) => filename.endsWith(normalize(path)))
+      (decodeAllowOption(context.options) ?? []).some((path) =>
+        filename.endsWith(normalizePath(path))
+      )
     ) {
       return {};
     }
