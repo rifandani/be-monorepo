@@ -8,6 +8,7 @@ import { noManualTaggedTypeRule } from "./rules/no-manual-tagged-type.ts";
 import { noServiceConstructorImportsRule } from "./rules/no-service-constructor-imports.ts";
 import { preferEffectMatchRule } from "./rules/prefer-effect-match.ts";
 import { preferTaggedErrorHandlingRule } from "./rules/prefer-tagged-error-handling.ts";
+import { provideLayersAtCompositionRule } from "./rules/provide-layers-at-composition.ts";
 import { requireCauseWhenNarrowingRule } from "./rules/require-cause-when-narrowing.ts";
 import { requireOperationSpanRule } from "./rules/require-operation-span.ts";
 import { resolveDependenciesAtConstructionRule } from "./rules/resolve-dependencies-at-construction.ts";
@@ -23,6 +24,7 @@ const antiSlopEffectPlugin = eslintCompatPlugin({
     "prefer-effect-match": preferEffectMatchRule,
     "no-manual-tagged-type": noManualTaggedTypeRule,
     "prefer-tagged-error-handling": preferTaggedErrorHandlingRule,
+    "provide-layers-at-composition": provideLayersAtCompositionRule,
     "require-operation-span": requireOperationSpanRule,
     "resolve-dependencies-at-construction":
       resolveDependenciesAtConstructionRule,

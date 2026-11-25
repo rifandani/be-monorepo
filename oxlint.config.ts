@@ -39,6 +39,7 @@ export default defineConfig({
     "anti-slop-effect/no-service-constructor-imports": "error",
     "anti-slop-effect/prefer-effect-match": "error",
     "anti-slop-effect/prefer-tagged-error-handling": "error",
+    "anti-slop-effect/provide-layers-at-composition": "error",
     "anti-slop-effect/require-cause-when-narrowing": "error",
     "anti-slop-effect/require-operation-span": "error",
     "anti-slop-effect/resolve-dependencies-at-construction": "error",
