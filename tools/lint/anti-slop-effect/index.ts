@@ -1,5 +1,6 @@
 import { eslintCompatPlugin } from "@oxlint/plugins";
 
+import { noDefectSwallowingRule } from "./rules/no-defect-swallowing.ts";
 import { noManualEffectErrorTagRule } from "./rules/no-manual-effect-error-tag.ts";
 import { noManualTagComparisonRule } from "./rules/no-manual-tag-comparison.ts";
 import { noManualTaggedConstructionRule } from "./rules/no-manual-tagged-construction.ts";
@@ -13,6 +14,7 @@ import { requireOperationSpanRule } from "./rules/require-operation-span.ts";
 const antiSlopEffectPlugin = eslintCompatPlugin({
   meta: { name: "anti-slop-effect" },
   rules: {
+    "no-defect-swallowing": noDefectSwallowingRule,
     "no-manual-effect-error-tag": noManualEffectErrorTagRule,
     "no-manual-tag-comparison": noManualTagComparisonRule,
     "no-manual-tagged-construction": noManualTaggedConstructionRule,

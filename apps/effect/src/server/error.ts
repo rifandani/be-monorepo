@@ -1,4 +1,4 @@
-import { Cause, Effect, Predicate } from "effect";
+import { Cause, Effect, Option, Predicate } from "effect";
 import type { Types } from "effect";
 import {
   HttpBody,
@@ -8,28 +8,95 @@ import {
 } from "effect/http";
 
 export const SERVER_ERROR_MESSAGE = "Internal Server Error";
-const SERVER_ERROR_STATUS = 500;
+const REFUSAL_MIN = 400;
+const REFUSAL_MAX = 499;
+const REFUSAL_FIX = "Correct the request and send it again.";
+
+const FAULT_MESSAGES: ReadonlyMap<number, string> = new Map([
+  [502, "Bad Gateway"],
+  [503, "Service Unavailable"],
+  [504, "Gateway Timeout"],
+]);
+
+export type FailureClass = "refusal" | "fault" | "defect";
+
+export const failureClass = (status: number): FailureClass => {
+  if (status >= REFUSAL_MIN && status <= REFUSAL_MAX) {
+    return "refusal";
+  }
+
+  return FAULT_MESSAGES.has(status) ? "fault" : "defect";
+};
 
 export const errorMessage = (
   status: number,
   cause: Cause.Cause<unknown>
-): string =>
-  status >= SERVER_ERROR_STATUS
-    ? SERVER_ERROR_MESSAGE
-    : (Cause.prettyErrors(cause)[0]?.message ?? SERVER_ERROR_MESSAGE);
+): string => {
+  const failure = failureClass(status);
+
+  if (failure === "refusal") {
+    return Cause.prettyErrors(cause)[0]?.message ?? SERVER_ERROR_MESSAGE;
+  }
+
+  return FAULT_MESSAGES.get(status) ?? SERVER_ERROR_MESSAGE;
+};
+
+const refusalLocation = (cause: Cause.Cause<unknown>): string | undefined => {
+  const error = Option.getOrUndefined(Cause.findErrorOption(cause));
+
+  if (!HttpServerError.isHttpServerError(error)) {
+    return undefined;
+  }
+
+  if (Predicate.isTagged(error.reason, "RequestParseError")) {
+    return "body";
+  }
+
+  if (Predicate.isTagged(error.reason, "RouteNotFound")) {
+    return error.reason.request.url.split("?")[0];
+  }
+
+  return undefined;
+};
+
+const errorBody = (status: number, cause: Cause.Cause<unknown>) => {
+  const message = errorMessage(status, cause);
+
+  if (failureClass(status) !== "refusal") {
+    return { message };
+  }
+
+  const location = refusalLocation(cause);
+
+  return location === undefined
+    ? { fix: REFUSAL_FIX, message }
+    : { fix: REFUSAL_FIX, location, message };
+};
+
+const logFailure = (status: number, cause: Cause.Cause<unknown>) => {
+  const failure = failureClass(status);
+
+  if (failure === "refusal") {
+    return Effect.logInfo("Request refused", cause);
+  }
+
+  if (failure === "fault") {
+    return Effect.logWarning("Request failed on a dependency", cause);
+  }
+
+  return Effect.logError("Request failed", cause);
+};
 
 export const toErrorResponse = Effect.fn("toErrorResponse")(
   function* errorResponse(cause: Cause.Cause<unknown>) {
     const [response] = yield* HttpServerError.causeResponse(cause);
 
-    yield* Effect.logError("Request failed", cause);
+    yield* logFailure(response.status, cause);
 
     return Predicate.isTagged(response.body, "Empty")
       ? HttpServerResponse.setBody(
           response,
-          HttpBody.jsonUnsafe({
-            message: errorMessage(response.status, cause),
-          })
+          HttpBody.jsonUnsafe(errorBody(response.status, cause))
         )
       : response;
   }

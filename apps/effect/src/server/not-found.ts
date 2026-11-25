@@ -17,7 +17,7 @@ export const notFound = HttpRouter.middleware(
   (httpEffect) =>
     httpEffect.pipe(
       Effect.catchIf(isRouteNotFound, () =>
-        Effect.as(Effect.logWarning(NOT_FOUND_MESSAGE), NOT_FOUND)
+        Effect.as(Effect.logInfo(NOT_FOUND_MESSAGE), NOT_FOUND)
       )
     ),
   { global: true }

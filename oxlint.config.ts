@@ -23,6 +23,15 @@ export default defineConfig({
     "comments/no-comments": "error",
     "comments/directive-reason": "error",
     "effect-tests/no-manual-effect-runtime-in-tests": "error",
+    "anti-slop-effect/no-defect-swallowing": [
+      "error",
+      {
+        allow: [
+          "apps/effect/src/server/error.ts",
+          "apps/effect/src/features/health/service.ts",
+        ],
+      },
+    ],
     "anti-slop-effect/no-manual-effect-error-tag": "error",
     "anti-slop-effect/no-manual-tag-comparison": "error",
     "anti-slop-effect/no-manual-tagged-construction": "error",
@@ -60,6 +69,7 @@ export default defineConfig({
         "eslint/prefer-promise-reject-errors": "off",
         "unicorn/no-useless-promise-resolve-reject": "off",
         "io-boundary/validated-http-response": "off",
+        "anti-slop-effect/no-defect-swallowing": "off",
       },
     },
     {

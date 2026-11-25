@@ -1,7 +1,7 @@
 import { createError } from "evlog";
 import * as fc from "fast-check";
 import { HTTPException } from "hono/http-exception";
-import { HTTPError } from "ky";
+import { HTTPError, TimeoutError } from "ky";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
@@ -9,6 +9,14 @@ import { app } from "#app/app.ts";
 
 app.get("/__test/zod", () => {
   z.object({ name: z.string() }).parse({ name: 42 });
+
+  return new Response("unreachable");
+});
+
+app.get("/__test/zod-nested", () => {
+  z.object({
+    address: z.object({ lines: z.array(z.string()) }),
+  }).parse({ address: { lines: [7] } });
 
   return new Response("unreachable");
 });
@@ -31,6 +39,10 @@ app.get("/__test/ky-unreadable", () => {
     new Request("https://upstream.example/resource"),
     { method: "get" } as never
   );
+});
+
+app.get("/__test/ky-timeout", () => {
+  throw new TimeoutError(new Request("https://upstream.example/resource"));
 });
 
 app.get("/__test/http-exception", () => {
@@ -71,34 +83,53 @@ app.get("/__test/contentless", () => {
 app.get("/__test/lang", (c) => c.text(c.get("language")));
 
 describe("app error handling", () => {
-  it("turns a ZodError into a 400 with the prettified issues", async () => {
+  it("answers a ZodError as a refusal that names the field and the fix", async () => {
     const res = await app.request("/__test/zod");
-    const body = (await res.json()) as { message: string };
-
-    expect(res.status).toBe(400);
-    expect(body.message).toContain("name");
-  });
-
-  it("turns a ky HTTPError into a 400 carrying the upstream body", async () => {
-    const res = await app.request("/__test/ky");
 
     const body = (await res.json()) as {
-      error: { detail: string };
+      fix: string;
+      location: string;
       message: string;
     };
 
     expect(res.status).toBe(400);
-    expect(body.error.detail).toBe("upstream rejected it");
-    expect(body.message).toBeTruthy();
+    expect(body.message).toContain("name");
+    expect(body.location).toBe("name");
+    expect(body.fix).toContain("name");
   });
 
-  it("answers a null upstream body when ky could not read one", async () => {
+  it("names the nested path of the first rejected field", async () => {
+    const res = await app.request("/__test/zod-nested");
+    const body = (await res.json()) as { location: string };
+
+    expect(body.location).toBe("address.lines.0");
+  });
+
+  it("answers an upstream rejection as an infrastructure fault", async () => {
+    const res = await app.request("/__test/ky");
+
+    expect(res.status).toBe(502);
+    await expect(res.json()).resolves.toStrictEqual({
+      message: "Bad Gateway",
+    });
+  });
+
+  it("answers an unreadable upstream body as an infrastructure fault", async () => {
     const res = await app.request("/__test/ky-unreadable");
 
-    const body = (await res.json()) as { error: unknown };
+    expect(res.status).toBe(502);
+    await expect(res.json()).resolves.toStrictEqual({
+      message: "Bad Gateway",
+    });
+  });
 
-    expect(res.status).toBe(400);
-    expect(body.error).toBeNull();
+  it("answers an upstream timeout as an infrastructure fault", async () => {
+    const res = await app.request("/__test/ky-timeout");
+
+    expect(res.status).toBe(504);
+    await expect(res.json()).resolves.toStrictEqual({
+      message: "Gateway Timeout",
+    });
   });
 
   it("lets an HTTPException render its own response", async () => {
@@ -108,12 +139,13 @@ describe("app error handling", () => {
     await expect(res.text()).resolves.toContain("forbidden by policy");
   });
 
-  it("falls back to the parsed error shape for anything else", async () => {
+  it("answers any other error as a defect with no detail", async () => {
     const res = await app.request("/__test/unknown");
-    const body = (await res.json()) as { message: string };
 
-    expect(res.status).toBeGreaterThanOrEqual(400);
-    expect(body.message).toBeTruthy();
+    expect(res.status).toBe(500);
+    await expect(res.json()).resolves.toStrictEqual({
+      message: "Internal Server Error",
+    });
   });
 
   it("carries the error's own status and every hint it supplies", async () => {

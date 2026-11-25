@@ -32,6 +32,16 @@ The Effect v4 HTTP API app. It answers three health probes, serves its own OpenA
 
 **Allowed Origin**: The one origin this app trusts, derived from `APP_URL` by taking its origin — scheme, host and port, with no trailing slash, because that is what a browser puts in `Origin`. Two policies read it and neither owns it: CORS decides who may read a response, CSRF decides whose state-changing request is honoured. See [`apps/effect/docs/adr/0003`](./docs/adr/0003-cors-and-csrf-stay-separate-layers.md) for why those two stay separate. _Avoid_: allowed host, app url, base url
 
+### Failures
+
+The three failure classes. See [ADR-0007](../../docs/adr/0007-failures-have-three-classes.md).
+
+**Refusal**: A failure because the request is not correct. Status 400–499, logged at `info`. The body tells the client the `location` and a `fix`. _Avoid_: client error, bad request (as a class name)
+
+**Infrastructure Fault**: A failure because a dependency failed or the server stopped the request. Status 502, 503 or 504, logged at `warn`. The same request can succeed later. _Avoid_: server error, outage
+
+**Defect**: A failure because of a bug. Status 500, logged at `error`. The body never shows the defect message. _Avoid_: crash, exception
+
 ### Server
 
 **Middleware Chain**: The eleven global middleware this app wraps its router in, declared as one ordered tuple in `src/app/chain.ts` and folded once. The order is the whole of what it is: registration order is nesting order, and nesting decides what a response that never reaches the router carries out — a cors preflight leaves with no timings, a csrf 403 leaves with everything. Stated once because the count in prose drifted when it was not. _Avoid_: middleware stack, pipeline, the middlewares
