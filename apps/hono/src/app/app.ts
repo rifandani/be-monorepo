@@ -15,7 +15,7 @@ import { timing } from "hono/timing";
 import { HTTPError } from "ky";
 import { shake } from "radashi";
 import { match, P } from "ts-pattern";
-import { prettifyError, ZodError } from "zod";
+import { prettifyError, z, ZodError } from "zod";
 
 import { authContextMiddleware } from "#server/middleware/auth.ts";
 import { identifyMiddleware } from "#server/middleware/identify.ts";
@@ -76,10 +76,10 @@ app.onError(async (error, c) => {
         HTTP_STATUS_CODES.BAD_REQUEST
       )
     )
-    .with(P.instanceOf(HTTPError), async (httpError) =>
+    .with(P.instanceOf(HTTPError), (httpError) =>
       c.json(
         {
-          error: await httpError.response.json(),
+          error: z.json().parse(httpError.data ?? null),
           message: httpError.message,
         },
         HTTP_STATUS_CODES.BAD_REQUEST

@@ -14,8 +14,20 @@ app.get("/__test/zod", () => {
 });
 
 app.get("/__test/ky", () => {
-  throw new HTTPError(
+  const error = new HTTPError(
     Response.json({ detail: "upstream rejected it" }, { status: 400 }),
+    new Request("https://upstream.example/resource"),
+    { method: "get" } as never
+  );
+
+  error.data = { detail: "upstream rejected it" };
+
+  throw error;
+});
+
+app.get("/__test/ky-unreadable", () => {
+  throw new HTTPError(
+    new Response(null, { status: 502 }),
     new Request("https://upstream.example/resource"),
     { method: "get" } as never
   );
@@ -78,6 +90,15 @@ describe("app error handling", () => {
     expect(res.status).toBe(400);
     expect(body.error.detail).toBe("upstream rejected it");
     expect(body.message).toBeTruthy();
+  });
+
+  it("answers a null upstream body when ky could not read one", async () => {
+    const res = await app.request("/__test/ky-unreadable");
+
+    const body = (await res.json()) as { error: unknown };
+
+    expect(res.status).toBe(400);
+    expect(body.error).toBeNull();
   });
 
   it("lets an HTTPException render its own response", async () => {

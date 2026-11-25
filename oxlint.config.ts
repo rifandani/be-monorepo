@@ -13,6 +13,7 @@ export default defineConfig({
       specifier: "./tools/lint/anti-slop-effect/index.ts",
     },
     { name: "landmines", specifier: "./tools/lint/landmines/index.ts" },
+    { name: "io-boundary", specifier: "./tools/lint/io-boundary/index.ts" },
   ],
   options: {
     typeAware: true,
@@ -36,6 +37,7 @@ export default defineConfig({
     "landmines/no-flake-masking-timeout": ["warn", { check: "timeout" }],
     "landmines/no-test-doubles": "warn",
     "landmines/no-unsignaled-poll": "error",
+    "io-boundary/validated-http-response": "error",
     "typescript/return-await": ["error", "in-try-catch"],
     "eslint/require-await": "off",
     "sort-keys": "off",
@@ -57,6 +59,7 @@ export default defineConfig({
         "typescript/unbound-method": "off",
         "eslint/prefer-promise-reject-errors": "off",
         "unicorn/no-useless-promise-resolve-reject": "off",
+        "io-boundary/validated-http-response": "off",
       },
     },
     {
@@ -88,7 +91,11 @@ export default defineConfig({
       },
     },
     {
-      files: ["tools/lint/anti-slop-effect/**", "tools/lint/landmines/**"],
+      files: [
+        "tools/lint/anti-slop-effect/**",
+        "tools/lint/io-boundary/**",
+        "tools/lint/landmines/**",
+      ],
       rules: {
         "anti-slop/no-runtime-typeof": "off",
         "anti-slop/require-readable-spacing": "off",
