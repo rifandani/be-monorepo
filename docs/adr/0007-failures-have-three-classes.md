@@ -38,6 +38,9 @@ The handler writes these bodies only when the failure has no body. Some code cho
 - `HTTPException` → its own response. The class comes from its status.
 - evlog error (`createError`) → its own status and hints. The class comes from the status. A status that cannot carry a body becomes 500.
 - Any other error → defect, 500.
+- `notFound` → refusal, 404, with the request path as `location` and a `fix` that points to `/openapi`.
+
+The evlog Hono middleware calls `log.error()` for each error that `onError` handles. This records the error and its stack on the wide event, but it also sets the level to `error`. Thus `onError` calls `log.setLevel()` with the level of the class. A level that `setLevel()` gives stays, also after a later `log.error()`.
 
 `apps/effect/src/server/error.ts` (`onError` and `toErrorResponse`):
 
@@ -45,6 +48,8 @@ The handler writes these bodies only when the failure has no body. Some code cho
 - A request parse failure is a refusal with `location: "body"`. If an unknown route gets to this handler, it is a refusal with the request path as `location`. Usually the `notFound` middleware answers an unknown route first.
 - An interrupt by the server is an infrastructure fault, 503.
 - A defect is 500.
+
+`apps/effect/src/server/not-found.ts` (`notFound`) answers an unknown route as a refusal, 404, with the request path as `location` and a `fix` that points to `/openapi`.
 
 ## Where a failure can become a success
 

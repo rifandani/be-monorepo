@@ -93,7 +93,10 @@ layer(served, { timeout: Duration.seconds(30) })(
         const response = yield* HttpClient.get("/nothing-here");
 
         assert.strictEqual(response.status, 404);
-        assert.strictEqual(yield* response.text, NOT_FOUND_MESSAGE);
+        assert.strictEqual(
+          ((yield* response.json) as { message: string }).message,
+          NOT_FOUND_MESSAGE
+        );
       })
     );
   }

@@ -2,10 +2,24 @@ import { createError } from "evlog";
 import * as fc from "fast-check";
 import { HTTPException } from "hono/http-exception";
 import { HTTPError, TimeoutError } from "ky";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { app } from "#app/app.ts";
+
+const logLevels: string[] = [];
+
+app.use("*", async (c, next) => {
+  const log = c.get("log");
+  const { setLevel } = log;
+
+  log.setLevel = (level) => {
+    logLevels.push(level);
+    setLevel(level);
+  };
+
+  return next();
+});
 
 app.get("/__test/zod", () => {
   z.object({ name: z.string() }).parse({ name: 42 });
@@ -181,12 +195,46 @@ describe("app error handling", () => {
   });
 });
 
+describe("app failure logging", () => {
+  beforeEach(() => {
+    logLevels.length = 0;
+  });
+
+  it("logs a refusal at the info level", async () => {
+    await app.request("/__test/zod");
+
+    expect(logLevels).toStrictEqual(["info"]);
+  });
+
+  it("logs an infrastructure fault at the warn level", async () => {
+    await app.request("/__test/ky-timeout");
+
+    expect(logLevels).toStrictEqual(["warn"]);
+  });
+
+  it("logs a defect at the error level", async () => {
+    await app.request("/__test/unknown");
+
+    expect(logLevels).toStrictEqual(["error"]);
+  });
+
+  it("logs an unrouted path as a refusal", async () => {
+    await app.request("/no-such-route");
+
+    expect(logLevels).toStrictEqual(["info"]);
+  });
+});
+
 describe("app not-found handling", () => {
-  it("answers an unrouted path with a 404", async () => {
-    const res = await app.request("/no-such-route");
+  it("answers an unrouted path with a 404 refusal that names the path", async () => {
+    const res = await app.request("/no-such-route?token=hidden");
 
     expect(res.status).toBe(404);
-    await expect(res.text()).resolves.toBe("404 Not found");
+    await expect(res.json()).resolves.toStrictEqual({
+      fix: "Check the method and the path against the OpenAPI document at /openapi.",
+      location: "/no-such-route",
+      message: "404 Not found",
+    });
   });
 
   it("should always answer any path under an unrouted prefix with a 404", async () => {
@@ -200,7 +248,7 @@ describe("app not-found handling", () => {
         const res = await app.request(path);
 
         expect(res.status).toBe(404);
-        await expect(res.text()).resolves.toBe("404 Not found");
+        await expect(res.json()).resolves.toMatchObject({ location: path });
       })
     );
   });

@@ -60,7 +60,10 @@ describe("app routes", () => {
     const response = await handler(new Request("http://localhost/"));
 
     assert.strictEqual(response.status, 404);
-    assert.strictEqual(await response.text(), NOT_FOUND_MESSAGE);
+    assert.strictEqual(
+      ((await response.json()) as { message: string }).message,
+      NOT_FOUND_MESSAGE
+    );
   });
 
   it.effect.prop(
@@ -76,8 +79,12 @@ describe("app routes", () => {
 
         assert.strictEqual(response.status, 404);
         assert.strictEqual(
-          yield* Effect.promise(async () => response.text()),
-          NOT_FOUND_MESSAGE
+          (
+            (yield* Effect.promise(async () => response.json())) as {
+              location: string;
+            }
+          ).location,
+          path
         );
       })
   );
@@ -109,11 +116,17 @@ describe("app routes", () => {
     );
   });
 
-  it("returns 404 for an unknown path", async () => {
-    const response = await handler(new Request("http://localhost/nope"));
+  it("answers an unknown path with a 404 refusal that names the path", async () => {
+    const response = await handler(
+      new Request("http://localhost/nope?token=hidden")
+    );
 
     assert.strictEqual(response.status, 404);
-    assert.strictEqual(await response.text(), NOT_FOUND_MESSAGE);
+    assert.deepStrictEqual(await response.json(), {
+      fix: "Check the method and the path against the OpenAPI document at /openapi.",
+      location: "/nope",
+      message: NOT_FOUND_MESSAGE,
+    });
   });
 
   it("answers a CORS preflight from the allowed origin", async () => {

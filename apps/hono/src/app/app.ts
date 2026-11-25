@@ -26,12 +26,16 @@ import { SERVICE_NAME, SERVICE_VERSION } from "#shared/constants/global.ts";
 import { HTTP_STATUS_CODES } from "#shared/constants/http.ts";
 import { languageDetectorOptions } from "#shared/constants/language.ts";
 import { failureClass } from "#shared/utils/failure-class.ts";
+import type { FailureClass } from "#shared/utils/failure-class.ts";
 import { isContentfulStatusCode } from "#shared/utils/http-status.ts";
 
 import { routes } from "./routes.ts";
 
 const TIMEOUT = 15_000;
 const NOT_FOUND_MESSAGE = "404 Not found";
+
+const NOT_FOUND_FIX =
+  "Check the method and the path against the OpenAPI document at /openapi.";
 
 const app = new OpenAPIHono<{
   Variables: Variables;
@@ -74,18 +78,15 @@ const ROOT_LOCATION = "(root)";
 
 type RequestLog = Variables["log"];
 
+const FAILURE_LOG_LEVELS = {
+  defect: "error",
+  fault: "warn",
+  refusal: "info",
+} as const satisfies Record<FailureClass, string>;
+
 const logFailure = (log: RequestLog, status: number, error: Error) => {
-  match(failureClass(status))
-    .with("refusal", () => {
-      log.info(error.message);
-    })
-    .with("fault", () => {
-      log.warn(error.message);
-    })
-    .with("defect", () => {
-      log.error(error);
-    })
-    .exhaustive();
+  log.setLevel(FAILURE_LOG_LEVELS[failureClass(status)]);
+  log.error(error);
 };
 
 const issueLocation = (zodError: ZodError): string => {
@@ -162,9 +163,15 @@ app.onError((error, c) => {
 });
 
 app.notFound((c) => {
-  c.get("log").info(NOT_FOUND_MESSAGE);
+  const log = c.get("log");
 
-  return c.text(NOT_FOUND_MESSAGE, HTTP_STATUS_CODES.NOT_FOUND);
+  log.setLevel(FAILURE_LOG_LEVELS.refusal);
+  log.info(NOT_FOUND_MESSAGE);
+
+  return c.json(
+    { fix: NOT_FOUND_FIX, location: c.req.path, message: NOT_FOUND_MESSAGE },
+    HTTP_STATUS_CODES.NOT_FOUND
+  );
 });
 
 export { app };
