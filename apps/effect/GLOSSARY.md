@@ -40,6 +40,8 @@ The three failure classes. See [ADR-0007](../../docs/adr/0007-failures-have-thre
 
 **Infrastructure Fault**: A failure because a dependency failed or the server stopped the request. Status 502, 503 or 504, logged at `warn`. The same request can succeed later. _Avoid_: server error, outage
 
+**Outcome Unknown**: The result of an outbound call that did not answer in time: the remote action possibly occurred. It is one cause of an Infrastructure Fault (504), not a Refusal. See [ADR-0009](../../docs/adr/0009-resilience-policy.md). _Avoid_: failed, refused, timeout error
+
 **Defect**: A failure because of a bug. Status 500, logged at `error`. The body never shows the defect message. _Avoid_: crash, exception
 
 ### Server

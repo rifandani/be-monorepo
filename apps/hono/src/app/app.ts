@@ -33,7 +33,7 @@ import { absoluteUrl } from "#shared/utils/links.ts";
 
 import { routes } from "./routes.ts";
 
-const TIMEOUT = 15_000;
+const INBOUND_TIMEOUT = 15_000;
 const NOT_FOUND_MESSAGE = "404 Not found";
 
 const NOT_FOUND_FIX =
@@ -64,7 +64,7 @@ app.use(
   }),
   authContextMiddleware(),
   timing(),
-  timeout(TIMEOUT),
+  timeout(INBOUND_TIMEOUT),
   languageDetector(languageDetectorOptions),
   csrf({
     origin: [ENV.APP_URL],

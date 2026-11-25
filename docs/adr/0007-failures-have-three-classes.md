@@ -11,7 +11,7 @@ A failed request is one of three classes. Each class has its own HTTP status ran
 | Class                | Cause                                                                                          | Status                | Log level | Retry                    |
 | -------------------- | ---------------------------------------------------------------------------------------------- | --------------------- | --------- | ------------------------ |
 | Refusal              | The request is not correct: invalid input, missing access, an unknown route. A typed error.   | 400–499               | `info`    | Not without a change     |
-| Infrastructure fault | A dependency failed: an upstream call, a timeout, a server abort, a dependency that is not ready. | 502, 503 or 504       | `warn`    | Yes, the same request    |
+| Infrastructure fault | A dependency failed: an upstream call, a timeout, a server abort, a dependency that is not ready. | 502, 503 or 504       | `warn`    | Yes, the same request, if it is idempotent ([ADR-0009](./0009-resilience-policy.md)) |
 | Defect               | A bug: an unexpected throw, `Effect.die`, a status that cannot be an error status.            | 500                   | `error`   | No. Fix the code         |
 
 The status selects the class: 400–499 is a refusal, 502–504 is an infrastructure fault, and all other statuses are a defect. The handlers log a refusal at `info`, because the client must change the request. They log an infrastructure fault at `warn`, because an operator can repair it without a code change. They log only a defect at `error`.
