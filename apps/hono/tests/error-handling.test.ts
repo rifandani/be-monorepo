@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { app } from "#app/app.ts";
+import { ENV } from "#shared/constants/env.ts";
 
 const logLevels: string[] = [];
 
@@ -110,6 +111,13 @@ describe("app error handling", () => {
     expect(body.message).toContain("name");
     expect(body.location).toBe("name");
     expect(body.fix).toContain("name");
+  });
+
+  it("links a ZodError refusal to the llms index", async () => {
+    const res = await app.request("/__test/zod");
+    const body = (await res.json()) as { docs: string };
+
+    expect(body.docs).toBe(`${ENV.APP_URL}/llms.txt`);
   });
 
   it("names the nested path of the first rejected field", async () => {
@@ -231,6 +239,7 @@ describe("app not-found handling", () => {
 
     expect(res.status).toBe(404);
     await expect(res.json()).resolves.toStrictEqual({
+      docs: `${ENV.APP_URL}/llms.txt`,
       fix: "Check the method and the path against the OpenAPI document at /openapi.",
       location: "/no-such-route",
       message: "404 Not found",

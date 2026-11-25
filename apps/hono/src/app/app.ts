@@ -17,6 +17,7 @@ import { shake } from "radashi";
 import { match, P } from "ts-pattern";
 import { prettifyError, ZodError } from "zod";
 
+import { LLMS_INDEX_PATH } from "#features/docs/routes.ts";
 import { authContextMiddleware } from "#server/middleware/auth.ts";
 import { identifyMiddleware } from "#server/middleware/identify.ts";
 import { evlogMiddlewareOptions } from "#server/observability/evlog.ts";
@@ -28,6 +29,7 @@ import { languageDetectorOptions } from "#shared/constants/language.ts";
 import { failureClass } from "#shared/utils/failure-class.ts";
 import type { FailureClass } from "#shared/utils/failure-class.ts";
 import { isContentfulStatusCode } from "#shared/utils/http-status.ts";
+import { absoluteUrl } from "#shared/utils/links.ts";
 
 import { routes } from "./routes.ts";
 
@@ -36,6 +38,8 @@ const NOT_FOUND_MESSAGE = "404 Not found";
 
 const NOT_FOUND_FIX =
   "Check the method and the path against the OpenAPI document at /openapi.";
+
+const REFUSAL_DOCS = absoluteUrl(ENV.APP_URL, LLMS_INDEX_PATH);
 
 const app = new OpenAPIHono<{
   Variables: Variables;
@@ -105,6 +109,7 @@ app.onError((error, c) => {
 
       return c.json(
         {
+          docs: REFUSAL_DOCS,
           fix: `Correct the value at "${location}" and send the request again.`,
           location,
           message: prettifyError(zodError),
@@ -169,7 +174,12 @@ app.notFound((c) => {
   log.info(NOT_FOUND_MESSAGE);
 
   return c.json(
-    { fix: NOT_FOUND_FIX, location: c.req.path, message: NOT_FOUND_MESSAGE },
+    {
+      docs: REFUSAL_DOCS,
+      fix: NOT_FOUND_FIX,
+      location: c.req.path,
+      message: NOT_FOUND_MESSAGE,
+    },
     HTTP_STATUS_CODES.NOT_FOUND
   );
 });

@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { app } from "#app/app.ts";
 import { getAllFiles } from "#features/docs/routes.ts";
+import { ENV } from "#shared/constants/env.ts";
 
 import { parseServerTimingHeader } from "./util.ts";
 
@@ -34,7 +35,22 @@ describe("/llms-docs endpoint", () => {
       `${appObservabilityDoc}\n\n${appDatabaseDoc}\n\n`,
     ].map((text) => ({ length: 480, text, tokens: 120 }));
 
-    expect(bodyInEitherReaddirOrder).toContainEqual(await res.json());
+    const { links: _links, ...docs } = (await res.json()) as {
+      links: unknown;
+    };
+
+    expect(bodyInEitherReaddirOrder).toContainEqual(docs);
+  });
+
+  it("links the next actions of the app contract as absolute links", async () => {
+    const res = await app.request("/llms-docs");
+    const { links } = (await res.json()) as { links: unknown[] };
+
+    expect(links).toContainEqual({
+      href: `${ENV.APP_URL}/llms.txt`,
+      method: "GET",
+      title: "OpenAPI docs",
+    });
   });
 
   it("marks the docs response as cacheable for one hour", async () => {

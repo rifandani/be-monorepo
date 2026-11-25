@@ -21,4 +21,15 @@ describe("/llms.txt endpoint", () => {
     expect(dur).not.toBeNull();
     expect(dur).toBeLessThan(1000);
   });
+
+  it("lists the next actions of the app contract as absolute links", async () => {
+    const res = await app.request("/llms.txt");
+    const text = await res.text();
+
+    expect(text).toContain("## Next actions");
+    expect(text).toContain(`- GET [LLMs Docs](${ENV.APP_URL}/llms-docs)`);
+    expect(text).toContain(
+      `- GET [BetterAuth OpenAPI docs](${ENV.APP_URL}/llms-auth.txt)`
+    );
+  });
 });

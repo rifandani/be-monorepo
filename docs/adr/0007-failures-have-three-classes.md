@@ -23,6 +23,7 @@ The status selects the class: 400–499 is a refusal, 502–504 is an infrastruc
   - `location`: the part of the request that is wrong, when the handler knows it. Examples: a field path such as `address.city`, `(root)` for the full value, `body`, or the request path without the query string.
   - `rejected`: the rejected value, only if it is safe to show. Do not show a value that can be a password, a token, a key or personal data. If you are not sure, do not show it.
   - `fix`: a repair hint that tells the client what to change.
+  - `docs`: the absolute URL of the `llms` index, in `apps/hono` ([ADR-0008](./0008-agent-facing-responses-link-to-the-next-step.md)).
 - An **infrastructure fault** body contains only `message`, which is the reason phrase of the status (for example `Bad Gateway`). It does not show the upstream body or internal detail.
 - A **defect** body contains only `message: "Internal Server Error"`. It never shows the defect message or the stack.
 
