@@ -16,6 +16,7 @@
     "db:gen": "dotenvx run --env-file=.env.dev -- drizzle-kit generate",
     "db:migrate": "dotenvx run --env-file=.env.dev -- drizzle-kit migrate",
     "db:seed": "dotenvx run --env-file=.env.dev -- bun ./src/server/db/seeds/seed-user.ts",
+    "db:purge": "dotenvx run --env-file=.env.dev -- bun ./src/server/db/purge.ts",
     "db:studio": "dotenvx run --env-file=.env.dev -- drizzle-kit studio --port 3334 --verbose",
     "auth:gen": "dotenvx run --env-file=.env.dev -- bunx @better-auth/cli@latest generate --config ./src/server/auth.ts --output ./src/server/db/auth-schema.ts --yes",
     "test": "vitest run",

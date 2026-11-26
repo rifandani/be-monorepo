@@ -16,7 +16,7 @@ A call to a dependency can fail slowly, fail partially or not answer. If each ha
 | [Admission control, bulkheads and backpressure](#admission-control-bulkheads-and-backpressure) | #117 |
 | [Circuit breakers for slow dependencies](#circuit-breakers-for-slow-dependencies) | #118 |
 | Golden signals: saturation and failed work | #119 |
-| Retention of data that accumulates | #121 |
+| [Retention of data that accumulates](#retention-of-data-that-accumulates) | #121 |
 
 A section without a link is not in this ADR yet. Its issue adds it.
 
@@ -228,6 +228,47 @@ Each breaker has a readiness check, `breaker.readiness`, with the name `circuit:
 - The Effect wrapper (`makeBreaker`, `CircuitOpen`) has its tests in the same file. They use `TestClock` for the cooldown.
 - The route test is in `apps/effect/tests/breaker.test.ts`. It trips the breaker through the full middleware chain. Then it examines that the next request gets `503` with `Retry-After`, that the dependency gets no call, and that the readiness probe reports `circuit:payments` as `fail`.
 
+## Retention of data that accumulates
+
+In a steady state, the work that the server does each day must not change. A store that only gets new rows or new files grows without a limit. Then its queries become slow, its indexes use more memory, and the disk becomes full. We decide that each store that accumulates data has a retention, and a job deletes the data that is older than the retention.
+
+The guard test below makes this rule mechanical. No lint rule is necessary.
+
+### The retention of each store
+
+The `RETENTION` map in `apps/hono/src/server/retention.ts` has one entry for each table that `apps/hono/src/server/db/schema.ts` exports. The key is the SQL name of the table. An entry is `"keep"` or an expiry. An expiry has these fields: `table`, `key` (the primary key), `column` (the column that gives the age of a row), `clock` (`date` for a timestamp column, `epoch-ms` for a number of milliseconds) and `afterMs` (the time after which the job deletes the row).
+
+| Store | Retention | Why |
+| --- | --- | --- |
+| `session` | Delete 1 day after `expires_at` | Better Auth does not accept an expired session. Better Auth deletes an expired session only when it reads that session. Thus a session that nobody uses again stays. The day lets an operator examine a recent sign-out. |
+| `verification` | Delete 1 hour after `expires_at` | An expired verification value cannot verify anything. Each lookup of a verification value in Better Auth deletes all expired rows. When there are no lookups, the rows stay, so the job deletes them. |
+| `rate_limit` | Delete 1 day after `last_request` | The longest Better Auth window is 60 seconds (the default window is 15 seconds, and some auth routes have a 10 or 60 second window). When the window is over, a row has the same effect as no row: Better Auth starts a new count. Thus a delete does not change a limit. Better Auth also deletes old rows when a window starts again. When there is no traffic, the rows stay, so the job deletes them. |
+| `user` | `"keep"` | A user is business data. The delete of an account is a product decision, not a retention. |
+| `account` | `"keep"` | An account belongs to a user. The foreign key deletes it with its user (`on delete cascade`). |
+| `.evlog/logs` | Not used now | No app writes this directory at this time. Both apps send logs through OTLP, and the collector owns their retention. If an app adds the evlog file system drain (`createFsDrain`), set `maxFiles`. The drain writes one file each day and deletes the oldest file when there are more than `maxFiles`. |
+
+`apps/effect` has no database and writes no files, so it has no entry.
+
+When you add a table, add its entry to `RETENTION`. Use `"keep"` only when the table grows with the business, not with time or traffic.
+
+### The cleanup job
+
+`purgeExpired` in `apps/hono/src/server/retention.ts` deletes the expired rows of each table with an expiry, one table at a time.
+
+- **The delete is idempotent.** The job deletes the rows that are older than the cutoff: `delete ... where key in (select key ... where column < cutoff limit n)`. When a row is already gone, the result is success. Two runs at the same time, or a run after a failed run, cannot do damage. Two runs at the same time can delete the same rows. Then one run can stop before it deletes all expired rows, and the next run deletes them. Thus the job is safe to retry, and a retry needs no idempotency key ([Bounded retries and idempotency](#bounded-retries-and-idempotency)).
+- **Each run has a bound.** The job deletes in batches of 1000 rows, and not more than 100 batches for each table. When the last batch is full, the result for that table has `drained: false`, and the next run continues. The age columns have no index at this time, so each batch reads all of its table. When a table becomes large, add an index on its age column.
+- **A failure stops the run.** The job does not retry. The scheduler runs it again at the next interval. The pool of the job has a connect timeout of 10 seconds and a Postgres `statement_timeout` of 30 seconds. These values are in `apps/hono/src/server/db/purge.ts`. They are for the job only, not for a handler.
+- The job reports `{ table, deleted, drained }` for each table. A table that stays at `drained: false` for many runs grows faster than the job deletes. Then make the interval shorter.
+
+Run the job with `bun hono db:purge` (`apps/hono/src/server/db/purge.ts`). It connects with `DATABASE_URL`, runs one time and exits. Run it from a scheduler outside the app (for example cron or a Kubernetes `CronJob`), one time each hour. The app does not run it, because then each instance of the app runs it.
+
+### Proof
+
+- The guard test in `apps/hono/src/server/retention.test.ts` (`RETENTION map`) reads each table that `schema.ts` exports. It fails when a table has no entry, when an entry has no table, or when an expiry uses a column of a different table.
+- The tests of `purgeExpired` in the same file use a fake store at the `DeleteBatch` seam. They check the cutoff of each table and that a `"keep"` table does not change. They also check that a second run deletes nothing and succeeds, and that a run stops after its maximum of batches.
+- The property tests in the same file check two rules ([ADR-0005](./0005-property-based-tests.md)). A run that drains keeps exactly the rows at or after the cutoff. One run never deletes more rows than its bound.
+- `apps/hono/src/server/db/purge.ts` is the Postgres adapter of the seam. It is outside the coverage gate with the rest of `apps/hono/src/server/db/**`, because CI has no Postgres ([ADR-0001](./0001-unit-tests-are-pure-module-logic-and-api-routes-only.md)).
+
 ## References
 
 - [Timeouts bound waiting](https://ratstack.sh/lore/timeouts-bound-waiting)
@@ -239,4 +280,6 @@ Each breaker has a readiness check, `breaker.readiness`, with the name `circuit:
 - [Backpressure reaches the producer](https://ratstack.sh/lore/backpressure-reaches-the-producer)
 - [Every task needs an owner](https://ratstack.sh/lore/every-task-needs-an-owner)
 - [Circuit breakers have state](https://ratstack.sh/lore/circuit-breakers-have-state)
+- [Steady state recycles resources](https://ratstack.sh/lore/steady-state-recycles-resources)
+- [Cleanup can be an idempotent postcondition](https://ratstack.sh/lore/cleanup-can-be-an-idempotent-postcondition)
 - [ADR-0007: Failures have three classes](./0007-failures-have-three-classes.md)
