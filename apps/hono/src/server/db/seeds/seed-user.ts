@@ -44,7 +44,7 @@ const seedRandomUsers = async (db: Db) => {
 
 const linkCredentialAccounts = async (db: Db) => {
   const [users, bulkPasswordHash] = await Promise.all([
-    db.select({ id: userTable.id }).from(userTable),
+    db.select({ id: userTable.id }).from(userTable).limit(RANDOM_USER_COUNT),
     hashPassword(SEED_BULK_PASSWORD),
   ]);
 

@@ -50,6 +50,7 @@ export default defineConfig({
     "landmines/no-flake-masking-timeout": ["warn", { check: "timeout" }],
     "landmines/no-test-doubles": "warn",
     "landmines/no-unsignaled-poll": "error",
+    "io-boundary/require-query-limit": "error",
     "io-boundary/validated-http-response": "error",
     "typescript/no-floating-promises": "error",
     "typescript/return-await": ["error", "in-try-catch"],

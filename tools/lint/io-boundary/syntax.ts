@@ -5,7 +5,7 @@ export interface Reference {
   readonly names: readonly string[];
 }
 
-const propertyName = (key: ESTree.Node) => {
+export const propertyName = (key: ESTree.Node) => {
   if (key.type === "Identifier") {
     return key.name;
   }
