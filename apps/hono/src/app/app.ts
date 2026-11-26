@@ -1,5 +1,6 @@
 import { httpInstrumentationMiddleware } from "@hono/otel";
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { metrics } from "@opentelemetry/api";
 import { EvlogError, parseError } from "evlog";
 import { evlog } from "evlog/hono";
 import { contextStorage } from "hono/context-storage";
@@ -21,6 +22,7 @@ import { LLMS_INDEX_PATH } from "#features/docs/routes.ts";
 import { admissionMiddleware } from "#server/middleware/admission.ts";
 import { authContextMiddleware } from "#server/middleware/auth.ts";
 import { identifyMiddleware } from "#server/middleware/identify.ts";
+import { failedRequestsMiddleware } from "#server/middleware/metrics.ts";
 import { evlogMiddlewareOptions } from "#server/observability/evlog.ts";
 import type { Variables } from "#server/types/hono.ts";
 import { ENV } from "#shared/constants/env.ts";
@@ -37,6 +39,7 @@ import { routes } from "./routes.ts";
 const INBOUND_TIMEOUT = 15_000;
 const PROBE_PATHS: ReadonlySet<string> = new Set();
 const NOT_FOUND_MESSAGE = "404 Not found";
+const meter = metrics.getMeter(SERVICE_NAME, SERVICE_VERSION);
 
 const NOT_FOUND_FIX =
   "Check the method and the path against the OpenAPI document at /openapi.";
@@ -53,6 +56,7 @@ app.use(
     serviceName: SERVICE_NAME,
     serviceVersion: SERVICE_VERSION,
   }),
+  failedRequestsMiddleware(meter),
   contextStorage(),
   requestId(),
   evlog(evlogMiddlewareOptions),
@@ -65,6 +69,7 @@ app.use(
   }),
   admissionMiddleware({
     isProbePath: (path) => PROBE_PATHS.has(path),
+    meter,
     probes: ENV.MAX_IN_FLIGHT_PROBES,
     requests: ENV.MAX_IN_FLIGHT_REQUESTS,
   }),

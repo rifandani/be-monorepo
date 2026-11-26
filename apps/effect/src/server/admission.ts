@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Semaphore } from "effect";
+import { Effect, Layer, Metric, Option, Semaphore } from "effect";
 import type { Config } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 
@@ -7,6 +7,8 @@ import {
   MAX_IN_FLIGHT_REQUESTS,
 } from "#shared/config.ts";
 
+import { admissionRejections, bulkheadAttributes } from "./metrics.ts";
+import type { Bulkhead } from "./metrics.ts";
 import { pathOf } from "./probes.ts";
 
 export const RETRY_AFTER_SECONDS = 1;
@@ -22,14 +24,30 @@ const serviceUnavailable = () =>
     }
   );
 
+const reject = (bulkhead: Bulkhead) =>
+  Effect.as(
+    Metric.update(
+      Metric.withAttributes(admissionRejections, bulkheadAttributes(bulkhead)),
+      1
+    ),
+    serviceUnavailable()
+  );
+
 export const withAdmission =
-  (semaphore: Semaphore.Semaphore) =>
+  (semaphore: Semaphore.Semaphore, bulkhead: Bulkhead) =>
   <E, R>(
     httpEffect: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>
   ): Effect.Effect<HttpServerResponse.HttpServerResponse, E, R> =>
     semaphore
       .withPermitsIfAvailable(1)(httpEffect)
-      .pipe(Effect.map(Option.getOrElse(serviceUnavailable)));
+      .pipe(
+        Effect.flatMap(
+          Option.match({
+            onNone: () => reject(bulkhead),
+            onSome: Effect.succeed,
+          })
+        )
+      );
 
 interface AdmissionOptions {
   readonly requests: number;
@@ -40,8 +58,15 @@ interface AdmissionOptions {
 const admissionFor = (options: AdmissionOptions) =>
   Layer.unwrap(
     Effect.gen(function* makeAdmission() {
-      const requests = withAdmission(yield* Semaphore.make(options.requests));
-      const probes = withAdmission(yield* Semaphore.make(options.probes));
+      const requests = withAdmission(
+        yield* Semaphore.make(options.requests),
+        "requests"
+      );
+
+      const probes = withAdmission(
+        yield* Semaphore.make(options.probes),
+        "probes"
+      );
 
       return HttpRouter.middleware(
         (httpEffect) =>

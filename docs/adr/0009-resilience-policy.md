@@ -15,10 +15,8 @@ A call to a dependency can fail slowly, fail partially or not answer. If each ha
 | [Concurrent work has an owner and a bound](#concurrent-work-has-an-owner-and-a-bound) | #116 |
 | [Admission control, bulkheads and backpressure](#admission-control-bulkheads-and-backpressure) | #117 |
 | [Circuit breakers for slow dependencies](#circuit-breakers-for-slow-dependencies) | #118 |
-| Golden signals: saturation and failed work | #119 |
+| [Golden signals: saturation and failed work](#golden-signals-saturation-and-failed-work) | #119 |
 | [Retention of data that accumulates](#retention-of-data-that-accumulates) | #121 |
-
-A section without a link is not in this ADR yet. Its issue adds it.
 
 ## Timeouts bound waiting
 
@@ -228,6 +226,62 @@ Each breaker has a readiness check, `breaker.readiness`, with the name `circuit:
 - The Effect wrapper (`makeBreaker`, `CircuitOpen`) has its tests in the same file. They use `TestClock` for the cooldown.
 - The route test is in `apps/effect/tests/breaker.test.ts`. It trips the breaker through the full middleware chain. Then it examines that the next request gets `503` with `Retry-After`, that the dependency gets no call, and that the readiness probe reports `circuit:payments` as `fail`.
 
+## Golden signals: saturation and failed work
+
+A server that only measures requests and their duration does not show overload early. The latency goes up when the server is already full, and a fast `503` or `504` can make the average latency go down. We decide that both apps measure the four golden signals: latency, traffic, errors and saturation. The metrics show failed work by its kind, and they show how full the server is.
+
+No lint rule can enforce this section. Code review and the tests below enforce it.
+
+### The four signals and their metric names
+
+| Signal | Metric | Type | Attributes |
+| --- | --- | --- | --- |
+| Latency | `http.server.request.duration` | Histogram, in seconds | `http.request.method`, `http.response.status_code` |
+| Traffic | `http.server.request.duration` (the count of the histogram) | Histogram | The same |
+| Errors | `http.server.failed_requests` | Counter | `http.request.method`, `error.type` |
+| Saturation | `http.server.active_requests` | Up-down counter | `http.request.method` in `apps/hono` only |
+| Saturation | `http.server.admission.rejections` | Counter | `bulkhead` |
+
+- The names `http.server.request.duration` and `http.server.active_requests` are OpenTelemetry semantic conventions. The two other names are ours. `error.type` is the OpenTelemetry attribute for the class of an error.
+- Do not add a different metric for the same signal. Add an attribute to the metric of the signal.
+
+### Failed work has a kind
+
+`http.server.failed_requests` counts each request that failed on the server: a response status of 500 or more. The attribute `error.type` gives the kind:
+
+| Status | `error.type` | What it means |
+| --- | --- | --- |
+| 504 | `timeout` | The inbound timeout or `OutcomeUnknown`. The outcome is unknown ([Timeouts bound waiting](#timeouts-bound-waiting)). |
+| 503 | `rejected` | The server did not do the work: admission was full, or a circuit breaker was open. |
+| 502 | `upstream` | A dependency answered with an error. |
+| Each other status of 500 or more | `defect` | A bug: an error that the code did not expect ([ADR-0007](./0007-failures-have-three-classes.md)). |
+
+- A refusal (a status of 400 to 499) is not failed work. The client must correct the request. The histogram counts refusals by their status code.
+- `failureKind` gives the kind from the status. It is in `apps/effect/src/server/metrics.ts` and in `apps/hono/src/shared/utils/failure-class.ts`. The two functions give the same result.
+
+### Saturation
+
+- `http.server.active_requests` is the number of requests in flight. It goes up when a request arrives and goes down when its response is ready. This includes a failure, a timeout and an interrupt.
+- `http.server.admission.rejections` counts each request that the admission middleware rejected with `503` ([Admission control, bulkheads and backpressure](#admission-control-bulkheads-and-backpressure)). The attribute `bulkhead` is `requests` or `probes`. A rejection of a probe is a sign that the probes need more capacity.
+- The apps have no queue, because admission does not put a request in a queue. Thus there is no queue depth metric. The rejections counter shows the work that a queue would hold.
+- Compare `http.server.active_requests` with `MAX_IN_FLIGHT_REQUESTS`. When it stays near the limit, the app is saturated before it rejects requests.
+
+### Where the metrics are
+
+| App | Latency and traffic | Errors | Active requests | Admission rejections |
+| --- | --- | --- | --- | --- |
+| `apps/effect` | `requestDuration` in `src/server/metrics.ts` | `failedRequests` in `src/server/metrics.ts` | `activeRequests` in `src/server/metrics.ts` | `admissionRejections` in `src/server/metrics.ts`, updated by `withAdmission` in `src/server/admission.ts` |
+| `apps/hono` | `httpInstrumentationMiddleware` of `@hono/otel` | `failedRequestsMiddleware` in `src/server/middleware/metrics.ts` | `httpInstrumentationMiddleware` of `@hono/otel` | `admissionMiddleware` in `src/server/middleware/admission.ts` |
+
+- In `apps/effect`, the `metrics` middleware is the second entry of the `CHAIN` in `src/app/chain.ts`. It is outside `admission`, `timeout` and `onError`, so it sees the final status of each response, also a `503` from admission.
+- In `apps/hono`, `failedRequestsMiddleware` is immediately after `httpInstrumentationMiddleware` in `src/app/app.ts`, for the same reason. Both apps get the meter from the OpenTelemetry SDK that `instrumentation.ts` or `observability.ts` starts.
+
+### Proof
+
+- `apps/effect/src/server/metrics.test.ts` and `apps/hono/src/server/middleware/metrics.test.ts` test the new metrics: each kind of failed work, no failed work for a refusal, and one series for each kind. The property tests check that a status below 500 is never failed work ([ADR-0005](./0005-property-based-tests.md)).
+- `apps/effect/src/server/admission.test.ts` and `apps/hono/src/server/middleware/admission.test.ts` check that each rejection is counted under its bulkhead, and that an admitted request is not counted.
+- The route tests in `apps/effect/tests/middleware.test.ts` (`the golden signals`) send requests through the full middleware chain. They check that a timeout and a defect are counted by their kind, that a refusal is not counted, and that the active requests go up during a request and go back to 0 after it ends, also after a timeout.
+
 ## Retention of data that accumulates
 
 In a steady state, the work that the server does each day must not change. A store that only gets new rows or new files grows without a limit. Then its queries become slow, its indexes use more memory, and the disk becomes full. We decide that each store that accumulates data has a retention, and a job deletes the data that is older than the retention.
@@ -280,6 +334,7 @@ Run the job with `bun hono db:purge` (`apps/hono/src/server/db/purge.ts`). It co
 - [Backpressure reaches the producer](https://ratstack.sh/lore/backpressure-reaches-the-producer)
 - [Every task needs an owner](https://ratstack.sh/lore/every-task-needs-an-owner)
 - [Circuit breakers have state](https://ratstack.sh/lore/circuit-breakers-have-state)
+- [Golden signals expose overload](https://ratstack.sh/lore/golden-signals-expose-overload)
 - [Steady state recycles resources](https://ratstack.sh/lore/steady-state-recycles-resources)
 - [Cleanup can be an idempotent postcondition](https://ratstack.sh/lore/cleanup-can-be-an-idempotent-postcondition)
 - [ADR-0007: Failures have three classes](./0007-failures-have-three-classes.md)

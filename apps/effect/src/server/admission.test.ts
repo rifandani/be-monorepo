@@ -1,8 +1,17 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Arbitrary, Deferred, Effect, Fiber, Schema, Semaphore } from "effect";
+import {
+  Arbitrary,
+  Deferred,
+  Effect,
+  Fiber,
+  Metric,
+  Schema,
+  Semaphore,
+} from "effect";
 import { HttpServerResponse } from "effect/http";
 
 import { RETRY_AFTER_SECONDS, withAdmission } from "./admission.ts";
+import { admissionRejections, bulkheadAttributes } from "./metrics.ts";
 
 const OK = HttpServerResponse.text("done");
 
@@ -27,7 +36,10 @@ describe(withAdmission, () => {
     Effect.gen(function* free() {
       const semaphore = yield* Semaphore.make(1);
 
-      const response = yield* withAdmission(semaphore)(Effect.succeed(OK));
+      const response = yield* withAdmission(
+        semaphore,
+        "requests"
+      )(Effect.succeed(OK));
 
       assert.strictEqual(response, OK);
     })
@@ -41,12 +53,15 @@ describe(withAdmission, () => {
         const release = yield* Deferred.make<boolean>();
 
         const first = yield* Effect.forkChild(
-          withAdmission(semaphore)(heldUntil(release))
+          withAdmission(semaphore, "requests")(heldUntil(release))
         );
 
         yield* Effect.yieldNow;
 
-        const response = yield* withAdmission(semaphore)(Effect.succeed(OK));
+        const response = yield* withAdmission(
+          semaphore,
+          "requests"
+        )(Effect.succeed(OK));
 
         assert.strictEqual(response.status, 503);
         assert.strictEqual(
@@ -73,18 +88,74 @@ describe(withAdmission, () => {
         return OK;
       });
 
-      yield* withAdmission(semaphore)(handler);
+      yield* withAdmission(semaphore, "requests")(handler);
 
       assert.isFalse(ran);
     })
+  );
+
+  it.effect("should count a rejection under the name of its bulkhead", () =>
+    Effect.provideService(
+      Effect.gen(function* counted() {
+        const semaphore = yield* Semaphore.make(0);
+
+        yield* withAdmission(semaphore, "probes")(Effect.succeed(OK));
+
+        const probes = yield* Metric.value(
+          Metric.withAttributes(
+            admissionRejections,
+            bulkheadAttributes("probes")
+          )
+        );
+
+        const requests = yield* Metric.value(
+          Metric.withAttributes(
+            admissionRejections,
+            bulkheadAttributes("requests")
+          )
+        );
+
+        assert.strictEqual(probes.count, 1);
+        assert.strictEqual(requests.count, 0);
+      }),
+      Metric.MetricRegistry,
+      new Map()
+    )
+  );
+
+  it.effect("should count no rejection when a slot is free", () =>
+    Effect.provideService(
+      Effect.gen(function* notCounted() {
+        const semaphore = yield* Semaphore.make(1);
+
+        yield* withAdmission(semaphore, "requests")(Effect.succeed(OK));
+
+        const requests = yield* Metric.value(
+          Metric.withAttributes(
+            admissionRejections,
+            bulkheadAttributes("requests")
+          )
+        );
+
+        assert.strictEqual(requests.count, 0);
+      }),
+      Metric.MetricRegistry,
+      new Map()
+    )
   );
 
   it.effect("should give the slot back when the handler fails", () =>
     Effect.gen(function* failed() {
       const semaphore = yield* Semaphore.make(1);
 
-      yield* Effect.flip(withAdmission(semaphore)(Effect.fail("boom")));
-      const response = yield* withAdmission(semaphore)(Effect.succeed(OK));
+      yield* Effect.flip(
+        withAdmission(semaphore, "requests")(Effect.fail("boom"))
+      );
+
+      const response = yield* withAdmission(
+        semaphore,
+        "requests"
+      )(Effect.succeed(OK));
 
       assert.strictEqual(response, OK);
     })
@@ -95,12 +166,16 @@ describe(withAdmission, () => {
       const semaphore = yield* Semaphore.make(1);
 
       const fiber = yield* Effect.forkChild(
-        withAdmission(semaphore)(Effect.never)
+        withAdmission(semaphore, "requests")(Effect.never)
       );
 
       yield* Effect.yieldNow;
       yield* Fiber.interrupt(fiber);
-      const response = yield* withAdmission(semaphore)(Effect.succeed(OK));
+
+      const response = yield* withAdmission(
+        semaphore,
+        "requests"
+      )(Effect.succeed(OK));
 
       assert.strictEqual(response, OK);
     })
@@ -116,7 +191,10 @@ describe(withAdmission, () => {
 
         const fibers = yield* Effect.forEach(
           Array.from({ length: limit + extra }),
-          () => Effect.forkChild(withAdmission(semaphore)(heldUntil(release)))
+          () =>
+            Effect.forkChild(
+              withAdmission(semaphore, "requests")(heldUntil(release))
+            )
         );
 
         yield* Effect.yieldNow;

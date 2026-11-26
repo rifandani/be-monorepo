@@ -1,8 +1,16 @@
+import { metrics } from "@opentelemetry/api";
+import {
+  AggregationTemporality,
+  InMemoryMetricExporter,
+  MeterProvider,
+  PeriodicExportingMetricReader,
+} from "@opentelemetry/sdk-metrics";
 import * as fc from "fast-check";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 
 import { admissionMiddleware, RETRY_AFTER_SECONDS } from "./admission.ts";
+import { METRIC_HTTP_SERVER_ADMISSION_REJECTIONS } from "./metrics.ts";
 
 const PROBE_PATH = "/health/live";
 
@@ -11,7 +19,33 @@ interface Held {
   readonly response: Promise<Response>;
 }
 
-const heldApp = (capacity: { requests: number; probes: number }) => {
+const collectingReader = () =>
+  new PeriodicExportingMetricReader({
+    exporter: new InMemoryMetricExporter(AggregationTemporality.CUMULATIVE),
+    exportIntervalMillis: 3_600_000,
+  });
+
+const rejectionsBy = async (reader: PeriodicExportingMetricReader) => {
+  const { resourceMetrics } = await reader.collect();
+
+  const metric = resourceMetrics.scopeMetrics
+    .flatMap((scope) => scope.metrics)
+    .find(
+      (data) => data.descriptor.name === METRIC_HTTP_SERVER_ADMISSION_REJECTIONS
+    );
+
+  return Object.fromEntries(
+    (metric?.dataPoints ?? []).map((point) => [
+      String(point.attributes.bulkhead),
+      point.value,
+    ])
+  );
+};
+
+const heldApp = (
+  capacity: { requests: number; probes: number },
+  meter = metrics.getMeter("test")
+) => {
   const arrivals: ((value: boolean) => void)[] = [];
   const release = Promise.withResolvers<boolean>();
   const app = new Hono();
@@ -21,6 +55,7 @@ const heldApp = (capacity: { requests: number; probes: number }) => {
     admissionMiddleware({
       ...capacity,
       isProbePath: (path) => path === PROBE_PATH,
+      meter,
     })
   );
   app.get("/held", async (c) => {
@@ -85,6 +120,26 @@ describe(admissionMiddleware, () => {
     await expect(rejected.json()).resolves.toStrictEqual({
       message: "Service Unavailable",
     });
+  });
+
+  it("should count a rejection under the name of its bulkhead", async () => {
+    const reader = collectingReader();
+    const meter = new MeterProvider({ readers: [reader] }).getMeter("test");
+    const { app } = heldApp({ probes: 0, requests: 1 }, meter);
+
+    await app.request(PROBE_PATH);
+
+    await expect(rejectionsBy(reader)).resolves.toStrictEqual({ probes: 1 });
+  });
+
+  it("should count no rejection when a slot is free", async () => {
+    const reader = collectingReader();
+    const meter = new MeterProvider({ readers: [reader] }).getMeter("test");
+    const { app } = heldApp({ probes: 1, requests: 1 }, meter);
+
+    await app.request(PROBE_PATH);
+
+    await expect(rejectionsBy(reader)).resolves.toStrictEqual({});
   });
 
   it("should keep a probe up when the request capacity is full", async () => {
