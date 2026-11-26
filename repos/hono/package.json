@@ -692,7 +692,7 @@
     "@vitest/coverage-v8": "5.0.1",
     "bun-types": "^1.2.20",
     "editorconfig-checker": "6.2.0",
-    "esbuild": "^0.27.1",
+    "esbuild": "^0.28.1",
     "jsdom": "22.1.0",
     "msw": "^2.6.0",
     "np": "11.2.1",
