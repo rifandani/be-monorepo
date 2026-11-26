@@ -100,6 +100,8 @@ export default defineConfig({
       files: ["apps/effect/**"],
       rules: {
         "anti-slop-effect/require-scoped-resource": "error",
+        "effect-tests/supply-services-through-layers": "error",
+        "landmines/no-test-doubles": "error",
         "unicorn/no-array-method-this-argument": "off",
         "no-redeclare": "off",
         "typescript/no-empty-interface": "off",
