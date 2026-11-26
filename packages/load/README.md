@@ -23,6 +23,7 @@ LOAD_TARGET=http://localhost:3000 bun load:hono:load
 - `LOAD_RATE` sets the peak requests per second. `LOAD_HOLD` sets how long the peak stays (for `breakpoint`, the length of the ramp). Do not use `K6_*` names: k6 reads them as its own options.
 - Hono: the run signs in once as the seed user, so run `bun hono db:seed` first. Set `LOAD_USER_EMAIL` and `LOAD_USER_PASSWORD` to use a different user. Start the app with `NODE_ENV` unset. `production` turns on the better-auth rate limits, so the test measures the limiter. `development` turns on the query logger, which slows down each database call.
 - Each run writes a JSON summary and an HTML report to `.k6-reports/`.
+- When an app is full, it answers `503` with `Retry-After` (admission control, [ADR-0009](../../docs/adr/0009-resilience-policy.md#admission-control-bulkheads-and-backpressure)). The `shed` counter counts these responses, and the check `a 503 has Retry-After` must pass for each of them. In `stress`, `spike` and `breakpoint`, a `503` is an expected status, so it does not count in `http_req_failed`. In `smoke` and `load`, a `503` is a failure. The threshold `http_req_duration{status:200}` measures only the accepted requests, so a `stress` or `spike` run shows if shedding keeps their latency in the budget.
 - A failed threshold makes k6 exit with code 99. The thresholds are in `src/shared/profiles.ts`.
 
 ## Files

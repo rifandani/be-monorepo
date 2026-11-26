@@ -245,6 +245,65 @@ describe("the global middleware", () => {
     });
   });
 
+  describe("the admission middleware", () => {
+    const entered = Promise.withResolvers<boolean>();
+    const release = Promise.withResolvers<boolean>();
+
+    const held = HttpRouter.add(
+      "GET",
+      "/held",
+      Effect.promise(async () => {
+        entered.resolve(true);
+        await release.promise;
+
+        return HttpServerResponse.text("done");
+      })
+    );
+
+    const full = HttpRouter.toWebHandler(
+      Layer.mergeAll(app, held).pipe(
+        Layer.provide([
+          HttpServer.layerServices,
+          ConfigProvider.layer(
+            ConfigProvider.fromEnvRecord({
+              APP_URL: `${ALLOWED_ORIGIN}/`,
+              MAX_IN_FLIGHT_PROBES: "1",
+              MAX_IN_FLIGHT_REQUESTS: "1",
+            })
+          ),
+        ])
+      ),
+      { disableLogger: true }
+    );
+
+    const send = async (path: string) =>
+      full.handler(new Request(`http://localhost${path}`));
+
+    afterAll(async () => full.dispose());
+
+    it("answers the request after the limit with 503 and Retry-After, and keeps the probes up", async () => {
+      const first = send("/held");
+      await entered.promise;
+
+      const rejected = await send("/held");
+      const probe = await send(LIVE_PATH);
+
+      release.resolve(true);
+      const admitted = await first;
+      const after = await send("/held");
+
+      assert.strictEqual(rejected.status, 503);
+      assert.strictEqual(rejected.headers.get("retry-after"), "1");
+      assert.isNotNull(rejected.headers.get("x-request-id"));
+      assert.deepStrictEqual(await rejected.json(), {
+        message: "Service Unavailable",
+      });
+      assert.strictEqual(probe.status, 200);
+      assert.strictEqual(admitted.status, 200);
+      assert.strictEqual(after.status, 200);
+    });
+  });
+
   describe("the timeout middleware", () => {
     const slow = HttpRouter.add(
       "GET",

@@ -2,6 +2,7 @@ import { Layer } from "effect";
 import type { Config } from "effect";
 import type { HttpRouter } from "effect/http";
 
+import { admission } from "#server/admission.ts";
 import { cors } from "#server/cors.ts";
 import { csrf } from "#server/csrf.ts";
 import { onError } from "#server/error.ts";
@@ -13,7 +14,7 @@ import { secureHeaders } from "#server/secure-headers.ts";
 import { timeout } from "#server/timeout.ts";
 import { timing } from "#server/timing.ts";
 
-import { quietProbes } from "./probes.ts";
+import { isProbePath, quietProbes } from "./probes.ts";
 
 type MiddlewareLayer = Layer.Layer<
   never,
@@ -27,6 +28,7 @@ export const CHAIN = [
   { layer: quietProbes, name: "quietProbes" },
   { layer: secureHeaders, name: "secureHeaders" },
   { layer: cors, name: "cors" },
+  { layer: admission(isProbePath), name: "admission" },
   { layer: timing, name: "timing" },
   { layer: timeout, name: "timeout" },
   { layer: language, name: "language" },

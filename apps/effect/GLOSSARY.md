@@ -46,4 +46,10 @@ The three failure classes. See [ADR-0007](../../docs/adr/0007-failures-have-thre
 
 ### Server
 
-**Middleware Chain**: The eleven global middleware this app wraps its router in, declared as one ordered tuple in `src/app/chain.ts` and folded once. The order is the whole of what it is: registration order is nesting order, and nesting decides what a response that never reaches the router carries out — a cors preflight leaves with no timings, a csrf 403 leaves with everything. Stated once because the count in prose drifted when it was not. _Avoid_: middleware stack, pipeline, the middlewares
+**Middleware Chain**: The twelve global middleware this app wraps its router in, declared as one ordered tuple in `src/app/chain.ts` and folded once. The order is the whole of what it is: registration order is nesting order, and nesting decides what a response that never reaches the router carries out — a cors preflight leaves with no timings, a csrf 403 leaves with everything. Stated once because the count in prose drifted when it was not. _Avoid_: middleware stack, pipeline, the middlewares
+
+**Admission Control**: The limit on the number of requests in flight. A request takes one slot when it arrives and gives it back when its handler ends. When no slot is free, the app sheds the request. See [ADR-0009](../../docs/adr/0009-resilience-policy.md#admission-control-bulkheads-and-backpressure). _Avoid_: rate limiting, throttling
+
+**Bulkhead**: A separate set of slots for one kind of request, so that a full app does not stop it. The Probes have a Bulkhead. _Avoid_: pool, partition
+
+**Shed**: To refuse a request because no slot is free: `503` with `Retry-After`, before the handler runs. A shed request is an Infrastructure Fault. _Avoid_: drop, reject (as the name of this act)

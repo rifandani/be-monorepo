@@ -18,6 +18,7 @@ import { match, P } from "ts-pattern";
 import { prettifyError, ZodError } from "zod";
 
 import { LLMS_INDEX_PATH } from "#features/docs/routes.ts";
+import { admissionMiddleware } from "#server/middleware/admission.ts";
 import { authContextMiddleware } from "#server/middleware/auth.ts";
 import { identifyMiddleware } from "#server/middleware/identify.ts";
 import { evlogMiddlewareOptions } from "#server/observability/evlog.ts";
@@ -34,6 +35,7 @@ import { absoluteUrl } from "#shared/utils/links.ts";
 import { routes } from "./routes.ts";
 
 const INBOUND_TIMEOUT = 15_000;
+const PROBE_PATHS: ReadonlySet<string> = new Set();
 const NOT_FOUND_MESSAGE = "404 Not found";
 
 const NOT_FOUND_FIX =
@@ -54,7 +56,6 @@ app.use(
   contextStorage(),
   requestId(),
   evlog(evlogMiddlewareOptions),
-  identifyMiddleware(),
   cors({
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: ["GET", "POST", "OPTIONS"],
@@ -62,6 +63,12 @@ app.use(
     exposeHeaders: ["Content-Length"],
     origin: [ENV.APP_URL],
   }),
+  admissionMiddleware({
+    isProbePath: (path) => PROBE_PATHS.has(path),
+    probes: ENV.MAX_IN_FLIGHT_PROBES,
+    requests: ENV.MAX_IN_FLIGHT_REQUESTS,
+  }),
+  identifyMiddleware(),
   authContextMiddleware(),
   timing(),
   timeout(INBOUND_TIMEOUT),

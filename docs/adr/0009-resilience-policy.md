@@ -13,7 +13,7 @@ A call to a dependency can fail slowly, fail partially or not answer. If each ha
 | [Timeouts bound waiting](#timeouts-bound-waiting) | #114 |
 | [Bounded retries and idempotency](#bounded-retries-and-idempotency) | #115 |
 | [Concurrent work has an owner and a bound](#concurrent-work-has-an-owner-and-a-bound) | #116 |
-| Admission control, bulkheads and backpressure | #117 |
+| [Admission control, bulkheads and backpressure](#admission-control-bulkheads-and-backpressure) | #117 |
 | Circuit breakers for slow dependencies | #118 |
 | Golden signals: saturation and failed work | #119 |
 | Retention of data that accumulates | #121 |
@@ -133,11 +133,48 @@ The lint rule `anti-slop-effect/bounded-owned-concurrency` (`tools/lint/anti-slo
 
 In `apps/hono`, each promise has `await`, `return` or `void`. The rule `typescript/no-floating-promises` enforces this. `oxlint.config.ts` sets it to `"error"`.
 
+## Admission control, bulkheads and backpressure
+
+A server without a limit accepts each request. Under a spike, all requests share the CPU, the memory and the connections, so all requests become slow. Clients wait, time out and retry, and this adds more load. The recovery is slow too, because the server must complete the old work before it can do new work. We decide that each app limits the number of requests in flight. A request that comes when the app is full gets a fast refusal. The requests that the app accepts keep their usual latency.
+
+### Each app has a maximum of requests in flight
+
+- Each request takes one slot when it arrives, and gives the slot back when its handler ends. This includes a failure, a throw and an interrupt.
+- When no slot is free, the app does not put the request in a queue. It answers `503` immediately, with the header `Retry-After: 1` and the body `{"message":"Service Unavailable"}`. The handler does not run.
+- `503` is an infrastructure fault ([ADR-0007](./0007-failures-have-three-classes.md)). The `Retry-After` header is the backpressure: it tells the client to wait before it sends the request again. The rules in [Bounded retries and idempotency](#bounded-retries-and-idempotency) also apply to this retry.
+- The admission middleware runs before the work that costs much (authentication, the handler), and after the middleware that gives each response its request id, its security headers and its CORS headers.
+
+### Probes have their own capacity
+
+The health and probe routes have a bulkhead: their own slots, separate from the other requests. When the app is full, a probe still gets an answer. Thus the orchestrator does not stop an app that is busy but healthy.
+
+### Where the limits are
+
+Each limit has one place, and it comes from configuration. Do not write a limit in a handler. Each limit is an integer that is more than 0. The app does not start with a different value.
+
+| App | Middleware | Request limit | Probe limit | Probe routes |
+| --- | --- | --- | --- | --- |
+| `apps/effect` | `admission` in `src/server/admission.ts`, in the `CHAIN` of `src/app/chain.ts` | `MAX_IN_FLIGHT_REQUESTS` (`Config`, default 256) | `MAX_IN_FLIGHT_PROBES` (`Config`, default 8) | The `PROBES` of `src/features/health/api.ts` |
+| `apps/hono` | `admissionMiddleware` in `src/server/middleware/admission.ts`, in `src/app/app.ts` | `MAX_IN_FLIGHT_REQUESTS` (`ENV`, default 256) | `MAX_IN_FLIGHT_PROBES` (`ENV`, default 8) | `PROBE_PATHS` in `src/app/app.ts`. At this time it is empty, because `apps/hono` has no probe route. Add the path of each new probe route. |
+
+`apps/effect` uses a `Semaphore` and `withPermitsIfAvailable(1)`, so a request never waits for a permit. When the inbound timeout stops a handler, the interrupt gives the permit back.
+
+In `apps/hono`, the admission middleware is outside `hono/timeout`. When the inbound timeout answers 504, the slot comes back, but the handler can continue. Thus a slow handler can use more than its slot for a short time. Keep the handlers inside the inbound timeout.
+
+### Proof
+
+- The tests for the middleware are in `apps/effect/src/server/admission.test.ts` and `apps/hono/src/server/middleware/admission.test.ts`.
+- The route tests are in `apps/effect/tests/middleware.test.ts` (the admission middleware) and `apps/hono/tests/admission.test.ts`. They fill the capacity through the full app, and they examine that the next request gets `503` with `Retry-After`.
+- In `packages/load`, the `shed` counter counts each `503`, and the check `a 503 has Retry-After` must pass. The threshold `http_req_duration{status:200}` measures only the accepted requests. Run the `stress` and `spike` profiles with a low `MAX_IN_FLIGHT_REQUESTS` to see the shedding.
+
 ## References
 
 - [Timeouts bound waiting](https://ratstack.sh/lore/timeouts-bound-waiting)
 - [Retry needs idempotency](https://ratstack.sh/lore/retry-needs-idempotency)
 - [Retry load needs a budget](https://ratstack.sh/lore/retry-load-needs-a-budget)
 - [Concurrent work needs an owner](https://ratstack.sh/lore/concurrent-work-needs-an-owner)
+- [Admission controls new work](https://ratstack.sh/lore/admission-controls-new-work)
+- [Bulkheads isolate capacity](https://ratstack.sh/lore/bulkheads-isolate-capacity)
+- [Backpressure reaches the producer](https://ratstack.sh/lore/backpressure-reaches-the-producer)
 - [Every task needs an owner](https://ratstack.sh/lore/every-task-needs-an-owner)
 - [ADR-0007: Failures have three classes](./0007-failures-have-three-classes.md)
