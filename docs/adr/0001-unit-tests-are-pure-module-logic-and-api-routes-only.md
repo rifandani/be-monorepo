@@ -91,6 +91,41 @@ A middleware that cannot be made to answer over the composed app — `timeout`, 
 
 One v8 quirk is worth knowing before chasing a phantom gap: a ternary between two `await import()` expressions makes v8 lose coverage for every statement after it in the same function, reported as untested lines that demonstrably ran. `apps/hono/src/server/client-address.ts` keeps the conditional import in its own `importGetConnInfo` function for exactly this reason.
 
+## Testing ladder
+
+Name the failure before choosing the check. The rungs run from the cheapest and earliest check to the slowest and latest:
+
+1. **Lint** — code shape. oxlint with the repo's own rules in `tools/lint`, plus fallow for boundaries, dead code, duplication and the security surface.
+2. **Types** — wiring, required services and contract drift. The TypeScript compiler, which `bun lint` runs because `oxlint.config.ts` sets `typeCheck: true`, and Freerange (`fr`) for numeric ranges.
+3. **Pure unit, property and model tests** — colocated `src/**/*.test.ts` called with real inputs, properties per ADR-0005, and the tests for `tools/lint` and `scripts`.
+4. **Route tests** — `apps/*/tests/*.test.ts` against the real `app`, including the model test in `apps/hono/tests/auth-flow.test.ts`.
+5. **Runtime integration** — a running app over a real socket: the `packages/load` smoke profile and the ZAP baseline against a local target.
+6. **Deployed checks** — the same tools against a deployed URL.
+
+**Use the lowest rung that can detect the failure.** If a rule can be a lint rule, make it a lint rule: it fails in the editor and on every file, while a test fails only for the inputs someone wrote. That is why Effect tests that replace a service are refused by `effect-tests/supply-services-through-layers` and not by review. Climb a rung only when the one below cannot see the failure — a global middleware needs a route test because coverage cannot ask whether it runs (see [What the gate does not ask](#what-the-gate-does-not-ask)).
+
+Mutation testing is not a rung. It checks the tests on rungs 3 and 4, not the code, and gates nothing (ADR-0002).
+
+| Command | Rung | In CI |
+| --- | --- | --- |
+| `bun lint` | 1 and 2 | `ci.yml` › lint |
+| `bun run check:all`: `check:boundaries` (each workspace's own) then the full fallow scan | 1 | `ci.yml` › fallow runs the same two steps |
+| `bun run check:health`, `check:dead-code`, `check:dupes` | 1, one part of the full fallow scan each | through `ci.yml` › fallow |
+| `bun run check:security`, `check:security:survivors` | 1 | — |
+| `bun run audit:sca` | 1 | `security.yml` › sca runs the same script |
+| `bun typerange` (`hono:typerange`, `effect:typerange`, each app's `typerange`) | 2 | `ci.yml` › typerange |
+| `bun run test` (`hono:test`, `effect:test`) | 3 and 4 | — |
+| `bun run test:cov` | 3 and 4, with the coverage gate | `ci.yml` › unit |
+| `bun run test:mutate`, `test:mutate:inc` | none; audits 3 and 4 | `mutation.yml`, manual dispatch only |
+| `bun load:{hono,effect}:smoke` | 5 on a local target, 6 on a deployed one | — |
+| `bun load:{hono,effect}:{load,stress,spike,breakpoint}` | 5; `stress`, `spike` and `breakpoint` refuse a remote host without `--allow-remote` | — |
+| `bun zap:{hono,effect}:baseline` | 5 on a local target, 6 on a deployed one | `dast.yml` › prod-baseline, weekly, skipped until `PROD_HONO_URL` / `PROD_EFFECT_URL` exist |
+| `bun zap:{hono,effect}:active` | 5, local targets only | — |
+
+CI also runs checks with no `package.json` command, all on rung 1: zizmor on the workflows, sherif on the workspace manifests, gitleaks on the history, and CodeQL with `scripts/security/sarif-severity-gate.ts`. Nothing runs on rung 6 yet: `dast.yml` is the only deployed check, and it scans nothing until a production URL is set.
+
+The other scripts are not checks: `prepare`, `compose:up`, `clean`, `repos:update`, `bump:deps`, `bump:skills`, `portless`, `cs`, `cs:v`, `lint:fix`, `lint:doctor`, `check:viz`, `check:fix`, the `hono` / `effect` / `load` workspace filters, and each app's `dev`, `node:*`, `db:*` and `auth:gen`.
+
 ## Consequences
 
 - Api repositories in `packages/core/src/apis/` are tested at the Network Boundary; a wrong schema or URL now fails a test rather than relying on manual review alone.
