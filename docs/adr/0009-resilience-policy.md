@@ -12,6 +12,7 @@ A call to a dependency can fail slowly, fail partially or not answer. If each ha
 | --- | --- |
 | [Timeouts bound waiting](#timeouts-bound-waiting) | #114 |
 | [Bounded retries and idempotency](#bounded-retries-and-idempotency) | #115 |
+| [Concurrent work has an owner and a bound](#concurrent-work-has-an-owner-and-a-bound) | #116 |
 | Admission control, bulkheads and backpressure | #117 |
 | Circuit breakers for slow dependencies | #118 |
 | Golden signals: saturation and failed work | #119 |
@@ -111,9 +112,32 @@ At this time, no route in `apps/hono` or `apps/effect` accepts an `Idempotency-K
 
 The tests for `anti-slop-effect/bounded-retry` are in `tools/lint/anti-slop-effect/rules/bounded-retry.test.ts`.
 
+## Concurrent work has an owner and a bound
+
+Concurrent work without a bound starts one fiber or promise for each input. A large input can use all connections, all memory or all of a rate limit. Work without an owner is worse: no parent waits for it, so its failures are lost, and it continues after the request ends.
+
+### Each concurrent step has a bound
+
+- `concurrency: "unbounded"` is an error. Set a number from a named constant, for example `concurrency: READINESS_CONCURRENCY`. This applies to `Effect.forEach`, `Effect.all`, `Stream.mapEffect` and each other step that accepts a `concurrency` option.
+- The rule examines only files that import an Effect module. It examines test files too.
+
+### Each fiber has an owner
+
+- In `src/`, `Effect.forkDetach`, `Effect.forkDaemon`, `Effect.runFork` and `Effect.runForkWith` are errors. Use `Effect.forkChild` or `Effect.forkScoped`, or `Effect.forkIn` with the scope of a Layer.
+- The entry points in `src/app/` start the runtime, so they can use these calls. The `entryPoints` option of the rule sets the entry points. The default is `apps/*/src/app/**`.
+- Test files are not examined. `effect-tests/no-manual-effect-runtime-in-tests` already forbids `Effect.runFork` in tests.
+
+The lint rule `anti-slop-effect/bounded-owned-concurrency` (`tools/lint/anti-slop-effect/rules/bounded-owned-concurrency.ts`) enforces the two rules above. Its tests are in `tools/lint/anti-slop-effect/rules/bounded-owned-concurrency.test.ts`.
+
+### Each promise has a handler
+
+In `apps/hono`, each promise has `await`, `return` or `void`. The rule `typescript/no-floating-promises` enforces this. `oxlint.config.ts` sets it to `"error"`.
+
 ## References
 
 - [Timeouts bound waiting](https://ratstack.sh/lore/timeouts-bound-waiting)
 - [Retry needs idempotency](https://ratstack.sh/lore/retry-needs-idempotency)
 - [Retry load needs a budget](https://ratstack.sh/lore/retry-load-needs-a-budget)
+- [Concurrent work needs an owner](https://ratstack.sh/lore/concurrent-work-needs-an-owner)
+- [Every task needs an owner](https://ratstack.sh/lore/every-task-needs-an-owner)
 - [ADR-0007: Failures have three classes](./0007-failures-have-three-classes.md)

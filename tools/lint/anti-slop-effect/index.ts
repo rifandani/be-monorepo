@@ -1,5 +1,6 @@
 import { eslintCompatPlugin } from "@oxlint/plugins";
 
+import { boundedOwnedConcurrencyRule } from "./rules/bounded-owned-concurrency.ts";
 import { boundedRetryRule } from "./rules/bounded-retry.ts";
 import { noDefectSwallowingRule } from "./rules/no-defect-swallowing.ts";
 import { noManualEffectErrorTagRule } from "./rules/no-manual-effect-error-tag.ts";
@@ -18,6 +19,7 @@ import { resolveDependenciesAtConstructionRule } from "./rules/resolve-dependenc
 const antiSlopEffectPlugin = eslintCompatPlugin({
   meta: { name: "anti-slop-effect" },
   rules: {
+    "bounded-owned-concurrency": boundedOwnedConcurrencyRule,
     "bounded-retry": boundedRetryRule,
     "no-defect-swallowing": noDefectSwallowingRule,
     "no-manual-effect-error-tag": noManualEffectErrorTagRule,

@@ -23,6 +23,7 @@ export default defineConfig({
     "comments/no-comments": "error",
     "comments/directive-reason": "error",
     "effect-tests/no-manual-effect-runtime-in-tests": "error",
+    "anti-slop-effect/bounded-owned-concurrency": "error",
     "anti-slop-effect/bounded-retry": "error",
     "anti-slop-effect/no-defect-swallowing": [
       "error",
@@ -50,6 +51,7 @@ export default defineConfig({
     "landmines/no-test-doubles": "warn",
     "landmines/no-unsignaled-poll": "error",
     "io-boundary/validated-http-response": "error",
+    "typescript/no-floating-promises": "error",
     "typescript/return-await": ["error", "in-try-catch"],
     "eslint/require-await": "off",
     "sort-keys": "off",
