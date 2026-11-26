@@ -20,7 +20,7 @@ export const memberName = (node: ESTree.MemberExpression) =>
     ? undefined
     : propertyName(node.property);
 
-const definition = (
+export const definition = (
   source: SourceCode,
   identifier: ESTree.Node & { readonly name: string }
 ) => {

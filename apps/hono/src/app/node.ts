@@ -2,12 +2,12 @@ import { serve } from "@hono/node-server";
 import { log } from "evlog";
 
 import { shutdownObservability } from "#server/instrumentation.ts";
-import { PORT } from "#shared/constants/global.ts";
+import { ENV } from "#shared/constants/env.ts";
 import { messageOf } from "#shared/utils/message-of.ts";
 
 import { app } from "./app.ts";
 
-const server = serve({ fetch: app.fetch, port: PORT }, (info) => {
+const server = serve({ fetch: app.fetch, port: ENV.PORT }, (info) => {
   log.info(
     "node-server",
     `Started development server: http://localhost:${info.port}`

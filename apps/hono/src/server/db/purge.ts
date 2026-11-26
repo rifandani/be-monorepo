@@ -5,17 +5,14 @@ import { Pool } from "pg";
 
 import type { DeleteBatch } from "#server/retention.ts";
 import { purgeExpired } from "#server/retention.ts";
+import { ENV } from "#shared/constants/env.ts";
 import { messageOf } from "#shared/utils/message-of.ts";
 
 const PURGE_CONNECT_TIMEOUT_MS = 10_000;
 const PURGE_STATEMENT_TIMEOUT_MS = 30_000;
 
 const main = async () => {
-  const connectionString = process.env.DATABASE_URL;
-
-  if (connectionString === undefined || connectionString.length === 0) {
-    throw new Error("DATABASE_URL is required");
-  }
+  const connectionString = ENV.DATABASE_URL;
 
   const pool = new Pool({
     connectionString,

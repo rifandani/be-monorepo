@@ -36,6 +36,12 @@ app.get("/__test/zod-nested", () => {
   return new Response("unreachable");
 });
 
+app.get("/__test/zod-root", () => {
+  z.string().parse(42);
+
+  return new Response("unreachable");
+});
+
 app.get("/__test/ky", () => {
   const error = new HTTPError(
     Response.json({ detail: "upstream rejected it" }, { status: 400 }),
@@ -118,6 +124,14 @@ describe("app error handling", () => {
     const body = (await res.json()) as { docs: string };
 
     expect(body.docs).toBe(`${ENV.APP_URL}/llms.txt`);
+  });
+
+  it("names the root when the rejected value is the whole input", async () => {
+    const res = await app.request("/__test/zod-root");
+    const body = (await res.json()) as { location: string };
+
+    expect(res.status).toBe(400);
+    expect(body.location).toBe("(root)");
   });
 
   it("names the nested path of the first rejected field", async () => {

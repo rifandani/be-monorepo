@@ -11,8 +11,10 @@ export const ENV = createEnv({
     APP_URL: z.string().min(1),
     BETTER_AUTH_SECRET: z.string().min(1),
     DATABASE_URL: z.string().min(1),
+    NODE_ENV: z.string().min(1).default("development"),
     MAX_IN_FLIGHT_PROBES: z.coerce.number().int().positive().default(8),
     MAX_IN_FLIGHT_REQUESTS: z.coerce.number().int().positive().default(256),
+    PORT: z.coerce.number().int().positive().optional(),
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().min(1),
     OTEL_LOG_LEVEL: z.enum([
       "ALL",
@@ -25,3 +27,8 @@ export const ENV = createEnv({
     ]),
   },
 });
+
+export type AppConfig = Pick<
+  typeof ENV,
+  "APP_TITLE" | "APP_URL" | "MAX_IN_FLIGHT_PROBES" | "MAX_IN_FLIGHT_REQUESTS"
+>;

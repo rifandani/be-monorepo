@@ -50,6 +50,20 @@ export default defineConfig({
     "landmines/no-flake-masking-timeout": ["warn", { check: "timeout" }],
     "landmines/no-test-doubles": "warn",
     "landmines/no-unsignaled-poll": "error",
+    "io-boundary/no-ambient-env": [
+      "error",
+      {
+        allow: [
+          "apps/hono/src/shared/constants/env.ts",
+          "apps/effect/src/shared/config.ts",
+          "scripts/**",
+          "packages/load/src/app/run.ts",
+          "**/*.config.ts",
+          "**/*.config.mjs",
+          "vitest.property.ts",
+        ],
+      },
+    ],
     "io-boundary/require-query-limit": "error",
     "io-boundary/validated-http-response": "error",
     "typescript/no-floating-promises": "error",

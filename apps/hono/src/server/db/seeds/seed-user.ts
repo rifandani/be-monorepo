@@ -9,6 +9,7 @@ import {
   userTable,
   verificationTable,
 } from "#server/db/schema.ts";
+import { ENV } from "#shared/constants/env.ts";
 
 import { SEED_BULK_PASSWORD, SEED_USER } from "./seed-user-data.ts";
 
@@ -80,11 +81,7 @@ const seedDemoUser = async (db: Db) => {
 };
 
 const main = async () => {
-  const connectionString = process.env.DATABASE_URL;
-
-  if (connectionString === undefined || connectionString.length === 0) {
-    throw new Error("DATABASE_URL is required");
-  }
+  const connectionString = ENV.DATABASE_URL;
 
   const pool = new Pool({ connectionString });
 

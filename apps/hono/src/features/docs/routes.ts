@@ -8,7 +8,7 @@ import type { MiddlewareHandler } from "hono";
 
 import { auth } from "#server/auth.ts";
 import type { Variables } from "#server/types/hono.ts";
-import { ENV } from "#shared/constants/env.ts";
+import type { AppConfig } from "#shared/constants/env.ts";
 import { SERVICE_VERSION } from "#shared/constants/global.ts";
 import { nextActions, nextActionsMarkdown } from "#shared/utils/links.ts";
 import type { NextAction } from "#shared/utils/links.ts";
@@ -67,14 +67,17 @@ const nextActionSchema = z.object({
 const withNextActions = (markdown: string, actions: readonly NextAction[]) =>
   `${markdown}\n\n${nextActionsMarkdown(actions)}`;
 
-const buildLlmsPages = async (app: DocsApp): Promise<LlmsPages> => {
+const buildLlmsPages = async (
+  app: DocsApp,
+  config: AppConfig
+): Promise<LlmsPages> => {
   const appContract = app.getOpenAPI31Document({
     info: {
-      title: ENV.APP_TITLE,
+      title: config.APP_TITLE,
       version: `v${SERVICE_VERSION}`,
     },
     openapi: "3.1.0",
-    servers: [{ url: ENV.APP_URL }],
+    servers: [{ url: config.APP_URL }],
   });
 
   const authContract = await auth.api.generateOpenAPISchema();
@@ -84,12 +87,12 @@ const buildLlmsPages = async (app: DocsApp): Promise<LlmsPages> => {
     createMarkdownFromOpenApi(JSON.stringify(authContract)),
   ]);
 
-  const appActions = nextActions(appContract, ENV.APP_URL);
+  const appActions = nextActions(appContract, config.APP_URL);
 
   return {
     auth: withNextActions(
       authMarkdown,
-      nextActions(authContract, ENV.APP_URL)
+      nextActions(authContract, config.APP_URL)
     ),
     index: withNextActions(appMarkdown, appActions),
     links: appActions,
@@ -217,7 +220,7 @@ const registerOpenApiMarkdownRoute = (
   );
 };
 
-export const llmsDocsRoutes = async (app: DocsApp) => {
+export const llmsDocsRoutes = async (app: DocsApp, config: AppConfig) => {
   app.use(LLMS_DOCS_PATH, llmsCacheControl);
   app.use(LLMS_INDEX_PATH, llmsCacheControl);
   app.use(LLMS_AUTH_PATH, llmsCacheControl);
@@ -228,5 +231,5 @@ export const llmsDocsRoutes = async (app: DocsApp) => {
   registerAuthMarkdownRoute(app, pages.promise);
   registerOpenApiMarkdownRoute(app, pages.promise);
 
-  pages.resolve(await buildLlmsPages(app));
+  pages.resolve(await buildLlmsPages(app, config));
 };

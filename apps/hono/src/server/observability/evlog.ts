@@ -26,7 +26,7 @@ const drain = pipeline(
   createOTLPDrain({
     endpoint: ENV.OTEL_EXPORTER_OTLP_ENDPOINT,
     resourceAttributes: {
-      "deployment.environment": process.env.NODE_ENV ?? "development",
+      "deployment.environment": ENV.NODE_ENV,
       "service.version": SERVICE_VERSION,
     },
     serviceName: SERVICE_NAME,

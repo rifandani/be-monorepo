@@ -1,8 +1,8 @@
-import { PORT } from "#shared/constants/global.ts";
+import { ENV } from "#shared/constants/env.ts";
 
 import { app } from "./app.ts";
 
 export default {
   fetch: app.fetch,
-  port: PORT,
+  port: ENV.PORT,
 };
