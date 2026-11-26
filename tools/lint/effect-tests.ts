@@ -112,7 +112,14 @@ const effectPath = (source: SourceCode, callee: ESTree.Node) => {
     : [];
 };
 
-const suppliesService = (source: SourceCode, call: ESTree.CallExpression) => {
+const providesProgram = (call: ESTree.CallExpression, child: ESTree.Node) =>
+  call.arguments.length > 2 && call.arguments[0] === child;
+
+const suppliesService = (
+  source: SourceCode,
+  call: ESTree.CallExpression,
+  child: ESTree.Node
+) => {
   const callee = rootCallee(call.callee);
 
   if (
@@ -130,9 +137,14 @@ const suppliesService = (source: SourceCode, call: ESTree.CallExpression) => {
     return false;
   }
 
-  return module === "Effect"
-    ? SERVICE_SUPPLIERS.has(`${module}.${method}`)
-    : SERVICE_MODULES.has(module);
+  if (module === "Effect") {
+    return (
+      SERVICE_SUPPLIERS.has(`${module}.${method}`) &&
+      !providesProgram(call, child)
+    );
+  }
+
+  return SERVICE_MODULES.has(module);
 };
 
 const handlesNetwork = (source: SourceCode, call: ESTree.CallExpression) => {
@@ -146,25 +158,80 @@ const handlesNetwork = (source: SourceCode, call: ESTree.CallExpression) => {
 };
 
 const replacesService = (source: SourceCode, node: ESTree.Node) => {
+  let child: ESTree.Node = node;
+
   for (
     let current = node.parent;
     current !== null && current !== undefined;
     current = current.parent
   ) {
-    if (current.type !== "CallExpression") {
-      continue;
+    if (current.type === "CallExpression") {
+      if (handlesNetwork(source, current)) {
+        return false;
+      }
+
+      if (suppliesService(source, current, child)) {
+        return true;
+      }
     }
 
-    if (handlesNetwork(source, current)) {
-      return false;
-    }
-
-    if (suppliesService(source, current)) {
-      return true;
-    }
+    child = current;
   }
 
   return false;
+};
+
+const VALUE_WRAPPERS = new Set([
+  "ArrayExpression",
+  "ObjectExpression",
+  "Property",
+  "TSAsExpression",
+  "TSNonNullExpression",
+  "TSSatisfiesExpression",
+]);
+
+const MAX_BINDING_DEPTH = 4;
+
+const declaratorOf = (node: ESTree.Node): ESTree.VariableDeclarator | null => {
+  let child: ESTree.Node = node;
+  let current = node.parent;
+
+  while (
+    current !== null &&
+    current !== undefined &&
+    VALUE_WRAPPERS.has(current.type) &&
+    (current.type !== "Property" || current.value === child)
+  ) {
+    child = current;
+    current = current.parent;
+  }
+
+  return current?.type === "VariableDeclarator" && current.init === child
+    ? current
+    : null;
+};
+
+const boundIntoService = (
+  source: SourceCode,
+  node: ESTree.Node,
+  depth: number
+): boolean => {
+  const declarator = declaratorOf(node);
+
+  if (declarator === null || depth > MAX_BINDING_DEPTH) {
+    return false;
+  }
+
+  return source
+    .getDeclaredVariables(declarator)
+    .some((variable) =>
+      variable.references.some(
+        ({ identifier }) =>
+          identifier !== declarator.id &&
+          (replacesService(source, identifier) ||
+            boundIntoService(source, identifier, depth + 1))
+      )
+    );
 };
 
 const spiesOnConsole = (node: ESTree.CallExpression) => {
@@ -194,7 +261,10 @@ export const supplyServicesThroughLayers = defineRule({
           context.report({ messageId: "moduleMock", node: node.callee });
         } else if (method === "spyOn" && !spiesOnConsole(node)) {
           context.report({ messageId: "spy", node: node.callee });
-        } else if (method === "fn" && replacesService(source, node)) {
+        } else if (
+          method === "fn" &&
+          (replacesService(source, node) || boundIntoService(source, node, 0))
+        ) {
           context.report({ messageId: "serviceFn", node: node.callee });
         }
       },

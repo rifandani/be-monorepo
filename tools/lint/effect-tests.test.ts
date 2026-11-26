@@ -87,6 +87,27 @@ tester.run("supply-services-through-layers", supplyServicesThroughLayers, {
       `${vitest} import { Layer } from "effect-extra"; Layer.succeed(Users)({ find: vi.fn() });`
     ),
     supplyValid(
+      `${vitest} ${effect} const onSave = vi.fn(); const users = Layer.succeed(Users)(memoryUsers); save(onSave);`
+    ),
+    supplyValid(
+      `${vitest} ${effect} const onSave = vi.fn(); Effect.provideService(Effect.sync(() => onSave()), Users, memoryUsers);`
+    ),
+    supplyValid(
+      `${vitest} ${effect} const find = vi.fn(); const make = (find) => Layer.succeed(Users)({ find }); save(find);`
+    ),
+    supplyValid(
+      `${vitest} ${effect} ${msw} const resolver = vi.fn(); Layer.succeed(Api)({ handlers: [http.get("https://api.test/users", resolver)] });`
+    ),
+    supplyValid(
+      `${effect} const vi = { fn: () => 1 }; const find = vi.fn(); Layer.succeed(Users)({ find });`
+    ),
+    supplyValid(
+      `${vitest} ${effect} const calls = { onSave: vi.fn() }; save(calls.onSave); Layer.succeed(Users)(memoryUsers);`
+    ),
+    supplyValid(
+      `${vitest} ${effect} Effect.provideService(Effect.sync(vi.fn()), Users, memoryUsers);`
+    ),
+    supplyValid(
       `import { vi } from "./clock.ts"; vi.mock("#app/db.ts"); vi.spyOn(Users, "find");`
     ),
     {
@@ -144,6 +165,34 @@ tester.run("supply-services-through-layers", supplyServicesThroughLayers, {
     ),
     supplied(
       `${vitest} import * as Layer from "effect/Layer"; Layer.sync(Users, () => ({ find: vi.fn() }));`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} const find = vi.fn(); Layer.succeed(Users)({ find: find });`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} const find = vi.fn(); Layer.succeed(Users)({ find });`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} const users = { find: vi.fn() }; Layer.succeed(Users)(users);`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} const find = vi.fn(); const users = { find }; Effect.provideService(program, Users, users);`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} const find = vi.fn(); Users.of({ find });`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} const find = vi.fn(); Context.make(Users, { find });`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} const find = vi.fn(); const users = Layer.succeed(Users)({ find }); expect(find).toHaveBeenCalled();`,
       "serviceFn"
     ),
     {
