@@ -1,6 +1,9 @@
 import { RuleTester } from "oxlint/plugins-dev";
 
-import { noManualEffectRuntimeInTests as rule } from "./effect-tests.ts";
+import {
+  noManualEffectRuntimeInTests as rule,
+  supplyServicesThroughLayers,
+} from "./effect-tests.ts";
 
 const tester = new RuleTester({
   languageOptions: { parserOptions: { lang: "ts" } },
@@ -32,6 +35,170 @@ tester.run("no-manual-effect-runtime-in-tests", rule, {
       code: "Effect.runSync(program);",
       filename: "src/user.spec.tsx",
       errors: [{ messageId: "manualRunner" }],
+    },
+  ],
+});
+
+const vitest = 'import { it, vi } from "@effect/vitest";';
+const effect = 'import { Context, Effect, Layer } from "effect";';
+const msw = 'import { http, HttpResponse } from "msw";';
+
+const supplied = (code: string, messageId: string) => ({
+  code,
+  filename: "apps/effect/tests/user.test.ts",
+  errors: [{ messageId }],
+});
+
+const supplyValid = (code: string) => ({
+  code,
+  filename: "apps/effect/tests/user.test.ts",
+});
+
+tester.run("supply-services-through-layers", supplyServicesThroughLayers, {
+  valid: [
+    supplyValid(
+      `${vitest} ${effect} const users = Layer.succeed(Users)(Users.of({ find: () => Effect.succeed(user) }));`
+    ),
+    supplyValid(
+      `${vitest} ${effect} Effect.provideService(read, RequestId, "abc");`
+    ),
+    supplyValid(
+      `${vitest} const log = vi.spyOn(console, "log"); run(); expect(log).toHaveBeenCalled();`
+    ),
+    supplyValid(
+      `${vitest} const onSave = vi.fn(); save(onSave); expect(onSave).toHaveBeenCalledOnce();`
+    ),
+    supplyValid(
+      `${vitest} ${msw} server.use(http.get("https://api.test/users", vi.fn(() => HttpResponse.json([]))));`
+    ),
+    supplyValid(
+      `${vitest} ${msw} const resolver = vi.fn(() => HttpResponse.json([])); server.use(http.post("https://api.test/users", resolver));`
+    ),
+    supplyValid(
+      `${vitest} ${effect} ${msw} Layer.succeed(Users)(Users.of({ handlers: [http.get("https://api.test/users", vi.fn())] }));`
+    ),
+    supplyValid(
+      `${effect} const vi = { fn: (f) => f, mock: () => 1 }; vi.mock("#app/db.ts"); Layer.succeed(Users)({ find: vi.fn(() => 1) });`
+    ),
+    supplyValid(
+      `${vitest} import { Effect } from "effect"; Effect.map(program, vi.fn());`
+    ),
+    supplyValid(
+      `${vitest} import { Layer } from "effect-extra"; Layer.succeed(Users)({ find: vi.fn() });`
+    ),
+    supplyValid(
+      `${vitest} ${effect} const onSave = vi.fn(); const users = Layer.succeed(Users)(memoryUsers); save(onSave);`
+    ),
+    supplyValid(
+      `${vitest} ${effect} const onSave = vi.fn(); Effect.provideService(Effect.sync(() => onSave()), Users, memoryUsers);`
+    ),
+    supplyValid(
+      `${vitest} ${effect} const find = vi.fn(); const make = (find) => Layer.succeed(Users)({ find }); save(find);`
+    ),
+    supplyValid(
+      `${vitest} ${effect} ${msw} const resolver = vi.fn(); Layer.succeed(Api)({ handlers: [http.get("https://api.test/users", resolver)] });`
+    ),
+    supplyValid(
+      `${effect} const vi = { fn: () => 1 }; const find = vi.fn(); Layer.succeed(Users)({ find });`
+    ),
+    supplyValid(
+      `${vitest} ${effect} const calls = { onSave: vi.fn() }; save(calls.onSave); Layer.succeed(Users)(memoryUsers);`
+    ),
+    supplyValid(
+      `${vitest} ${effect} Effect.provideService(Effect.sync(vi.fn()), Users, memoryUsers);`
+    ),
+    supplyValid(
+      `import { vi } from "./clock.ts"; vi.mock("#app/db.ts"); vi.spyOn(Users, "find");`
+    ),
+    {
+      code: `${vitest} vi.mock("#features/users/repository.ts");`,
+      filename: "apps/effect/src/features/users/service.ts",
+    },
+  ],
+  invalid: [
+    supplied(
+      `${vitest} vi.mock("#features/users/repository.ts");`,
+      "moduleMock"
+    ),
+    supplied(
+      `${vitest} vi.mock("#features/users/repository.ts", () => ({ find: () => user }));`,
+      "moduleMock"
+    ),
+    supplied(
+      `${vitest} vi.doMock("#features/users/repository.ts");`,
+      "moduleMock"
+    ),
+    supplied(
+      `import { vi } from "vitest"; vi.mock("#features/users/repository.ts");`,
+      "moduleMock"
+    ),
+    supplied(
+      `import * as V from "@effect/vitest"; V.vi.mock("#app/db.ts");`,
+      "moduleMock"
+    ),
+    supplied(`${vitest} vi.spyOn(users, "find");`, "spy"),
+    supplied(
+      `${vitest} vi.spyOn(Users.prototype, "find").mockReturnValue(user);`,
+      "spy"
+    ),
+    supplied(`${vitest} vi.spyOn(globalThis, "fetch");`, "spy"),
+    supplied(
+      `${vitest} ${effect} Layer.succeed(Users)({ find: vi.fn() });`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} Layer.succeed(Users)(Users.of({ find: vi.fn(() => Effect.succeed(user)) }));`,
+      "serviceFn"
+    ),
+    supplied(`${vitest} ${effect} Users.of({ find: vi.fn() });`, "serviceFn"),
+    supplied(
+      `${vitest} import { Users } from "#features/users/service.ts"; Users.of({ find: vi.fn() });`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} Effect.provideService(program, Users, { find: vi.fn() });`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} Context.make(Users, { find: vi.fn() });`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} import * as Layer from "effect/Layer"; Layer.sync(Users, () => ({ find: vi.fn() }));`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} const find = vi.fn(); Layer.succeed(Users)({ find: find });`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} const find = vi.fn(); Layer.succeed(Users)({ find });`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} const users = { find: vi.fn() }; Layer.succeed(Users)(users);`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} const find = vi.fn(); const users = { find }; Effect.provideService(program, Users, users);`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} const find = vi.fn(); Users.of({ find });`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} const find = vi.fn(); Context.make(Users, { find });`,
+      "serviceFn"
+    ),
+    supplied(
+      `${vitest} ${effect} const find = vi.fn(); const users = Layer.succeed(Users)({ find }); expect(find).toHaveBeenCalled();`,
+      "serviceFn"
+    ),
+    {
+      code: `${vitest} vi.mock("#app/db.ts");`,
+      filename: "apps/effect/src/features/users/service.test.ts",
+      errors: [{ messageId: "moduleMock" }],
     },
   ],
 });

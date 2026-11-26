@@ -26,6 +26,8 @@ export const makeProbePolicy = (probes: readonly ProbePolicyInput[]) => {
     probes.flatMap((probe) => (probe.traced ? [] : [probe.path]))
   );
 
+  const isProbePath = (path: string): boolean => probePaths.has(path);
+
   const isUntracedProbe = (url: string): boolean =>
     untracedProbePaths.has(pathOf(url));
 
@@ -51,5 +53,10 @@ export const makeProbePolicy = (probes: readonly ProbePolicyInput[]) => {
     HttpMiddleware.TracerDisabledWhen
   )((request) => isUntracedProbe(request.url));
 
-  return { isUntracedProbe, quietProbes, tracerDisabledForProbes };
+  return {
+    isProbePath,
+    isUntracedProbe,
+    quietProbes,
+    tracerDisabledForProbes,
+  };
 };

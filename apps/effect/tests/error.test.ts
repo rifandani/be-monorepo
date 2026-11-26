@@ -1,6 +1,12 @@
 import { afterAll, assert, describe, it } from "@effect/vitest";
 import { Effect, Layer } from "effect";
-import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
+import {
+  HttpRouter,
+  HttpServer,
+  HttpServerError,
+  HttpServerRequest,
+  HttpServerResponse,
+} from "effect/http";
 
 import { onError, SERVER_ERROR_MESSAGE } from "#server/error.ts";
 import { requestId } from "#server/request-id.ts";
@@ -8,6 +14,20 @@ import { requestId } from "#server/request-id.ts";
 const failing = Layer.mergeAll(
   HttpRouter.add("GET", "/die", Effect.die(new Error("connect ECONNREFUSED"))),
   HttpRouter.add("GET", "/interrupt", Effect.interrupt),
+  HttpRouter.add(
+    "GET",
+    "/refuse",
+    Effect.flatMap(HttpServerRequest.HttpServerRequest, (request) =>
+      Effect.fail(
+        new HttpServerError.HttpServerError({
+          reason: new HttpServerError.RequestParseError({
+            description: "expected a JSON body",
+            request,
+          }),
+        })
+      )
+    )
+  ),
   HttpRouter.add(
     "GET",
     "/teapot",
@@ -42,10 +62,28 @@ describe("error handler", () => {
     );
   });
 
-  it("answers an interrupted request", async () => {
+  it("answers an interrupted request as an infrastructure fault", async () => {
     const response = await handler(new Request("http://localhost/interrupt"));
 
     assert.strictEqual(response.status, 503);
+    assert.deepStrictEqual(await response.json(), {
+      message: "Service Unavailable",
+    });
+  });
+
+  it("answers a refused request with the location and a fix", async () => {
+    const response = await handler(new Request("http://localhost/refuse"));
+
+    const body = (await response.json()) as {
+      fix: string;
+      location: string;
+      message: string;
+    };
+
+    assert.strictEqual(response.status, 400);
+    assert.strictEqual(body.location, "body");
+    assert.include(body.message, "expected a JSON body");
+    assert.isNotEmpty(body.fix);
   });
 
   it("leaves a response the handler chose alone", async () => {

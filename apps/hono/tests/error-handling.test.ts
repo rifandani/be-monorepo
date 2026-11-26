@@ -1,11 +1,26 @@
 import { createError } from "evlog";
 import * as fc from "fast-check";
 import { HTTPException } from "hono/http-exception";
-import { HTTPError } from "ky";
-import { describe, expect, it } from "vitest";
+import { HTTPError, TimeoutError } from "ky";
+import { beforeEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { app } from "#app/app.ts";
+import { ENV } from "#shared/constants/env.ts";
+
+const logLevels: string[] = [];
+
+app.use("*", async (c, next) => {
+  const log = c.get("log");
+  const { setLevel } = log;
+
+  log.setLevel = (level) => {
+    logLevels.push(level);
+    setLevel(level);
+  };
+
+  return next();
+});
 
 app.get("/__test/zod", () => {
   z.object({ name: z.string() }).parse({ name: 42 });
@@ -13,12 +28,42 @@ app.get("/__test/zod", () => {
   return new Response("unreachable");
 });
 
+app.get("/__test/zod-nested", () => {
+  z.object({
+    address: z.object({ lines: z.array(z.string()) }),
+  }).parse({ address: { lines: [7] } });
+
+  return new Response("unreachable");
+});
+
+app.get("/__test/zod-root", () => {
+  z.string().parse(42);
+
+  return new Response("unreachable");
+});
+
 app.get("/__test/ky", () => {
-  throw new HTTPError(
+  const error = new HTTPError(
     Response.json({ detail: "upstream rejected it" }, { status: 400 }),
     new Request("https://upstream.example/resource"),
     { method: "get" } as never
   );
+
+  error.data = { detail: "upstream rejected it" };
+
+  throw error;
+});
+
+app.get("/__test/ky-unreadable", () => {
+  throw new HTTPError(
+    new Response(null, { status: 502 }),
+    new Request("https://upstream.example/resource"),
+    { method: "get" } as never
+  );
+});
+
+app.get("/__test/ky-timeout", () => {
+  throw new TimeoutError(new Request("https://upstream.example/resource"));
 });
 
 app.get("/__test/http-exception", () => {
@@ -59,25 +104,68 @@ app.get("/__test/contentless", () => {
 app.get("/__test/lang", (c) => c.text(c.get("language")));
 
 describe("app error handling", () => {
-  it("turns a ZodError into a 400 with the prettified issues", async () => {
+  it("answers a ZodError as a refusal that names the field and the fix", async () => {
     const res = await app.request("/__test/zod");
-    const body = (await res.json()) as { message: string };
-
-    expect(res.status).toBe(400);
-    expect(body.message).toContain("name");
-  });
-
-  it("turns a ky HTTPError into a 400 carrying the upstream body", async () => {
-    const res = await app.request("/__test/ky");
 
     const body = (await res.json()) as {
-      error: { detail: string };
+      fix: string;
+      location: string;
       message: string;
     };
 
     expect(res.status).toBe(400);
-    expect(body.error.detail).toBe("upstream rejected it");
-    expect(body.message).toBeTruthy();
+    expect(body.message).toContain("name");
+    expect(body.location).toBe("name");
+    expect(body.fix).toContain("name");
+  });
+
+  it("links a ZodError refusal to the llms index", async () => {
+    const res = await app.request("/__test/zod");
+    const body = (await res.json()) as { docs: string };
+
+    expect(body.docs).toBe(`${ENV.APP_URL}/llms.txt`);
+  });
+
+  it("names the root when the rejected value is the whole input", async () => {
+    const res = await app.request("/__test/zod-root");
+    const body = (await res.json()) as { location: string };
+
+    expect(res.status).toBe(400);
+    expect(body.location).toBe("(root)");
+  });
+
+  it("names the nested path of the first rejected field", async () => {
+    const res = await app.request("/__test/zod-nested");
+    const body = (await res.json()) as { location: string };
+
+    expect(body.location).toBe("address.lines.0");
+  });
+
+  it("answers an upstream rejection as an infrastructure fault", async () => {
+    const res = await app.request("/__test/ky");
+
+    expect(res.status).toBe(502);
+    await expect(res.json()).resolves.toStrictEqual({
+      message: "Bad Gateway",
+    });
+  });
+
+  it("answers an unreadable upstream body as an infrastructure fault", async () => {
+    const res = await app.request("/__test/ky-unreadable");
+
+    expect(res.status).toBe(502);
+    await expect(res.json()).resolves.toStrictEqual({
+      message: "Bad Gateway",
+    });
+  });
+
+  it("answers an upstream timeout as an infrastructure fault", async () => {
+    const res = await app.request("/__test/ky-timeout");
+
+    expect(res.status).toBe(504);
+    await expect(res.json()).resolves.toStrictEqual({
+      message: "Gateway Timeout",
+    });
   });
 
   it("lets an HTTPException render its own response", async () => {
@@ -87,12 +175,13 @@ describe("app error handling", () => {
     await expect(res.text()).resolves.toContain("forbidden by policy");
   });
 
-  it("falls back to the parsed error shape for anything else", async () => {
+  it("answers any other error as a defect with no detail", async () => {
     const res = await app.request("/__test/unknown");
-    const body = (await res.json()) as { message: string };
 
-    expect(res.status).toBeGreaterThanOrEqual(400);
-    expect(body.message).toBeTruthy();
+    expect(res.status).toBe(500);
+    await expect(res.json()).resolves.toStrictEqual({
+      message: "Internal Server Error",
+    });
   });
 
   it("carries the error's own status and every hint it supplies", async () => {
@@ -128,12 +217,47 @@ describe("app error handling", () => {
   });
 });
 
+describe("app failure logging", () => {
+  beforeEach(() => {
+    logLevels.length = 0;
+  });
+
+  it("logs a refusal at the info level", async () => {
+    await app.request("/__test/zod");
+
+    expect(logLevels).toStrictEqual(["info"]);
+  });
+
+  it("logs an infrastructure fault at the warn level", async () => {
+    await app.request("/__test/ky-timeout");
+
+    expect(logLevels).toStrictEqual(["warn"]);
+  });
+
+  it("logs a defect at the error level", async () => {
+    await app.request("/__test/unknown");
+
+    expect(logLevels).toStrictEqual(["error"]);
+  });
+
+  it("logs an unrouted path as a refusal", async () => {
+    await app.request("/no-such-route");
+
+    expect(logLevels).toStrictEqual(["info"]);
+  });
+});
+
 describe("app not-found handling", () => {
-  it("answers an unrouted path with a 404", async () => {
-    const res = await app.request("/no-such-route");
+  it("answers an unrouted path with a 404 refusal that names the path", async () => {
+    const res = await app.request("/no-such-route?token=hidden");
 
     expect(res.status).toBe(404);
-    await expect(res.text()).resolves.toBe("404 Not found");
+    await expect(res.json()).resolves.toStrictEqual({
+      docs: `${ENV.APP_URL}/llms.txt`,
+      fix: "Check the method and the path against the OpenAPI document at /openapi.",
+      location: "/no-such-route",
+      message: "404 Not found",
+    });
   });
 
   it("should always answer any path under an unrouted prefix with a 404", async () => {
@@ -147,7 +271,7 @@ describe("app not-found handling", () => {
         const res = await app.request(path);
 
         expect(res.status).toBe(404);
-        await expect(res.text()).resolves.toBe("404 Not found");
+        await expect(res.json()).resolves.toMatchObject({ location: path });
       })
     );
   });

@@ -10,6 +10,8 @@ export interface ReadinessCheck {
 
 export const READINESS_CHECKS: readonly ReadinessCheck[] = [];
 
+const READINESS_CONCURRENCY = 8;
+
 const NO_CHECKS = HealthReport.make({ checks: [], status: "ok" });
 
 interface ProbeOptions {
@@ -72,7 +74,7 @@ export class Health extends Context.Service<
 
       ready: Effect.fn("Health.ready")(function* ready() {
         const results = yield* Effect.forEach(checks, runCheck, {
-          concurrency: "unbounded",
+          concurrency: READINESS_CONCURRENCY,
         });
 
         const passed = results.every((check) => check.status === "pass");

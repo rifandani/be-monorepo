@@ -4,9 +4,9 @@
 
 Using `HttpApiScalar` to generate OpenAPI docs. The OpenAPI generated schema is available at `https://effect.be-monorepo.localhost/openapi`, and the OpenAPI docs are available at `https://effect.be-monorepo.localhost/openapi/docs`.
 
-## TODO
+## TODO 1
 
-These features are in `apps/hono`, but not in this app.
+These features are in `apps/hono`, but not in this app. If these all are done, then we can remove `apps/hono` completely.
 
 ### Authentication and data
 
@@ -33,3 +33,7 @@ These features are in `apps/hono`, but not in this app.
 - [ ] OTel resource detectors: `env`, `host`, `os`, `process` and `serviceInstanceId`.
 - [ ] Pretty JSON output when the request asks for it (`prettyJSON()`).
 - [ ] Error mapping: change validation errors and upstream HTTP client errors to 400. Add the `why`, `fix` and `link` hints to unknown errors (evlog `parseError`).
+
+## TODO 2
+
+implement mastra as another example in `apps/effect` app

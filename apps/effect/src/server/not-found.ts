@@ -1,9 +1,15 @@
 import { Effect, Predicate } from "effect";
-import { HttpRouter, HttpServerError, HttpServerResponse } from "effect/http";
+import {
+  HttpRouter,
+  HttpServerError,
+  HttpServerRequest,
+  HttpServerResponse,
+} from "effect/http";
 
 export const NOT_FOUND_MESSAGE = "404 Not found";
 
-const NOT_FOUND = HttpServerResponse.text(NOT_FOUND_MESSAGE, { status: 404 });
+const NOT_FOUND_FIX =
+  "Check the method and the path against the OpenAPI document at /openapi.";
 
 export const isRouteNotFound = (
   error: unknown
@@ -13,11 +19,27 @@ export const isRouteNotFound = (
   HttpServerError.isHttpServerError(error) &&
   Predicate.isTagged(error.reason, "RouteNotFound");
 
+const QUERY = /\?.*/su;
+
+export const pathOf = (url: string): string => url.replace(QUERY, "");
+
 export const notFound = HttpRouter.middleware(
   (httpEffect) =>
     httpEffect.pipe(
       Effect.catchIf(isRouteNotFound, () =>
-        Effect.as(Effect.logWarning(NOT_FOUND_MESSAGE), NOT_FOUND)
+        Effect.flatMap(HttpServerRequest.HttpServerRequest, (request) =>
+          Effect.as(
+            Effect.logInfo(NOT_FOUND_MESSAGE),
+            HttpServerResponse.jsonUnsafe(
+              {
+                fix: NOT_FOUND_FIX,
+                location: pathOf(request.url),
+                message: NOT_FOUND_MESSAGE,
+              },
+              { status: 404 }
+            )
+          )
+        )
       )
     ),
   { global: true }

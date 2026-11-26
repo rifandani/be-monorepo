@@ -120,7 +120,9 @@ const readAllowlist = (): readonly AllowEntry[] => {
     );
   }
 
-  const parsed = Schema.decodeUnknownResult(AllowlistSchema)(json);
+  const parsed = Schema.decodeUnknownResult(AllowlistSchema, { errors: "all" })(
+    json
+  );
 
   if (Result.isFailure(parsed)) {
     return failAllowlist(
@@ -496,7 +498,9 @@ try {
   process.exit(1);
 }
 
-const parsedDoc = Schema.decodeUnknownResult(OsvDocumentSchema)(json);
+const parsedDoc = Schema.decodeUnknownResult(OsvDocumentSchema, {
+  errors: "all",
+})(json);
 
 if (Result.isFailure(parsedDoc)) {
   console.error(

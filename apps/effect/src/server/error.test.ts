@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Cause, Effect, Schema } from "effect";
+import { Cause, Effect, Logger, Schema } from "effect";
 import {
   HttpServerError,
   HttpServerRequest,
@@ -8,6 +8,7 @@ import {
 
 import {
   errorMessage,
+  failureClass,
   SERVER_ERROR_MESSAGE,
   toErrorResponse,
 } from "./error.ts";
@@ -25,11 +26,77 @@ const ServerErrorStatus = Schema.Int.check(
   Schema.isBetween({ maximum: 599, minimum: 500 })
 );
 
+const FAULT_MESSAGES = new Set([
+  "Bad Gateway",
+  "Service Unavailable",
+  "Gateway Timeout",
+]);
+
+const logLevelOf = (cause: Cause.Cause<unknown>) =>
+  Effect.gen(function* logged() {
+    const levels: string[] = [];
+
+    const collector = Logger.make((options) => {
+      levels.push(options.logLevel);
+    });
+
+    yield* toErrorResponse(cause).pipe(
+      Effect.provide(Logger.layer([collector]))
+    );
+
+    return levels;
+  });
+
+const routeMiss = (url: string) =>
+  Cause.fail(
+    new HttpServerError.HttpServerError({
+      reason: new HttpServerError.RouteNotFound({
+        request: HttpServerRequest.fromWeb(new Request(url)),
+      }),
+    })
+  );
+
+const parseFailure = (description: string) =>
+  Cause.fail(
+    new HttpServerError.HttpServerError({
+      reason: new HttpServerError.RequestParseError({ description, request }),
+    })
+  );
+
+describe(failureClass, () => {
+  it("should call a rejected request a refusal", () => {
+    assert.strictEqual(failureClass(404), "refusal");
+  });
+
+  it("should call an unavailable dependency an infrastructure fault", () => {
+    assert.strictEqual(failureClass(503), "fault");
+  });
+
+  it("should call an internal server error a defect", () => {
+    assert.strictEqual(failureClass(500), "defect");
+  });
+
+  it.prop(
+    "should always call a 4xx status a refusal",
+    [ClientErrorStatus],
+    ([status]) => {
+      assert.strictEqual(failureClass(status), "refusal");
+    }
+  );
+});
+
 describe(errorMessage, () => {
   it("tells a client what it got wrong", () => {
     assert.strictEqual(
       errorMessage(400, Cause.fail(new Error("payload is not a HealthReport"))),
       "payload is not a HealthReport"
+    );
+  });
+
+  it("tells a client only the reason phrase of an infrastructure fault", () => {
+    assert.strictEqual(
+      errorMessage(503, Cause.fail(new Error("pool exhausted"))),
+      "Service Unavailable"
     );
   });
 
@@ -53,7 +120,10 @@ describe(errorMessage, () => {
 
       const told = errorMessage(status, cause);
 
-      assert.strictEqual(told, SERVER_ERROR_MESSAGE);
+      assert.isTrue(
+        told === SERVER_ERROR_MESSAGE || FAULT_MESSAGES.has(told),
+        `told ${told}`
+      );
     }
   );
 
@@ -96,6 +166,68 @@ describe(toErrorResponse, () => {
           message: SERVER_ERROR_MESSAGE,
         });
       })
+  );
+
+  it.effect("tells a refused client where the request is wrong", () =>
+    Effect.gen(function* refused() {
+      const response = yield* toErrorResponse(
+        parseFailure("expected a JSON body")
+      );
+
+      const body = (yield* bodyOf(response)) as Record<string, unknown>;
+
+      assert.strictEqual(body.location, "body");
+      assert.isString(body.fix);
+    })
+  );
+
+  it.effect("tells a client that missed a route which path missed", () =>
+    Effect.gen(function* missed() {
+      const response = yield* toErrorResponse(
+        routeMiss("http://localhost/nope?page=2")
+      );
+
+      assert.strictEqual(response.status, 404);
+      assert.strictEqual(
+        ((yield* bodyOf(response)) as { location: string }).location,
+        "/nope"
+      );
+    })
+  );
+
+  it.effect(
+    "gives a refusal from outside the router a fix but no location",
+    () =>
+      Effect.gen(function* undecodable() {
+        const schemaError = yield* Effect.flip(
+          Schema.decodeUnknownEffect(Schema.Number)("not a number")
+        );
+
+        const response = yield* toErrorResponse(Cause.fail(schemaError));
+        const body = (yield* bodyOf(response)) as Record<string, unknown>;
+
+        assert.strictEqual(response.status, 400);
+        assert.isString(body.fix);
+        assert.notProperty(body, "location");
+      })
+  );
+
+  it.effect("logs a refusal at the info level", () =>
+    Effect.map(logLevelOf(parseFailure("expected a JSON body")), (levels) => {
+      assert.deepStrictEqual(levels, ["Info"]);
+    })
+  );
+
+  it.effect("logs an infrastructure fault at the warning level", () =>
+    Effect.map(logLevelOf(Cause.interrupt()), (levels) => {
+      assert.deepStrictEqual(levels, ["Warn"]);
+    })
+  );
+
+  it.effect("logs a defect at the error level", () =>
+    Effect.map(logLevelOf(Cause.die(new Error("boom"))), (levels) => {
+      assert.deepStrictEqual(levels, ["Error"]);
+    })
   );
 
   it.effect("keeps the status the failure asked for", () =>

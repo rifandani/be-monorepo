@@ -40,6 +40,15 @@ Other layers we still reject:
 - **Pure module logic** — colocated `src/**/*.test.ts`, in packages and apps alike, called with real inputs (a real `Headers`, a real `new Hono()` context, a real `File`). No `vi.mock`. `vi.spyOn(console, …)` is fine: console is the output under assertion, not a faked collaborator.
 - **Api repositories** — colocated `packages/core/src/apis/*.test.ts`, MSW at the Network Boundary. Every test declares its handlers via `server.use()`; `onUnhandledRequest: "error"` hard-fails anything undeclared. `authRepositories(http)` takes `Http` by parameter, so tests own the base URL via `new Http({ prefix: MOCK_API_BASE_URL })`.
 - **Api routes** — `apps/*/tests/*.test.ts` against the real `app`, no mocking. In `apps/hono`, to reach app-level behaviour such as `onError`, register a test-only route under `/__test/` using `get` rather than `openapi`, which keeps it out of the OpenAPI document. In `apps/effect` there are three idioms, and the differences matter: `HttpApiTest.groups` rebuilds the routes from the api description, so it exercises real routing, encoding and decoding but is blind to where `app.ts` mounts anything; `HttpRouter.toWebHandler` drives the composed layer and is the only thing that fails when a mount point moves; `NodeHttpServer.layerTest` binds a real socket and is the only thing that runs the transport the app ships on. Endpoint behaviour uses the first, mount points the second, and anything that reads a field off the request the third.
+- **The OpenAPI contract** — an API route test asserts that every operation that accepts input declares the decode-failure response in OpenAPI. Both apps return `400` when a body, query or params fail schema decoding, and the document must show that refusal to clients and agents. The document is generated at runtime, so no lint rule can see it; `findInputOperationsWithout400` in root-level `vitest.openapi.ts` walks the document, and `apps/hono/tests/openapi.test.ts` (on `GET /openapi`) and `apps/effect/tests/openapi.test.ts` (on `OpenApi.fromApi(Api)`) assert that it returns no operations. When the check fails, fix the contract: add the `400` response to the Hono route, or `HttpApiError.BadRequest` (or another error with `httpApiStatus: 400`) to the Effect endpoint or group.
+
+### Pure cores
+
+**Middleware and handlers read input, call a pure function for the decision, and do the side effect. The pure function is in the same zone (`server/` or `features/<name>/`), and unit tests and property tests cover it.** A decision mixed into a middleware depends on the request and on time, so each of its cases needs a route test. A pure function takes each case as one call with real inputs, and a property ([ADR-0005](./0005-property-based-tests.md)) tries the inputs nobody wrote down. The route test then asserts only the wiring: the middleware is mounted, and it acts on the decision.
+
+- `apps/hono/src/server/client-address.ts` — `readFromHeaders` picks the client address from the proxy headers. `resolveClientAddress` reads the headers and the connection and calls it.
+- `apps/hono/src/shared/utils/http-status.ts` — `isContentfulStatusCode` decides whether the `onError` handler in `app.ts` can send a status with a body.
+- `apps/effect/src/server/csrf.ts` — `isCrossSiteFormPost(request, allowedOrigin)` decides whether a request is a cross-site form post. The `csrf` middleware reads the request, calls it, and answers `403`. `csrf.test.ts` covers the decision with examples and properties; `tests/platform.test.ts` keeps the route test for the wiring.
 
 ## MSW lifecycle
 
@@ -91,6 +100,51 @@ A middleware that cannot be made to answer over the composed app — `timeout`, 
 
 One v8 quirk is worth knowing before chasing a phantom gap: a ternary between two `await import()` expressions makes v8 lose coverage for every statement after it in the same function, reported as untested lines that demonstrably ran. `apps/hono/src/server/client-address.ts` keeps the conditional import in its own `importGetConnInfo` function for exactly this reason.
 
+## Testing ladder
+
+Name the failure before choosing the check. The rungs run from the cheapest and earliest check to the slowest and latest:
+
+1. **Lint** — code shape. oxlint with the repo's own rules in `tools/lint`, plus fallow for boundaries, dead code, duplication and the security surface.
+2. **Types** — wiring, required services and contract drift. The TypeScript compiler, which `bun lint` runs because `oxlint.config.ts` sets `typeCheck: true`, and Freerange (`fr`) for numeric ranges.
+3. **Pure unit, property and model tests** — colocated `src/**/*.test.ts` called with real inputs, properties per ADR-0005, and the tests for `tools/lint` and `scripts`.
+4. **Route tests** — `apps/*/tests/*.test.ts` against the real `app`, including the model test in `apps/hono/tests/auth-flow.test.ts`.
+5. **Runtime integration** — a running app over a real socket: the `packages/load` smoke profile and the ZAP baseline against a local target.
+6. **Deployed checks** — the same tools against a deployed URL.
+
+**Use the lowest rung that can detect the failure.** If a rule can be a lint rule, make it a lint rule: it fails in the editor and on every file, while a test fails only for the inputs someone wrote. That is why Effect tests that replace a service are refused by `effect-tests/supply-services-through-layers` and not by review. Climb a rung only when the one below cannot see the failure — a global middleware needs a route test because coverage cannot ask whether it runs (see [What the gate does not ask](#what-the-gate-does-not-ask)).
+
+Mutation testing is not a rung. It checks the tests on rungs 3 and 4, not the code, and gates nothing (ADR-0002).
+
+| Command | Rung | In CI |
+| --- | --- | --- |
+| `bun lint` | 1 and 2 | `ci.yml` › lint |
+| `bun run check:all`: `check:boundaries` (each workspace's own) then the full fallow scan | 1 | `ci.yml` › fallow runs the same two steps |
+| `bun run check:health`, `check:dead-code`, `check:dupes` | 1, one part of the full fallow scan each | through `ci.yml` › fallow |
+| `bun run check:security`, `check:security:survivors` | 1 | — |
+| `bun run audit:sca` | 1 | `security.yml` › sca runs the same script |
+| `bun typerange` (`hono:typerange`, `effect:typerange`, each app's `typerange`) | 2 | `ci.yml` › typerange |
+| `bun run test` (`hono:test`, `effect:test`) | 3 and 4 | — |
+| `bun run test:cov` | 3 and 4, with the coverage gate | `ci.yml` › unit |
+| `bun run test:mutate`, `test:mutate:inc` | none; audits 3 and 4 | `mutation.yml`, manual dispatch only |
+| `bun load:{hono,effect}:smoke` | 5 on a local target, 6 on a deployed one | — |
+| `bun load:{hono,effect}:{load,stress,spike,breakpoint}` | 5; `stress`, `spike` and `breakpoint` refuse a remote host without `--allow-remote` | — |
+| `bun zap:{hono,effect}:baseline` | 5 on a local target, 6 on a deployed one | `dast.yml` › prod-baseline, weekly, skipped until `PROD_HONO_URL` / `PROD_EFFECT_URL` exist |
+| `bun zap:{hono,effect}:active` | 5, local targets only | — |
+
+CI also runs checks with no `package.json` command, all on rung 1: zizmor on the workflows, sherif on the workspace manifests, gitleaks on the history, and CodeQL with `scripts/security/sarif-severity-gate.ts`. Nothing runs on rung 6 yet: `dast.yml` is the only deployed check, and it scans nothing until a production URL is set.
+
+The other scripts are not checks: `prepare`, `compose:up`, `clean`, `repos:update`, `bump:deps`, `bump:skills`, `portless`, `cs`, `cs:v`, `lint:fix`, `lint:doctor`, `check:viz`, `check:fix`, the `hono` / `effect` / `load` workspace filters, and each app's `dev`, `node:*`, `db:*` and `auth:gen`.
+
+### Reproduced bugs become regression tests
+
+Agents, people and the `diagnosing-bugs` skill find bugs by exploring. A reproduction that is not saved as a test is lost with the session that found it.
+
+- **A fix for a reproduced bug starts with a failing test at the lowest rung that catches it** (see the [testing ladder](#testing-ladder)). Watch it fail before writing the fix.
+- **The test lands in the same PR as the fix.**
+- **A property counterexample is saved as an example test with its seed** ([ADR-0005](./0005-property-based-tests.md)). The shrunk input goes into the example test as a literal, and the `PBT_SEED` from the replay line goes into its name, so the case runs on every seed. A model-test counterexample is saved the same way, as its command sequence.
+
+Keep the smallest case that still fails, not every step the explorer took.
+
 ## Consequences
 
 - Api repositories in `packages/core/src/apis/` are tested at the Network Boundary; a wrong schema or URL now fails a test rather than relying on manual review alone.
@@ -115,8 +169,8 @@ One v8 quirk is worth knowing before chasing a phantom gap: a ternary between tw
 - **2026-09-10 — `apps/effect` gained a third test idiom, over a real socket.** The taxonomy above was closed at two, and both build the request the same way: `HttpApiTest` goes through `HttpServerRequest.fromClientRequest` and `toWebHandler` through `fromWeb`, and in both `originalUrl` is the absolute url the client sent. `NodeHttpServer` sets it to `req.url` — a bare path. So `new URL(request.originalUrl)`, the obvious spelling and the one Effect's own `HttpMiddleware.searchParamsParser` uses, succeeds under every test this repo had and throws `TypeError: Invalid URL` on the runtime the app ships on. Because `language` runs on every request, that is a 500 for every request, and it is written up at `apps/effect/src/server/language.ts:144-158` as a defect the suite could not see. Measured rather than assumed: with the trap reintroduced, `tests/platform.test.ts` fails all six of its cases while `tests/app.test.ts` and `tests/health.test.ts` stay green at 30 passing, which is all of them. `NodeHttpServer.layerTest` needs no `Config` (its port is `0`) and supplies an `HttpClient` already prefixed with the bound address, so the new suite states only the `APP_URL` provider that `cors` and `csrf` read. It is scoped to one request field per middleware — nothing about routing, mount points or header composition, none of which vary by transport — which is what keeps it from restating `tests/app.test.ts`. Node only: `BunHttpServer.layerTest` exists but `BunHttpServer.make` calls `Bun.serve`, so it cannot build under the Node-hosted vitest, and Bun's request is backed by a web `Request` and so has the shape `toWebHandler` already drives. Add a Bun lane the day those diverge. Nothing moved in or out of the coverage table: no source file changed.
 - **2026-11-16 — the rate-limit exclusion narrowed.** The old `DbStore` mixed the fixed-window rules with Drizzle calls, so the whole folder stayed outside the gate. The rules now live in `store.ts`, which takes a `RateLimitStorage` by constructor argument. `memory-storage.ts` is the in-memory adapter, and `store.test.ts` tests the rules through the store with it and a fake clock. Both files are inside the 90% per-file gate. Only `postgres-storage.ts` (SQL) and `index.ts` (wiring) stay excluded. The files are under `apps/hono/src/server/middleware/rate-limit/` in the current layout.
 - **2026-11-22 — one script module entered the denominator.** `scripts/security/severity-band.ts` holds `isSeverityBand` and `LEVEL_RANK`, which the SCA gate imports. It is pure logic with no top-level side effects, so it is in `coverage.include` and has a colocated test under the new `scripts` vitest project. The gate scripts themselves (`sca-gate.ts`, `sarif-severity-gate.ts`) stay outside the denominator, because they run their checks and call `process.exit` when they load. Like `tools/lint/comment-directive.ts`, this entry is outside the three source trees that the section above names.
-- **2026-11-22 — the rate-limit middleware deleted ([#97](https://github.com/rifandani/be-monorepo/issues/97)).** No app code mounted the `hono-rate-limiter` middleware. Its Postgres adapter stored a window start in the `rate_limit.last_request` column. Better Auth uses that column for the time of the last request. This change deletes the folder `apps/hono/src/server/middleware/rate-limit/` (`index.ts`, `store.ts`, `memory-storage.ts`, `postgres-storage.ts`, `store.test.ts`) and the `hono-rate-limiter` dependency. It also removes the two `vitest.config.ts` exclusions, the `.fallowrc.json` entry and the `unused-files` override for the folder. The Hono app now has one rate limiter: the Better Auth `rateLimit` config, which owns the `rate_limit` table. The 2026-11-16 amendment above stays as a historical record. It does not apply now.
-- **2026-11-22 — the `importGetConnInfo` helper inlined ([#99](https://github.com/rifandani/be-monorepo/issues/99)).** `readFromConnection` in `apps/hono/src/server/client-address.ts` now imports `getConnInfo` with one `await` around a ternary of the two `import()` calls: `await (cond ? import(a) : import(b))`. v8 covers this form correctly. Per-file coverage is the same as with the helper: 100% statements, functions and lines, and 95% branches (the Bun import cannot run under Node). The v8 problem in the section above still applies to the form with an `await` in each branch, `cond ? await import(a) : await import(b)`. The sentence about `importGetConnInfo` stays as a historical record. That function does not exist now.
+- **2026-11-22 — the rate-limit middleware deleted.** No app code mounted the `hono-rate-limiter` middleware. Its Postgres adapter stored a window start in the `rate_limit.last_request` column. Better Auth uses that column for the time of the last request. This change deletes the folder `apps/hono/src/server/middleware/rate-limit/` (`index.ts`, `store.ts`, `memory-storage.ts`, `postgres-storage.ts`, `store.test.ts`) and the `hono-rate-limiter` dependency. It also removes the two `vitest.config.ts` exclusions, the `.fallowrc.json` entry and the `unused-files` override for the folder. The Hono app now has one rate limiter: the Better Auth `rateLimit` config, which owns the `rate_limit` table. The 2026-11-16 amendment above stays as a historical record. It does not apply now.
+- **2026-11-22 — the `importGetConnInfo` helper inlined.** `readFromConnection` in `apps/hono/src/server/client-address.ts` now imports `getConnInfo` with one `await` around a ternary of the two `import()` calls: `await (cond ? import(a) : import(b))`. v8 covers this form correctly. Per-file coverage is the same as with the helper: 100% statements, functions and lines, and 95% branches (the Bun import cannot run under Node). The v8 problem in the section above still applies to the form with an `await` in each branch, `cond ? await import(a) : await import(b)`. The sentence about `importGetConnInfo` stays as a historical record. That function does not exist now.
 - [ADR-0002](./0002-mutation-testing-is-advisory.md) derives the advisory mutation-testing scope from this ADR's coverage denominator (`include` minus `exclude`), so the conditional exclusion above enters that scope on the commit that removes it.
 
 ## Bulletproof folder migration

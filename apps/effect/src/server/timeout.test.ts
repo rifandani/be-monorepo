@@ -1,12 +1,30 @@
 import { assert, describe, it } from "@effect/vitest";
-import { Arbitrary, Duration, Effect, Fiber, Schema } from "effect";
+import {
+  Arbitrary,
+  Cause,
+  Duration,
+  Effect,
+  Exit,
+  Fiber,
+  Schema,
+} from "effect";
 import { HttpServerResponse } from "effect/http";
 import { TestClock } from "effect/testing";
 
-import { withTimeout } from "./timeout.ts";
+import { toErrorResponse } from "./error.ts";
+import {
+  INBOUND_TIMEOUT,
+  OUTBOUND_TIMEOUT,
+  OutcomeUnknown,
+  withOutboundTimeout,
+  withTimeout,
+} from "./timeout.ts";
 
 const DURATION = Duration.seconds(1);
 const OK = HttpServerResponse.text("Hello");
+
+const bodyOf = (response: HttpServerResponse.HttpServerResponse) =>
+  Effect.promise(async () => HttpServerResponse.toWeb(response).json());
 
 const Milliseconds = Arbitrary.map(Arbitrary.schema(Schema.Int), (value) =>
   Math.abs(value)
@@ -98,5 +116,94 @@ describe(withTimeout, () => {
 
         assert.strictEqual(response.status, 504);
       })
+  );
+});
+
+describe("timeout values", () => {
+  it("should give up on an outbound call before the inbound request ends", () => {
+    assert.isTrue(Duration.isLessThan(OUTBOUND_TIMEOUT, INBOUND_TIMEOUT));
+  });
+});
+
+describe(withOutboundTimeout, () => {
+  it.effect("should give the result of a call that ends in time", () =>
+    Effect.gen(function* inTime() {
+      const call = Effect.succeed("charged");
+
+      const result = yield* withOutboundTimeout("payments.charge")(call);
+
+      assert.strictEqual(result, "charged");
+    })
+  );
+
+  it.effect("should keep the failure of a call that fails in time", () =>
+    Effect.gen(function* refused() {
+      const call = Effect.fail("card declined");
+
+      const exit = yield* Effect.exit(
+        withOutboundTimeout("payments.charge")(call)
+      );
+
+      assert.deepStrictEqual(exit, Exit.fail("card declined"));
+    })
+  );
+
+  it.effect(
+    "should fail with OutcomeUnknown, not a refusal, once the outbound timeout is up",
+    () =>
+      Effect.gen(function* timedOut() {
+        const fiber = yield* Effect.forkChild(
+          Effect.flip(withOutboundTimeout("payments.charge")(Effect.never))
+        );
+
+        yield* TestClock.adjust(OUTBOUND_TIMEOUT);
+        const error = yield* Fiber.join(fiber);
+
+        assert.instanceOf(error, OutcomeUnknown);
+        assert.strictEqual(error.operation, "payments.charge");
+      })
+  );
+
+  it.effect.prop(
+    "should always give the result of a call that ends before the outbound timeout",
+    [Milliseconds],
+    ([spare]) =>
+      Effect.gen(function* beforeLimit() {
+        const before = Math.max(
+          0,
+          Duration.toMillis(OUTBOUND_TIMEOUT) - spare - 1
+        );
+
+        const call = Effect.as(
+          Effect.sleep(Duration.millis(before)),
+          "charged"
+        );
+
+        const fiber = yield* Effect.forkChild(
+          withOutboundTimeout("payments.charge")(call)
+        );
+
+        yield* TestClock.adjust(Duration.millis(before));
+        const result = yield* Fiber.join(fiber);
+
+        assert.strictEqual(result, "charged");
+      })
+  );
+});
+
+describe(OutcomeUnknown, () => {
+  it.effect("should answer an unknown outcome as a 504 fault", () =>
+    Effect.gen(function* answered() {
+      const cause = Cause.fail(
+        new OutcomeUnknown({ operation: "payments.charge" })
+      );
+
+      const response = yield* toErrorResponse(cause);
+
+      assert.strictEqual(response.status, 504);
+      assert.deepStrictEqual(yield* bodyOf(response), {
+        message: "Gateway Timeout",
+      });
+    })
   );
 });

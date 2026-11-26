@@ -13,6 +13,7 @@ export default defineConfig({
       specifier: "./tools/lint/anti-slop-effect/index.ts",
     },
     { name: "landmines", specifier: "./tools/lint/landmines/index.ts" },
+    { name: "io-boundary", specifier: "./tools/lint/io-boundary/index.ts" },
   ],
   options: {
     typeAware: true,
@@ -22,6 +23,17 @@ export default defineConfig({
     "comments/no-comments": "error",
     "comments/directive-reason": "error",
     "effect-tests/no-manual-effect-runtime-in-tests": "error",
+    "anti-slop-effect/bounded-owned-concurrency": "error",
+    "anti-slop-effect/bounded-retry": "error",
+    "anti-slop-effect/no-defect-swallowing": [
+      "error",
+      {
+        allow: [
+          "apps/effect/src/server/error.ts",
+          "apps/effect/src/features/health/service.ts",
+        ],
+      },
+    ],
     "anti-slop-effect/no-manual-effect-error-tag": "error",
     "anti-slop-effect/no-manual-tag-comparison": "error",
     "anti-slop-effect/no-manual-tagged-construction": "error",
@@ -29,13 +41,42 @@ export default defineConfig({
     "anti-slop-effect/no-service-constructor-imports": "error",
     "anti-slop-effect/prefer-effect-match": "error",
     "anti-slop-effect/prefer-tagged-error-handling": "error",
+    "anti-slop-effect/provide-layers-at-composition": "error",
     "anti-slop-effect/require-cause-when-narrowing": "error",
     "anti-slop-effect/require-operation-span": "error",
+    "anti-slop-effect/resolve-dependencies-at-construction": "error",
     "landmines/no-fixed-sleep": "error",
     "landmines/no-flake-masking": "error",
     "landmines/no-flake-masking-timeout": ["warn", { check: "timeout" }],
     "landmines/no-test-doubles": "warn",
     "landmines/no-unsignaled-poll": "error",
+    "io-boundary/decode-all-errors": [
+      "error",
+      {
+        decodeFiles: [
+          "apps/hono/src/shared/constants/env.ts",
+          "apps/effect/src/shared/config.ts",
+          "scripts/**",
+        ],
+      },
+    ],
+    "io-boundary/no-ambient-env": [
+      "error",
+      {
+        allow: [
+          "apps/hono/src/shared/constants/env.ts",
+          "apps/effect/src/shared/config.ts",
+          "scripts/**",
+          "packages/load/src/app/run.ts",
+          "**/*.config.ts",
+          "**/*.config.mjs",
+          "vitest.property.ts",
+        ],
+      },
+    ],
+    "io-boundary/require-query-limit": "error",
+    "io-boundary/validated-http-response": "error",
+    "typescript/no-floating-promises": "error",
     "typescript/return-await": ["error", "in-try-catch"],
     "eslint/require-await": "off",
     "sort-keys": "off",
@@ -57,6 +98,8 @@ export default defineConfig({
         "typescript/unbound-method": "off",
         "eslint/prefer-promise-reject-errors": "off",
         "unicorn/no-useless-promise-resolve-reject": "off",
+        "io-boundary/validated-http-response": "off",
+        "anti-slop-effect/no-defect-swallowing": "off",
       },
     },
     {
@@ -80,6 +123,9 @@ export default defineConfig({
     {
       files: ["apps/effect/**"],
       rules: {
+        "anti-slop-effect/require-scoped-resource": "error",
+        "effect-tests/supply-services-through-layers": "error",
+        "landmines/no-test-doubles": "error",
         "unicorn/no-array-method-this-argument": "off",
         "no-redeclare": "off",
         "typescript/no-empty-interface": "off",
@@ -88,7 +134,11 @@ export default defineConfig({
       },
     },
     {
-      files: ["tools/lint/anti-slop-effect/**", "tools/lint/landmines/**"],
+      files: [
+        "tools/lint/anti-slop-effect/**",
+        "tools/lint/io-boundary/**",
+        "tools/lint/landmines/**",
+      ],
       rules: {
         "anti-slop/no-runtime-typeof": "off",
         "anti-slop/require-readable-spacing": "off",

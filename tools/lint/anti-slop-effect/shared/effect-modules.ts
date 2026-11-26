@@ -1,6 +1,6 @@
 import type { ESTree, Scope, SourceCode, Variable } from "@oxlint/plugins";
 
-function resolveIdentifier(
+export function resolveIdentifier(
   sourceCode: SourceCode,
   identifier: ESTree.Node & { readonly name: string }
 ): Variable | null {
@@ -18,13 +18,21 @@ function resolveIdentifier(
   return null;
 }
 
-export type EffectModule = "Context" | "Effect" | "Layer" | "ManagedRuntime";
+export type EffectModule =
+  | "Context"
+  | "Effect"
+  | "Layer"
+  | "ManagedRuntime"
+  | "Schedule"
+  | "Stream";
 
 const effectModules: ReadonlySet<string> = new Set<EffectModule>([
   "Context",
   "Effect",
   "Layer",
   "ManagedRuntime",
+  "Schedule",
+  "Stream",
 ]);
 
 export type EffectModuleNames = ReadonlyMap<EffectModule, ReadonlySet<string>>;
@@ -491,4 +499,46 @@ export function makeGenerator(
   }
 
   return genFunction(expression, names);
+}
+
+function serviceOfArgument(expression: ESTree.Expression): ESTree.Expression {
+  if (expression.type !== "CallExpression") {
+    return expression;
+  }
+  const callee = unwrapNode(expression.callee);
+  const [argument] = expression.arguments;
+
+  return callee.type === "MemberExpression" &&
+    !callee.computed &&
+    callee.property.type === "Identifier" &&
+    callee.property.name === "of" &&
+    argument !== undefined &&
+    argument.type !== "SpreadElement"
+    ? unwrapExpression(argument)
+    : expression;
+}
+
+export function returnedObjects(
+  fn: FunctionNode,
+  sourceCode: SourceCode
+): readonly ESTree.ObjectExpression[] {
+  const objects: ESTree.ObjectExpression[] = [];
+
+  for (const returned of returnedExpressions(fn)) {
+    let expression = serviceOfArgument(unwrapExpression(returned));
+
+    if (expression.type === "Identifier") {
+      const initializer = resolveInitializer(sourceCode, expression);
+
+      if (initializer !== null && initializer.type !== "FunctionDeclaration") {
+        expression = unwrapExpression(initializer);
+      }
+    }
+
+    if (expression.type === "ObjectExpression") {
+      objects.push(expression);
+    }
+  }
+
+  return objects;
 }

@@ -12,11 +12,17 @@ import {
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 
 import { CHAIN } from "#app/chain.ts";
-import { app } from "#app/http.ts";
+import { app, appWith } from "#app/http.ts";
 import { tracerDisabledForProbes } from "#app/probes.ts";
 import { LIVE_PATH, READY_PATH, STARTUP_PATH } from "#features/health/api.ts";
 import { probeAttributes, probeResult } from "#features/health/service.ts";
-import { requestAttributes, requestDuration } from "#server/metrics.ts";
+import {
+  activeRequests,
+  failedRequests,
+  failureAttributes,
+  requestAttributes,
+  requestDuration,
+} from "#server/metrics.ts";
 import { timeoutFor } from "#server/timeout.ts";
 
 const ALLOWED_ORIGIN = "https://effect.be-monorepo.localhost";
@@ -86,6 +92,60 @@ const requestCount = (options: {
 
 const fetchPath = (path: string) => Effect.promise(async () => get(path));
 
+const inRegistry = <A>(effect: Effect.Effect<A>) =>
+  Effect.provideService(effect, Metric.MetricRegistry, registry);
+
+const failureCount = (kind: "timeout" | "rejected" | "upstream" | "defect") =>
+  inRegistry(
+    Metric.value(
+      Metric.withAttributes(
+        failedRequests,
+        failureAttributes({ kind, method: "GET" })
+      )
+    )
+  ).pipe(Effect.map((state) => state.count));
+
+const activeCount = inRegistry(Metric.value(activeRequests)).pipe(
+  Effect.map((state) => state.count)
+);
+
+const heldEntered = Promise.withResolvers<boolean>();
+const heldRelease = Promise.withResolvers<boolean>();
+
+const golden = HttpRouter.toWebHandler(
+  Layer.mergeAll(
+    appWith({ timeout: timeoutFor(Duration.millis(10)) }),
+    HttpRouter.add(
+      "GET",
+      "/slow",
+      Effect.as(
+        Effect.sleep(Duration.seconds(1)),
+        HttpServerResponse.text("done")
+      )
+    ),
+    HttpRouter.add(
+      "GET",
+      "/held",
+      Effect.promise(async () => {
+        heldEntered.resolve(true);
+        await heldRelease.promise;
+
+        return HttpServerResponse.text("done");
+      })
+    ),
+    HttpRouter.add("GET", "/defect", Effect.die("boom"))
+  ).pipe(
+    Layer.provideMerge(collectors),
+    Layer.provide([HttpServer.layerServices, configProvider])
+  ),
+  { disableLogger: true }
+);
+
+const fetchGolden = (path: string) =>
+  Effect.promise(async () =>
+    golden.handler(new Request(`http://localhost${path}`))
+  );
+
 describe("the global middleware", () => {
   beforeEach(() => {
     registry.clear();
@@ -96,6 +156,7 @@ describe("the global middleware", () => {
   afterAll(async () => {
     await served.dispose();
     await unguarded.dispose();
+    await golden.dispose();
   });
 
   describe("the metrics middleware", () => {
@@ -139,6 +200,59 @@ describe("the global middleware", () => {
 
         assert.isAbove(state.sum, 0);
         assert.isBelow(state.sum, 1);
+      })
+    );
+  });
+
+  describe("the golden signals", () => {
+    it.effect("counts a timeout as failed work of the kind timeout", () =>
+      Effect.gen(function* timedOut() {
+        const response = yield* fetchGolden("/slow");
+
+        assert.strictEqual(response.status, 504);
+        assert.strictEqual(yield* failureCount("timeout"), 1);
+        assert.strictEqual(yield* failureCount("defect"), 0);
+      })
+    );
+
+    it.effect("counts a defect as failed work of the kind defect", () =>
+      Effect.gen(function* defect() {
+        const response = yield* fetchGolden("/defect");
+
+        assert.strictEqual(response.status, 500);
+        assert.strictEqual(yield* failureCount("defect"), 1);
+      })
+    );
+
+    it.effect("counts no failed work for a refusal", () =>
+      Effect.gen(function* refused() {
+        yield* fetchPath("/nope");
+
+        assert.strictEqual(yield* failureCount("defect"), 0);
+        assert.strictEqual(yield* failureCount("rejected"), 0);
+      })
+    );
+
+    it.effect("counts a request in flight and gives it back when it ends", () =>
+      Effect.gen(function* inFlight() {
+        const pending = golden.handler(new Request("http://localhost/held"));
+        yield* Effect.promise(async () => heldEntered.promise);
+
+        const during = yield* activeCount;
+        heldRelease.resolve(true);
+        yield* Effect.promise(async () => pending);
+        const after = yield* activeCount;
+
+        assert.strictEqual(during, 1);
+        assert.strictEqual(after, 0);
+      })
+    );
+
+    it.effect("gives the slot back when the request times out", () =>
+      Effect.gen(function* timedOut() {
+        yield* fetchGolden("/slow");
+
+        assert.strictEqual(yield* activeCount, 0);
       })
     );
   });
@@ -242,6 +356,65 @@ describe("the global middleware", () => {
 
         assert.strictEqual(registrations.length, CHAIN.length);
       });
+    });
+  });
+
+  describe("the admission middleware", () => {
+    const entered = Promise.withResolvers<boolean>();
+    const release = Promise.withResolvers<boolean>();
+
+    const held = HttpRouter.add(
+      "GET",
+      "/held",
+      Effect.promise(async () => {
+        entered.resolve(true);
+        await release.promise;
+
+        return HttpServerResponse.text("done");
+      })
+    );
+
+    const full = HttpRouter.toWebHandler(
+      Layer.mergeAll(app, held).pipe(
+        Layer.provide([
+          HttpServer.layerServices,
+          ConfigProvider.layer(
+            ConfigProvider.fromEnvRecord({
+              APP_URL: `${ALLOWED_ORIGIN}/`,
+              MAX_IN_FLIGHT_PROBES: "1",
+              MAX_IN_FLIGHT_REQUESTS: "1",
+            })
+          ),
+        ])
+      ),
+      { disableLogger: true }
+    );
+
+    const send = async (path: string) =>
+      full.handler(new Request(`http://localhost${path}`));
+
+    afterAll(async () => full.dispose());
+
+    it("answers the request after the limit with 503 and Retry-After, and keeps the probes up", async () => {
+      const first = send("/held");
+      await entered.promise;
+
+      const rejected = await send("/held");
+      const probe = await send(LIVE_PATH);
+
+      release.resolve(true);
+      const admitted = await first;
+      const after = await send("/held");
+
+      assert.strictEqual(rejected.status, 503);
+      assert.strictEqual(rejected.headers.get("retry-after"), "1");
+      assert.isNotNull(rejected.headers.get("x-request-id"));
+      assert.deepStrictEqual(await rejected.json(), {
+        message: "Service Unavailable",
+      });
+      assert.strictEqual(probe.status, 200);
+      assert.strictEqual(admitted.status, 200);
+      assert.strictEqual(after.status, 200);
     });
   });
 

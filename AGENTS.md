@@ -35,3 +35,5 @@ Multi-context — root `GLOSSARY-MAP.md` pointing at per-package `GLOSSARY.md` f
 ## Testing
 
 When writing tests, call Skill tool with `/javascript-testing-expert`.
+
+A fix for a reproduced bug starts with a failing regression test in the same PR: see [Reproduced bugs become regression tests](docs/adr/0001-unit-tests-are-pure-module-logic-and-api-routes-only.md#reproduced-bugs-become-regression-tests) in ADR-0001.

@@ -1,15 +1,19 @@
+import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { describe, expect, it } from "vitest";
 
 import { app } from "#app/app.ts";
 import { ENV } from "#shared/constants/env.ts";
 import { SERVICE_VERSION } from "#shared/constants/global.ts";
 
+import { findInputOperationsWithout400 } from "../../../vitest.openapi.ts";
+import type { OpenApiPathItemLike } from "../../../vitest.openapi.ts";
+
 interface OpenApiDoc {
   info: { description: string; title: string; version: string };
   openapi: string;
   paths: Record<
     string,
-    {
+    OpenApiPathItemLike & {
       get?: {
         description?: string;
         summary?: string;
@@ -122,6 +126,108 @@ describe("/openapi document", () => {
       openapiDocs?.responses?.["200"]?.content?.["text/plain"]?.schema
         ?.description
     ).toBe("The markdown version of the OpenAPI docs");
+  });
+
+  it("should declare a 400 response for every operation that accepts input", async () => {
+    const doc = await fetchOpenApi();
+
+    expect(findInputOperationsWithout400(doc)).toStrictEqual([]);
+  });
+});
+
+const jsonBody = {
+  content: {
+    "application/json": { schema: z.object({ name: z.string() }) },
+  },
+};
+
+const buildDocument = (route: Parameters<OpenAPIHono["openapi"]>[0]) => {
+  const testApp = new OpenAPIHono();
+
+  testApp.openapi(route, (c) => c.json({ ok: true }, 200));
+
+  return testApp.getOpenAPI31Document({
+    info: { title: "test", version: "1.0.0" },
+    openapi: "3.1.0",
+  });
+};
+
+describe(findInputOperationsWithout400, () => {
+  it("should flag an operation with a request body that omits 400", () => {
+    const doc = buildDocument(
+      createRoute({
+        method: "post",
+        path: "/widgets",
+        request: { body: jsonBody },
+        responses: { 200: { description: "ok" } },
+      })
+    );
+
+    const missing = findInputOperationsWithout400(doc);
+
+    expect(missing).toStrictEqual(["POST /widgets"]);
+  });
+
+  it("should accept an operation with a request body that declares 400", () => {
+    const doc = buildDocument(
+      createRoute({
+        method: "post",
+        path: "/widgets",
+        request: { body: jsonBody },
+        responses: {
+          200: { description: "ok" },
+          400: { description: "invalid input" },
+        },
+      })
+    );
+
+    const missing = findInputOperationsWithout400(doc);
+
+    expect(missing).toStrictEqual([]);
+  });
+
+  it("should flag an operation with path params that omits 400", () => {
+    const doc = buildDocument(
+      createRoute({
+        method: "get",
+        path: "/widgets/{id}",
+        request: { params: z.object({ id: z.string() }) },
+        responses: { 200: { description: "ok" } },
+      })
+    );
+
+    const missing = findInputOperationsWithout400(doc);
+
+    expect(missing).toStrictEqual(["GET /widgets/{id}"]);
+  });
+
+  it("should flag an operation with a query that omits 400", () => {
+    const doc = buildDocument(
+      createRoute({
+        method: "get",
+        path: "/widgets",
+        request: { query: z.object({ page: z.string() }) },
+        responses: { 200: { description: "ok" } },
+      })
+    );
+
+    const missing = findInputOperationsWithout400(doc);
+
+    expect(missing).toStrictEqual(["GET /widgets"]);
+  });
+
+  it("should ignore an operation that accepts no input", () => {
+    const doc = buildDocument(
+      createRoute({
+        method: "get",
+        path: "/widgets",
+        responses: { 200: { description: "ok" } },
+      })
+    );
+
+    const missing = findInputOperationsWithout400(doc);
+
+    expect(missing).toStrictEqual([]);
   });
 });
 

@@ -3,14 +3,13 @@ import { Effect, Layer } from "effect";
 import { HttpRouter } from "effect/http";
 
 import { observability } from "#server/observability.ts";
-import { APP_TITLE, APP_URL } from "#shared/config.ts";
+import { APP_TITLE, APP_URL, readAll } from "#shared/config.ts";
 
 import { app } from "./http.ts";
 import { tracerDisabledForProbes } from "./probes.ts";
 
 const banner = Effect.gen(function* banner() {
-  const title = yield* APP_TITLE;
-  const url = yield* APP_URL;
+  const { title, url } = yield* readAll({ title: APP_TITLE, url: APP_URL });
 
   yield* Effect.log(`${title} is reachable at ${url.toString()}`);
 });

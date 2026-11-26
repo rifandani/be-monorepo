@@ -7,9 +7,15 @@ import { createMarkdownFromOpenApi } from "@scalar/openapi-to-markdown";
 import type { MiddlewareHandler } from "hono";
 
 import { auth } from "#server/auth.ts";
-import { ENV } from "#shared/constants/env.ts";
-import { SERVICE_VERSION } from "#shared/constants/global.ts";
 import type { Variables } from "#server/types/hono.ts";
+import type { AppConfig } from "#shared/constants/env.ts";
+import { SERVICE_VERSION } from "#shared/constants/global.ts";
+import { nextActions, nextActionsMarkdown } from "#shared/utils/links.ts";
+import type { NextAction } from "#shared/utils/links.ts";
+
+export const LLMS_INDEX_PATH = "/llms.txt";
+const LLMS_DOCS_PATH = "/llms-docs";
+const LLMS_AUTH_PATH = "/llms-auth.txt";
 
 const TOKENS_PER_CHARACTER = 4;
 const LLMS_CACHE_MAX_AGE_SECONDS = 3600;
@@ -46,12 +52,62 @@ type DocsApp = OpenAPIHono<{
   Variables: Variables;
 }>;
 
-const registerDocsFolderRoute = (app: DocsApp) => {
+interface LlmsPages {
+  readonly auth: string;
+  readonly index: string;
+  readonly links: readonly NextAction[];
+}
+
+const nextActionSchema = z.object({
+  href: z.string().openapi({ description: "The absolute URL of the action" }),
+  method: z.string().openapi({ description: "The HTTP method of the action" }),
+  title: z.string().openapi({ description: "What the action does" }),
+});
+
+const withNextActions = (markdown: string, actions: readonly NextAction[]) =>
+  `${markdown}\n\n${nextActionsMarkdown(actions)}`;
+
+const buildLlmsPages = async (
+  app: DocsApp,
+  config: AppConfig
+): Promise<LlmsPages> => {
+  const appContract = app.getOpenAPI31Document({
+    info: {
+      title: config.APP_TITLE,
+      version: `v${SERVICE_VERSION}`,
+    },
+    openapi: "3.1.0",
+    servers: [{ url: config.APP_URL }],
+  });
+
+  const authContract = await auth.api.generateOpenAPISchema();
+
+  const [appMarkdown, authMarkdown] = await Promise.all([
+    createMarkdownFromOpenApi(JSON.stringify(appContract)),
+    createMarkdownFromOpenApi(JSON.stringify(authContract)),
+  ]);
+
+  const appActions = nextActions(appContract, config.APP_URL);
+
+  return {
+    auth: withNextActions(
+      authMarkdown,
+      nextActions(authContract, config.APP_URL)
+    ),
+    index: withNextActions(appMarkdown, appActions),
+    links: appActions,
+  };
+};
+
+const registerDocsFolderRoute = (
+  app: DocsApp,
+  pages: Promise<LlmsPages>
+) => {
   app.openapi(
     createRoute({
       description: "Get the combined content of the docs folder.",
       method: "get",
-      path: "/llms-docs",
+      path: LLMS_DOCS_PATH,
       responses: {
         200: {
           content: {
@@ -59,6 +115,9 @@ const registerDocsFolderRoute = (app: DocsApp) => {
               schema: z.object({
                 length: z.number().openapi({
                   description: "The length of the generated text",
+                }),
+                links: z.array(nextActionSchema).openapi({
+                  description: "The next valid actions, as absolute links",
                 }),
                 text: z.string().openapi({
                   description: "The generated text",
@@ -82,9 +141,11 @@ const registerDocsFolderRoute = (app: DocsApp) => {
       );
 
       const fullContent = contents.map((content) => `${content}\n\n`).join("");
+      const { links } = await pages;
 
       return c.json({
         length: fullContent.length,
+        links: [...links],
         text: fullContent,
         tokens: fullContent.length / TOKENS_PER_CHARACTER,
       });
@@ -92,19 +153,16 @@ const registerDocsFolderRoute = (app: DocsApp) => {
   );
 };
 
-const registerAuthMarkdownRoute = async (app: DocsApp) => {
-  const betterauthOpenapiObject = await auth.api.generateOpenAPISchema();
-
-  const betterauthMarkdown = await createMarkdownFromOpenApi(
-    JSON.stringify(betterauthOpenapiObject)
-  );
-
+const registerAuthMarkdownRoute = (
+  app: DocsApp,
+  pages: Promise<LlmsPages>
+) => {
   app.openapi(
     createRoute({
       description:
         "Markdown version of the BetterAuth OpenAPI docs, which can be used for LLMs.",
       method: "get",
-      path: "/llms-auth.txt",
+      path: LLMS_AUTH_PATH,
       responses: {
         200: {
           content: {
@@ -121,29 +179,24 @@ const registerAuthMarkdownRoute = async (app: DocsApp) => {
       },
       summary: "BetterAuth OpenAPI docs",
     }),
-    (c) => c.text(betterauthMarkdown)
+    async (c) => {
+      const { auth: authMarkdown } = await pages;
+
+      return c.text(authMarkdown);
+    }
   );
 };
 
-const registerOpenApiMarkdownRoute = async (app: DocsApp) => {
-  const openapiObject = app.getOpenAPI31Document({
-    info: {
-      title: ENV.APP_TITLE,
-      version: `v${SERVICE_VERSION}`,
-    },
-    openapi: "3.1.0",
-  });
-
-  const markdown = await createMarkdownFromOpenApi(
-    JSON.stringify(openapiObject)
-  );
-
+const registerOpenApiMarkdownRoute = (
+  app: DocsApp,
+  pages: Promise<LlmsPages>
+) => {
   app.openapi(
     createRoute({
       description:
         "Markdown version of the OpenAPI docs, which can be used for LLMs.",
       method: "get",
-      path: "/llms.txt",
+      path: LLMS_INDEX_PATH,
       responses: {
         200: {
           content: {
@@ -159,16 +212,24 @@ const registerOpenApiMarkdownRoute = async (app: DocsApp) => {
       },
       summary: "OpenAPI docs",
     }),
-    (c) => c.text(markdown)
+    async (c) => {
+      const { index } = await pages;
+
+      return c.text(index);
+    }
   );
 };
 
-export const llmsDocsRoutes = async (app: DocsApp) => {
-  app.use("/llms-docs", llmsCacheControl);
-  app.use("/llms.txt", llmsCacheControl);
-  app.use("/llms-auth.txt", llmsCacheControl);
+export const llmsDocsRoutes = async (app: DocsApp, config: AppConfig) => {
+  app.use(LLMS_DOCS_PATH, llmsCacheControl);
+  app.use(LLMS_INDEX_PATH, llmsCacheControl);
+  app.use(LLMS_AUTH_PATH, llmsCacheControl);
 
-  registerDocsFolderRoute(app);
-  await registerAuthMarkdownRoute(app);
-  await registerOpenApiMarkdownRoute(app);
+  const pages = Promise.withResolvers<LlmsPages>();
+
+  registerDocsFolderRoute(app, pages.promise);
+  registerAuthMarkdownRoute(app, pages.promise);
+  registerOpenApiMarkdownRoute(app, pages.promise);
+
+  pages.resolve(await buildLlmsPages(app, config));
 };

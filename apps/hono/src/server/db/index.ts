@@ -12,6 +12,6 @@ const dbPool = new Pool({
 export const db = drizzle({
   casing: "snake_case",
   client: dbPool,
-  logger: process.env.NODE_ENV === "development",
+  logger: ENV.NODE_ENV === "development",
   schema,
 });

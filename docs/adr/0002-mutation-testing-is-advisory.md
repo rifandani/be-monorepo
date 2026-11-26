@@ -80,6 +80,7 @@ bunx stryker run --mutate "apps/hono/src/server/client-address.ts:36:12-36:35"
 
 - **Still survives** → kill it with a test, or suppress it with a reason.
 - **Killed when run alone** → not a coverage gap. It is a test-isolation problem, which is the more interesting bug.
+- **A test that kills no mutants in its module** → a removal candidate: it cannot detect breakage, so it only adds false confidence.
 
 ## Running it
 

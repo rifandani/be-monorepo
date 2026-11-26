@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import type { BetterAuthOptions } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, openAPI } from "better-auth/plugins";
 
@@ -10,7 +11,7 @@ import { ENV } from "#shared/constants/env.ts";
 const RATE_LIMIT_WINDOW_SECONDS = 15;
 const RATE_LIMIT_MAX_REQUESTS = 10 * RATE_LIMIT_WINDOW_SECONDS;
 
-export const auth = betterAuth({
+export const authOptionsWithoutDatabase = {
   advanced: {
     ipAddress: {
       ipAddressHeaders: [...clientAddressHeaders],
@@ -18,16 +19,6 @@ export const auth = betterAuth({
   },
   appName: ENV.APP_TITLE,
   baseURL: ENV.APP_URL,
-  database: drizzleAdapter(db, {
-    provider: "pg",
-    schema: {
-      account: schema.accountTable,
-      rate_limit: schema.rateLimitTable,
-      session: schema.sessionTable,
-      user: schema.userTable,
-      verification: schema.verificationTable,
-    },
-  }),
   emailAndPassword: { enabled: true },
   plugins: [
     bearer(),
@@ -47,4 +38,18 @@ export const auth = betterAuth({
     enabled: false,
   },
   trustedOrigins: [ENV.APP_URL],
+} satisfies BetterAuthOptions;
+
+export const auth = betterAuth({
+  ...authOptionsWithoutDatabase,
+  database: drizzleAdapter(db, {
+    provider: "pg",
+    schema: {
+      account: schema.accountTable,
+      rate_limit: schema.rateLimitTable,
+      session: schema.sessionTable,
+      user: schema.userTable,
+      verification: schema.verificationTable,
+    },
+  }),
 });
