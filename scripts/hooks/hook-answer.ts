@@ -10,7 +10,8 @@ const Payload = Schema.Struct({
 });
 
 const decodePayload = Schema.decodeUnknownOption(
-  Schema.fromJsonString(Payload)
+  Schema.fromJsonString(Payload),
+  { errors: "all" }
 );
 
 export interface HookAnswer {

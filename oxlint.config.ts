@@ -50,6 +50,16 @@ export default defineConfig({
     "landmines/no-flake-masking-timeout": ["warn", { check: "timeout" }],
     "landmines/no-test-doubles": "warn",
     "landmines/no-unsignaled-poll": "error",
+    "io-boundary/decode-all-errors": [
+      "error",
+      {
+        decodeFiles: [
+          "apps/hono/src/shared/constants/env.ts",
+          "apps/effect/src/shared/config.ts",
+          "scripts/**",
+        ],
+      },
+    ],
     "io-boundary/no-ambient-env": [
       "error",
       {

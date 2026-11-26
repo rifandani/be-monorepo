@@ -113,7 +113,9 @@ const readSarif = (file: string): SarifLog => {
     );
   }
 
-  const parsed = Schema.decodeUnknownResult(SarifLogSchema)(json);
+  const parsed = Schema.decodeUnknownResult(SarifLogSchema, { errors: "all" })(
+    json
+  );
 
   if (Result.isFailure(parsed)) {
     return failParse(

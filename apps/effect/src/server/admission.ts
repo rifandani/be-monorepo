@@ -5,6 +5,7 @@ import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import {
   MAX_IN_FLIGHT_PROBES,
   MAX_IN_FLIGHT_REQUESTS,
+  readAll,
 } from "#shared/config.ts";
 
 import { admissionRejections, bulkheadAttributes } from "./metrics.ts";
@@ -85,8 +86,10 @@ export const admission = (
 ): Layer.Layer<never, Config.ConfigError, HttpRouter.HttpRouter> =>
   Layer.unwrap(
     Effect.gen(function* readCapacity() {
-      const requests = yield* MAX_IN_FLIGHT_REQUESTS;
-      const probes = yield* MAX_IN_FLIGHT_PROBES;
+      const { probes, requests } = yield* readAll({
+        probes: MAX_IN_FLIGHT_PROBES,
+        requests: MAX_IN_FLIGHT_REQUESTS,
+      });
 
       return admissionFor({ isProbePath, probes, requests });
     })

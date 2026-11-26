@@ -1,4 +1,5 @@
-import { Config, Schema } from "effect";
+import { Cause, Config, Effect, Schema } from "effect";
+import type { Array as Arr } from "effect";
 
 export const APP_TITLE = Config.NonEmptyString("APP_TITLE");
 
@@ -31,3 +32,15 @@ export const OTEL_LOG_LEVEL = Config.Literals(
   ["ALL", "VERBOSE", "DEBUG", "INFO", "WARN", "ERROR", "NONE"],
   "OTEL_LOG_LEVEL"
 );
+
+const failWithEvery = (errors: Arr.NonEmptyReadonlyArray<Config.ConfigError>) =>
+  Effect.failCause(Cause.fromReasons(errors.map(Cause.makeFailReason)));
+
+export const readAll = <
+  const Configs extends Readonly<Record<string, Config.Config<unknown>>>,
+>(
+  configs: Configs
+) =>
+  Effect.validate(Object.values(configs), (config) => config, {
+    discard: true,
+  }).pipe(Effect.catch(failWithEvery), Effect.andThen(Config.all(configs)));
