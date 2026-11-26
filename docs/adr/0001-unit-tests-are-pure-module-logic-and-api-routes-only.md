@@ -126,6 +126,16 @@ CI also runs checks with no `package.json` command, all on rung 1: zizmor on the
 
 The other scripts are not checks: `prepare`, `compose:up`, `clean`, `repos:update`, `bump:deps`, `bump:skills`, `portless`, `cs`, `cs:v`, `lint:fix`, `lint:doctor`, `check:viz`, `check:fix`, the `hono` / `effect` / `load` workspace filters, and each app's `dev`, `node:*`, `db:*` and `auth:gen`.
 
+### Reproduced bugs become regression tests
+
+Agents, people and the `diagnosing-bugs` skill find bugs by exploring. A reproduction that is not saved as a test is lost with the session that found it.
+
+- **A fix for a reproduced bug starts with a failing test at the lowest rung that catches it** (see the [testing ladder](#testing-ladder)). Watch it fail before writing the fix.
+- **The test lands in the same PR as the fix.**
+- **A property counterexample is saved as an example test with its seed** ([ADR-0005](./0005-property-based-tests.md)). The shrunk input goes into the example test as a literal, and the `PBT_SEED` from the replay line goes into its name, so the case runs on every seed. A model-test counterexample is saved the same way, as its command sequence.
+
+Keep the smallest case that still fails, not every step the explorer took.
+
 ## Consequences
 
 - Api repositories in `packages/core/src/apis/` are tested at the Network Boundary; a wrong schema or URL now fails a test rather than relying on manual review alone.
