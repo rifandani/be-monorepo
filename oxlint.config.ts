@@ -23,6 +23,7 @@ export default defineConfig({
     "comments/no-comments": "error",
     "comments/directive-reason": "error",
     "effect-tests/no-manual-effect-runtime-in-tests": "error",
+    "anti-slop-effect/bounded-retry": "error",
     "anti-slop-effect/no-defect-swallowing": [
       "error",
       {

@@ -2,11 +2,10 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree, Options, RuleOptionsSchema } from "@oxlint/plugins";
 import { Schema } from "effect";
 
-import { isAllowed } from "../shared/allow-option.ts";
+import { isTestPath } from "../shared/allow-option.ts";
 import {
   collectEffectModuleNames,
   isFunction,
-  isTestFile,
   moduleCallName,
   ownReturns,
   unwrapNode,
@@ -28,7 +27,6 @@ const DEFAULT_SOURCE_RESOURCES: readonly string[] = [
   "setInterval",
   "setTimeout",
 ];
-const DEFAULT_TEST_FILES: readonly string[] = ["apps/*/tests/**"];
 const ACQUIRE_STEPS: ReadonlySet<string> = new Set([
   "acquireRelease",
   "acquireUseRelease",
@@ -91,9 +89,7 @@ function patternsFor(
 ): readonly ResourcePattern[] {
   const [option] = decodeOptions(options);
   const resources = option?.resources ?? DEFAULT_RESOURCES;
-  const inTests =
-    isTestFile(filename) ||
-    isAllowed(filename, option?.testFiles ?? DEFAULT_TEST_FILES);
+  const inTests = isTestPath(filename, option?.testFiles);
   const labels = inTests
     ? resources
     : [...resources, ...(option?.sourceResources ?? DEFAULT_SOURCE_RESOURCES)];

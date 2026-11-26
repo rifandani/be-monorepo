@@ -18,13 +18,21 @@ export function resolveIdentifier(
   return null;
 }
 
-export type EffectModule = "Context" | "Effect" | "Layer" | "ManagedRuntime";
+export type EffectModule =
+  | "Context"
+  | "Effect"
+  | "Layer"
+  | "ManagedRuntime"
+  | "Schedule"
+  | "Stream";
 
 const effectModules: ReadonlySet<string> = new Set<EffectModule>([
   "Context",
   "Effect",
   "Layer",
   "ManagedRuntime",
+  "Schedule",
+  "Stream",
 ]);
 
 export type EffectModuleNames = ReadonlyMap<EffectModule, ReadonlySet<string>>;

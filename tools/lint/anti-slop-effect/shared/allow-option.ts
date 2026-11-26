@@ -3,6 +3,8 @@ import path from "node:path";
 import type { Options, RuleOptionsSchema } from "@oxlint/plugins";
 import { Schema } from "effect";
 
+import { isTestFile } from "./effect-modules.ts";
+
 export const allowOptionSchema: RuleOptionsSchema = [
   {
     type: "object",
@@ -36,3 +38,10 @@ export function isAllowed(filename: string, globs: readonly string[]): boolean {
     suffixes.some((suffix) => path.matchesGlob(suffix, glob))
   );
 }
+
+const DEFAULT_TEST_FILES: readonly string[] = ["apps/*/tests/**"];
+
+export const isTestPath = (
+  filename: string,
+  testFiles: readonly string[] = DEFAULT_TEST_FILES
+): boolean => isTestFile(filename) || isAllowed(filename, testFiles);

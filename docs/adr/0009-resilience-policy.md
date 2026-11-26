@@ -4,14 +4,14 @@ status: accepted
 
 # Resilience policy
 
-A call to a dependency can fail slowly, fail partially or not answer. If each handler selects its own timeouts and retries, a retry can do one action two times, and a slow dependency can hold all of the server. We decide that both API apps follow one resilience policy. This ADR is the frame of that policy. Each section is one rule. A lint rule cannot express these rules, so code review and the tests in each section enforce them.
+A call to a dependency can fail slowly, fail partially or not answer. If each handler selects its own timeouts and retries, a retry can do one action two times, and a slow dependency can hold all of the server. We decide that both API apps follow one resilience policy. This ADR is the frame of that policy. Each section is one rule. Where a lint rule can express a rule, the section names the lint rule. Code review and the tests in each section enforce the other rules.
 
 ## Sections
 
 | Section | Issue |
 | --- | --- |
 | [Timeouts bound waiting](#timeouts-bound-waiting) | #114 |
-| Bounded retries and idempotency | #115 |
+| [Bounded retries and idempotency](#bounded-retries-and-idempotency) | #115 |
 | Admission control, bulkheads and backpressure | #117 |
 | Circuit breakers for slow dependencies | #118 |
 | Golden signals: saturation and failed work | #119 |
@@ -40,7 +40,7 @@ const charge = withOutboundTimeout("payments.charge")(payments.charge(order));
 
 ### No retry after outcome unknown
 
-Do not retry a non-idempotent operation after "outcome unknown", unless the operation has an idempotency key (see #115). A retry without a key can do the action two times, for example two charges for one order. Before a retry, examine the remote state, or send a key that lets the remote side find the first attempt.
+Do not retry a non-idempotent operation after "outcome unknown", unless the operation has an idempotency key (see [Bounded retries and idempotency](#bounded-retries-and-idempotency)). A retry without a key can do the action two times, for example two charges for one order. Before a retry, examine the remote state, or send a key that lets the remote side find the first attempt.
 
 A retry after a refusal is a different decision. It is not correct without a change to the request (ADR-0007).
 
@@ -64,7 +64,56 @@ The outbound timeout must be shorter than the inbound timeout. If it is not shor
 
 The tests for `withOutboundTimeout` and `OutcomeUnknown` are in `apps/effect/src/server/timeout.test.ts`.
 
+## Bounded retries and idempotency
+
+A retry sends the request again. During an incident, the dependency is already slow or down. Each retry adds load to it. If each layer of a call path retries, the attempts multiply: three layers with three attempts each send 27 requests for one user action. A retry of a write that is not idempotent can also do the action two times.
+
+### Each retry has a bound
+
+Each retry stops after a known number of attempts or a known duration. The lint rule `anti-slop-effect/bounded-retry` (`tools/lint/anti-slop-effect/rules/bounded-retry.ts`) enforces this rule:
+
+- `Effect.retry`, `Effect.retryOrElse` and `Stream.retry` must have a bound that the rule can see. A bound is one of these:
+  - In the options: `times`, `until` or `while`.
+  - In the schedule: `Schedule.recurs`, `Schedule.once`, `Schedule.during`, `Schedule.duration`, or a `Schedule.upTo` step with `times` or `duration`.
+- `Schedule.spaced`, `Schedule.exponential`, `Schedule.fibonacci`, `Schedule.fixed`, `Schedule.cron`, `Schedule.windowed` and `Schedule.forever` do not stop. Add a bound to them.
+- `Schedule.max([...])` stops when one of its schedules stops, so it has a bound when one schedule has a bound. `Schedule.min([...])` stops only when all of its schedules stop, so it has a bound only when all schedules have a bound. `Schedule.concat` has a bound only when the two schedules have a bound.
+- The rule follows a policy that is a `const` in the same file. It does not follow an import. If the policy comes from another module, add `times` at the call site: `Effect.retry(effect, { schedule: policy, times: 3 })`.
+- `Schedule.forever` is an error in source files, also outside a retry. Test files can use it.
+- In a file that imports `ky` (at this time, only `apps/hono`), a `ky` `retry` option object must set `limit`. The `ky` default is 2 retries, but a reader cannot see the default at the call site.
+
+```ts
+const backoff = Schedule.exponential("100 millis").pipe(
+  Schedule.jittered,
+  Schedule.upTo({ times: 3 })
+);
+const charge = payments.charge(order).pipe(Effect.retry(backoff));
+```
+
+### One retry owner for each call path
+
+Only one layer of a call path retries. This layer is the **retry owner**. The other layers send each failure up without a retry.
+
+- The retry owner is the layer nearest to the dependency that knows if the operation is idempotent. Usually this is the outbound client of the dependency.
+- A handler does not retry a service call that already retries.
+- When a library retries by default (for example `ky`), that library is the retry owner, or its `retry` is `0`.
+- A retry that is not the owner is an error in code review.
+
+### Retry of a write needs an idempotency key
+
+A read is safe to retry. A write is safe to retry only when it is idempotent, or when it has an idempotency key ([No retry after outcome unknown](#no-retry-after-outcome-unknown)).
+
+- `GET` and `HEAD` are safe to retry.
+- A `POST`, `PUT` or `PATCH` route that a client can retry accepts an `Idempotency-Key` request header. HTTP says that `PUT` is idempotent, but a handler can break this property, for example when it adds a row or sends an event. The server records the key with the result of the first request. A second request with the same key gets the recorded result. The server does not do the action again.
+- If a second request with the same key has a different body, the server answers 422.
+- An outbound write that the retry owner retries sends an idempotency key to the dependency. If the dependency cannot accept a key, the retry owner does not retry the write.
+
+At this time, no route in `apps/hono` or `apps/effect` accepts an `Idempotency-Key`, and neither app retries a write. Add the key before a client retries a write route.
+
+The tests for `anti-slop-effect/bounded-retry` are in `tools/lint/anti-slop-effect/rules/bounded-retry.test.ts`.
+
 ## References
 
 - [Timeouts bound waiting](https://ratstack.sh/lore/timeouts-bound-waiting)
+- [Retry needs idempotency](https://ratstack.sh/lore/retry-needs-idempotency)
+- [Retry load needs a budget](https://ratstack.sh/lore/retry-load-needs-a-budget)
 - [ADR-0007: Failures have three classes](./0007-failures-have-three-classes.md)
