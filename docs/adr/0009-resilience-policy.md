@@ -8,15 +8,15 @@ A call to a dependency can fail slowly, fail partially or not answer. If each ha
 
 ## Sections
 
-| Section | Issue |
+| Section | Problem |
 | --- | --- |
-| [Timeouts bound waiting](#timeouts-bound-waiting) | #114 |
-| [Bounded retries and idempotency](#bounded-retries-and-idempotency) | #115 |
-| [Concurrent work has an owner and a bound](#concurrent-work-has-an-owner-and-a-bound) | #116 |
-| [Admission control, bulkheads and backpressure](#admission-control-bulkheads-and-backpressure) | #117 |
-| [Circuit breakers for slow dependencies](#circuit-breakers-for-slow-dependencies) | #118 |
-| [Golden signals: saturation and failed work](#golden-signals-saturation-and-failed-work) | #119 |
-| [Retention of data that accumulates](#retention-of-data-that-accumulates) | #121 |
+| [Timeouts bound waiting](#timeouts-bound-waiting) | A call that never answers holds the caller forever |
+| [Bounded retries and idempotency](#bounded-retries-and-idempotency) | Retries multiply load and can repeat a write |
+| [Concurrent work has an owner and a bound](#concurrent-work-has-an-owner-and-a-bound) | Unbounded or unowned work exhausts resources and loses failures |
+| [Admission control, bulkheads and backpressure](#admission-control-bulkheads-and-backpressure) | A spike makes every request slow |
+| [Circuit breakers for slow dependencies](#circuit-breakers-for-slow-dependencies) | A slow dependency holds request slots on every call |
+| [Golden signals: saturation and failed work](#golden-signals-saturation-and-failed-work) | Overload shows only after the server is full |
+| [Retention of data that accumulates](#retention-of-data-that-accumulates) | Stores that only grow slow down and fill the disk |
 
 ## Timeouts bound waiting
 
