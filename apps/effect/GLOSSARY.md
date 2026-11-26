@@ -52,4 +52,8 @@ The three failure classes. See [ADR-0007](../../docs/adr/0007-failures-have-thre
 
 **Bulkhead**: A separate set of slots for one kind of request, so that a full app does not stop it. The Probes have a Bulkhead. _Avoid_: pool, partition
 
+**Circuit Breaker**: A guard around one outbound dependency with a state: Closed, Open or Half-open. When it is Open, a call to the dependency fails immediately with `CircuitOpen` (`503` with `Retry-After`) and the app does not send it. See [ADR-0009](../../docs/adr/0009-resilience-policy.md#circuit-breakers-for-slow-dependencies). _Avoid_: fuse, kill switch
+
+**Probe Call**: The one call that a Half-open Circuit Breaker sends to test the dependency. Not a health Probe. _Avoid_: trial request, canary
+
 **Shed**: To refuse a request because no slot is free: `503` with `Retry-After`, before the handler runs. A shed request is an Infrastructure Fault. _Avoid_: drop, reject (as the name of this act)

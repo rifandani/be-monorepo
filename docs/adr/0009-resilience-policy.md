@@ -14,7 +14,7 @@ A call to a dependency can fail slowly, fail partially or not answer. If each ha
 | [Bounded retries and idempotency](#bounded-retries-and-idempotency) | #115 |
 | [Concurrent work has an owner and a bound](#concurrent-work-has-an-owner-and-a-bound) | #116 |
 | [Admission control, bulkheads and backpressure](#admission-control-bulkheads-and-backpressure) | #117 |
-| Circuit breakers for slow dependencies | #118 |
+| [Circuit breakers for slow dependencies](#circuit-breakers-for-slow-dependencies) | #118 |
 | Golden signals: saturation and failed work | #119 |
 | Retention of data that accumulates | #121 |
 
@@ -167,6 +167,67 @@ In `apps/hono`, the admission middleware is outside `hono/timeout`. When the inb
 - The route tests are in `apps/effect/tests/middleware.test.ts` (the admission middleware) and `apps/hono/tests/admission.test.ts`. They fill the capacity through the full app, and they examine that the next request gets `503` with `Retry-After`.
 - In `packages/load`, the `shed` counter counts each `503`, and the check `a 503 has Retry-After` must pass. The threshold `http_req_duration{status:200}` measures only the accepted requests. Run the `stress` and `spike` profiles with a low `MAX_IN_FLIGHT_REQUESTS` to see the shedding.
 
+## Circuit breakers for slow dependencies
+
+When a dependency is down or slow, each call waits until the outbound timeout. Each waiting call holds a request slot, a connection and memory, and it adds load to a dependency that is already in trouble. A timeout bounds one call. It does not stop the next call. We decide that each outbound dependency has a circuit breaker. The breaker keeps a state, and the state decides if the app sends the call at all. When the breaker is open, the call fails immediately and the app does not send it.
+
+No lint rule can enforce this section, because a lint rule cannot see the state. Code review and the tests below enforce it.
+
+### The states
+
+| State | What the breaker does | It changes when |
+| --- | --- | --- |
+| **Closed** | It sends each call. It counts the consecutive faults. | The count gets to the threshold: it goes to **Open**. |
+| **Open** | It sends no call. Each call fails immediately with `CircuitOpen`. | The cooldown ends: the next call goes through as the **probe**, and the state is **Half-open**. |
+| **Half-open** | It sends one call, the probe. Each other call fails immediately with `CircuitOpen`. | The probe succeeds or is refused: **Closed**, with a count of 0. The probe is a fault: **Open** again, for one more cooldown. The probe is interrupted: **Open**, with the cooldown already ended, so the next call is the probe. |
+
+- **A fault** is a failure that is not a refusal: `OutcomeUnknown`, a defect, an error with a status of 500 to 599, or an error without a status. **A refusal** (an error with a status of 400 to 499, [ADR-0007](./0007-failures-have-three-classes.md)) means that the dependency answered, so it is a success for the breaker and resets the count.
+- **An interrupt** is not a result. The breaker does not count it. When the probe is interrupted, the breaker lets the next call be the probe.
+- **A late result** is the result of a call that started before the breaker opened. While the breaker is **Open** or **Half-open**, the breaker ignores it: only the probe can move the breaker out of **Half-open**, and no call can move it out of **Open** before the cooldown ends. The breaker does not record when a call started. Thus, if a late call could finish after the breaker closed again, its result would change the new count. The cooldown rule in [The policy](#the-policy) prevents this, but only for a call in `withOutboundTimeout`.
+- The count is of **consecutive** faults. It is not a rate in a time window. One success or one refusal sets it to 0.
+- The state is local to the process. Each instance of the app has its own breakers and does not share their state.
+
+### Which dependencies get a breaker
+
+- Each outbound dependency gets one breaker: one database, one remote API. All calls to that dependency share the breaker.
+- Put `breaker.protect` outside `withOutboundTimeout`, so that a timeout is a fault for the breaker. Put the retry ([Bounded retries and idempotency](#bounded-retries-and-idempotency)) outside the breaker, so that a retry does not go to an open breaker. A retry of `CircuitOpen` before `retryAfterSeconds` is an error in code review.
+
+```ts
+const payments = yield* makeBreaker("payments");
+const charge = payments.protect(
+  withOutboundTimeout("payments.charge")(client.charge(order))
+);
+// Effect<Receipt, PaymentRefused | OutcomeUnknown | CircuitOpen>
+```
+
+At this time, `apps/effect` has no outbound call, so it has no breaker. `apps/hono` has no outbound client. When `apps/hono` gets one, it follows the same states and policy.
+
+### The policy
+
+The policy has one place: `BREAKER_POLICY` in `apps/effect/src/server/breaker.ts`. Do not write a threshold or a cooldown in a handler.
+
+| Value | Default | Rule |
+| --- | --- | --- |
+| Trip threshold (`threshold`) | 5 consecutive faults | More than 1, so that one fault does not open the breaker. |
+| Cooldown (`cooldownMillis`) | 30 seconds | Longer than `OUTBOUND_TIMEOUT`, so that a probe does not start while a call of the last closed period can still wait. |
+| Probes in Half-open | 1 | Only one call tests the dependency. |
+
+A test in `src/server/breaker.test.ts` checks the two rules on the defaults.
+
+### What the client gets
+
+`CircuitOpen` gives an empty `503` response with the header `Retry-After`. Its value is the number of seconds until the cooldown ends (at least 1). The error handler adds the body `{"message":"Service Unavailable"}`. The result is an infrastructure fault ([ADR-0007](./0007-failures-have-three-classes.md)). `CircuitOpen` contains the `dependency` name.
+
+### The breaker reports to the readiness probe
+
+Each breaker has a readiness check, `breaker.readiness`, with the name `circuit:<dependency>`. The check fails only while the breaker is **Open**. In **Half-open**, the check passes, so that traffic can come back and send the probe. Give the check to `Health.make` for a dependency that each route needs. For a dependency that only some routes need, do not give the check to the readiness probe: an open breaker of that dependency must not remove the instance from the load balancer. The breaker writes a `warn` log line with the `dependency`, `from` and `to` annotations at each change of state.
+
+### Proof
+
+- The pure state-transition core (`admit`, `settle`, `statusAt`) is in `apps/effect/src/server/breaker.ts`. The property tests in `src/server/breaker.test.ts` generate histories of calls, results and waits ([ADR-0005](./0005-property-based-tests.md)). They check these rules: an open breaker rejects each call before the cooldown ends; not more than one probe is in flight; the closed count stays below the threshold; the breaker opens after exactly the threshold of consecutive faults; and after the cooldown, one successful probe closes it.
+- The Effect wrapper (`makeBreaker`, `CircuitOpen`) has its tests in the same file. They use `TestClock` for the cooldown.
+- The route test is in `apps/effect/tests/breaker.test.ts`. It trips the breaker through the full middleware chain. Then it examines that the next request gets `503` with `Retry-After`, that the dependency gets no call, and that the readiness probe reports `circuit:payments` as `fail`.
+
 ## References
 
 - [Timeouts bound waiting](https://ratstack.sh/lore/timeouts-bound-waiting)
@@ -177,4 +238,5 @@ In `apps/hono`, the admission middleware is outside `hono/timeout`. When the inb
 - [Bulkheads isolate capacity](https://ratstack.sh/lore/bulkheads-isolate-capacity)
 - [Backpressure reaches the producer](https://ratstack.sh/lore/backpressure-reaches-the-producer)
 - [Every task needs an owner](https://ratstack.sh/lore/every-task-needs-an-owner)
+- [Circuit breakers have state](https://ratstack.sh/lore/circuit-breakers-have-state)
 - [ADR-0007: Failures have three classes](./0007-failures-have-three-classes.md)
