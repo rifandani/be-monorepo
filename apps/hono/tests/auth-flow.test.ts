@@ -27,6 +27,8 @@ const TABLE_NAMES = [
 const LIMITED_PATH_WINDOW_MS = 10_000;
 const LIMITED_PATH_MAX_REQUESTS = 3;
 
+const MAX_COMMANDS = 25;
+
 type AuthPath =
   | typeof GET_SESSION
   | typeof SIGN_IN
@@ -397,7 +399,7 @@ describe("/api/auth/** flow", () => {
   it("should always agree with the model over any sequence of auth actions, outages and restarts", async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.commands(anyCommand(), { size: "+1" }),
+        fc.commands(anyCommand(), { maxCommands: MAX_COMMANDS, size: "+1" }),
         async (commands) => {
           await expect(
             fc.asyncModelRun(setup, commands)

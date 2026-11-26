@@ -137,6 +137,11 @@ interface PendingRequest {
   readonly scope: ESTree.Node;
 }
 
+const isBareJsonCall = (node: ESTree.CallExpression) =>
+  node.callee.type === "MemberExpression" &&
+  memberName(node.callee) === "json" &&
+  node.arguments.length === 0;
+
 export const validatedHttpResponse = defineRule({
   meta: {
     type: "problem",
@@ -190,12 +195,18 @@ export const validatedHttpResponse = defineRule({
       }
     };
 
+    const isDecoded = (value: ESTree.Node) => {
+      const consumer = value.parent;
+
+      return (
+        consumer?.type === "CallExpression" &&
+        consumer.arguments[0] === value &&
+        isDecoder(source, consumer.callee)
+      );
+    };
+
     const checkJson = (node: ESTree.CallExpression) => {
-      if (
-        node.callee.type !== "MemberExpression" ||
-        memberName(node.callee) !== "json" ||
-        node.arguments.length > 0
-      ) {
+      if (!isBareJsonCall(node)) {
         return;
       }
 
@@ -206,18 +217,9 @@ export const validatedHttpResponse = defineRule({
         return;
       }
 
-      const value = awaited ?? node;
-      const consumer = value.parent;
-
-      if (
-        consumer.type === "CallExpression" &&
-        consumer.arguments[0] === value &&
-        isDecoder(source, consumer.callee)
-      ) {
-        return;
+      if (!isDecoded(awaited ?? node)) {
+        context.report({ node, messageId: "unvalidatedJson" });
       }
-
-      context.report({ node, messageId: "unvalidatedJson" });
     };
 
     const checkRequest = (node: ESTree.CallExpression) => {

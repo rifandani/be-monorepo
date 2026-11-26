@@ -7,6 +7,8 @@ import {
   HttpServerResponse,
 } from "effect/http";
 
+import { pathOf } from "./not-found.ts";
+
 export const SERVER_ERROR_MESSAGE = "Internal Server Error";
 const REFUSAL_MIN = 400;
 const REFUSAL_MAX = 499;
@@ -48,15 +50,9 @@ const refusalLocation = (cause: Cause.Cause<unknown>): string | undefined => {
     return undefined;
   }
 
-  if (Predicate.isTagged(error.reason, "RequestParseError")) {
-    return "body";
-  }
-
-  if (Predicate.isTagged(error.reason, "RouteNotFound")) {
-    return error.reason.request.url.split("?")[0];
-  }
-
-  return undefined;
+  return Predicate.isTagged(error.reason, "RouteNotFound")
+    ? pathOf(error.reason.request.url)
+    : "body";
 };
 
 const errorBody = (status: number, cause: Cause.Cause<unknown>) => {

@@ -47,6 +47,15 @@ const logLevelOf = (cause: Cause.Cause<unknown>) =>
     return levels;
   });
 
+const routeMiss = (url: string) =>
+  Cause.fail(
+    new HttpServerError.HttpServerError({
+      reason: new HttpServerError.RouteNotFound({
+        request: HttpServerRequest.fromWeb(new Request(url)),
+      }),
+    })
+  );
+
 const parseFailure = (description: string) =>
   Cause.fail(
     new HttpServerError.HttpServerError({
@@ -170,6 +179,37 @@ describe(toErrorResponse, () => {
       assert.strictEqual(body.location, "body");
       assert.isString(body.fix);
     })
+  );
+
+  it.effect("tells a client that missed a route which path missed", () =>
+    Effect.gen(function* missed() {
+      const response = yield* toErrorResponse(
+        routeMiss("http://localhost/nope?page=2")
+      );
+
+      assert.strictEqual(response.status, 404);
+      assert.strictEqual(
+        ((yield* bodyOf(response)) as { location: string }).location,
+        "/nope"
+      );
+    })
+  );
+
+  it.effect(
+    "gives a refusal from outside the router a fix but no location",
+    () =>
+      Effect.gen(function* undecodable() {
+        const schemaError = yield* Effect.flip(
+          Schema.decodeUnknownEffect(Schema.Number)("not a number")
+        );
+
+        const response = yield* toErrorResponse(Cause.fail(schemaError));
+        const body = (yield* bodyOf(response)) as Record<string, unknown>;
+
+        assert.strictEqual(response.status, 400);
+        assert.isString(body.fix);
+        assert.notProperty(body, "location");
+      })
   );
 
   it.effect("logs a refusal at the info level", () =>

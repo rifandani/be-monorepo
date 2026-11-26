@@ -19,7 +19,9 @@ export const isRouteNotFound = (
   HttpServerError.isHttpServerError(error) &&
   Predicate.isTagged(error.reason, "RouteNotFound");
 
-const pathOf = (url: string): string => url.split("?")[0] ?? url;
+const QUERY = /\?.*/su;
+
+export const pathOf = (url: string): string => url.replace(QUERY, "");
 
 export const notFound = HttpRouter.middleware(
   (httpEffect) =>

@@ -115,6 +115,12 @@ const effectPath = (source: SourceCode, callee: ESTree.Node) => {
 const providesProgram = (call: ESTree.CallExpression, child: ESTree.Node) =>
   call.arguments.length > 2 && call.arguments[0] === child;
 
+const isOfCall = (callee: ESTree.Node) =>
+  callee.type === "MemberExpression" &&
+  !callee.computed &&
+  callee.property.type === "Identifier" &&
+  callee.property.name === "of";
+
 const suppliesService = (
   source: SourceCode,
   call: ESTree.CallExpression,
@@ -122,12 +128,7 @@ const suppliesService = (
 ) => {
   const callee = rootCallee(call.callee);
 
-  if (
-    callee.type === "MemberExpression" &&
-    !callee.computed &&
-    callee.property.type === "Identifier" &&
-    callee.property.name === "of"
-  ) {
+  if (isOfCall(callee)) {
     return true;
   }
 
